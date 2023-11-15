@@ -1,98 +1,63 @@
-
 # Open Source Assistants API Documentation
 
 ## Overview
-The Open Source Assistants API allows you to build AI assistants within your applications, leveraging models, tools, and knowledge to respond to user queries. This API is currently in beta, with plans to add more OpenAI-built tools and support for user-provided tools.
+The Open Source Assistants API enables building AI assistants within applications using models, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
 
-### Features
-- **Code Interpreter**: Executes Python code in a sandbox.
-- **Knowledge Retrieval**: Augments the Assistant with external knowledge or documents.
-- **Function Calling**: Define and execute custom functions.
-- **File Handling**: Supports various file formats for input and output.
+### Key Features
+- **Code Interpreter**: Runs Python code in a sandboxed environment.
+- **Knowledge Retrieval**: Retrieves external knowledge or documents.
+- **Function Calling**: Defines and executes custom functions.
+- **File Handling**: Supports a range of file formats.
 
-## Getting Started
-1. **Create an Assistant**: Define custom instructions, pick a model, and enable tools like Code Interpreter, Retrieval, and Function calling.
-2. **Create a Thread**: Represents a user's conversation, store messages and context.
-3. **Add Messages**: Text or files added to the conversation thread.
-4. **Run the Assistant**: Trigger responses using the model and tools.
-5. **Manage Outputs**: Handle file paths and citations in Assistant's responses.
+## Tools
 
-### Example Usage
-```python
-# Creating an Assistant
-assistant = client.beta.assistants.create(
-    name="Math Tutor",
-    instructions="Solve math questions using code.",
-    tools=[{"type": "code_interpreter"}],
-    model="gpt-4-1106-preview"
-)
+### Code Interpreter
+- **Functionality**: Executes Python code, processes files, and generates output files (e.g., images, CSVs).
+- **Usage**: Enabled by passing `code_interpreter` in the tools parameter.
+- **File Processing**: Can parse data from uploaded files, useful for large data volumes or user-uploaded files.
+- **Output Handling**: Generates image files and data files, which can be downloaded using the file ID in the Assistant Message response.
 
-# Creating a Thread
-thread = client.beta.threads.create()
+### Knowledge Retrieval
+- **Purpose**: Augments the Assistant with external knowledge from uploaded documents.
+- **Enabling Retrieval**: Add `retrieval` in the tools parameter of the Assistant.
+- **Techniques**: Uses file content in prompts for short documents or performs a vector search for longer documents.
+- **File Formats**: Supports a variety of formats including .pdf, .md, .docx, etc.
 
-# Adding a Message
-message = client.beta.threads.messages.create(
-    thread_id=thread.id,
-    role="user",
-    content="Solve the equation `3x + 11 = 14`."
-)
+### Function Calling
+- **Capabilities**: Describe functions to Assistants, which intelligently return functions to be called along with arguments.
+- **Defining Functions**: Define functions when creating an Assistant.
+- **Function Invocation**: The Assistant API pauses execution during a Run when it invokes functions.
+- **Output Submission**: Submit tool output from the function calls to continue the Run execution.
 
-# Running the Assistant
-run = client.beta.threads.runs.create(
-  thread_id=thread.id,
-  assistant_id=assistant.id,
-  instructions="Additional instructions."
-)
-```
+## Integration Steps
+1. **Create an Assistant**: Define instructions, pick a model, and enable tools.
+2. **Create a Thread**: Represents a conversation session with user-specific context.
+3. **Add Messages**: Include text or files in the Thread.
+4. **Run the Assistant**: Use the Assistant to trigger responses.
+5. **Manage Outputs**: Handle file paths and citations in responses.
 
-## Data Access and Security
+## Security and Data Access
 - Implement strict authorization checks.
-- Restrict API key access within your organization.
-- Consider creating separate accounts for different applications.
+- Limit API key access within your organization.
+- Consider separate accounts for different applications for data isolation.
 
 ## Limitations and Future Developments
-- Currently, in beta with known limitations.
-- Future plans include support for streaming output, notifications, DALL·E integration, and image handling in user messages.
+- Currently in beta with ongoing developments.
+- Future plans include streaming output, notifications, DALL·E integration, and image handling in user messages.
 
 ## Next Steps
-- Learn more about [How Assistants Work](#how-assistants-work).
-- Explore the [Assistants Playground](#assistants-playground).
-- Dive deeper into [Tools](#tools).
+- Explore [How Assistants Work](#how-assistants-work).
+- Check out the [Assistants Playground](#assistants-playground).
+- Dive into detailed [Tool Usage](#tools).
 
 ---
 
-# How Assistants Work
-
-## Core Concepts
-- **Assistants**: Use OpenAI’s models and tools to perform tasks.
-- **Threads**: Store conversation history, handling truncation for model context.
-- **Messages**: Text, images, and files exchanged between users and Assistants.
-- **Runs**: Invocations of Assistants on Threads.
-- **Run Steps**: Detailed steps taken by Assistants during Runs.
-
-## Creating Assistants
-- Use latest OpenAI models for compatibility.
-- Customize behavior with `instructions`, `tools`, and `file_ids` parameters.
-- Upload files for use with Assistants.
-
-## Managing Threads and Messages
-- No limit on number of Messages in a Thread.
-- Automatic truncation to fit model context.
-- Support for text, images, and files (future support for user-created image messages).
-
-## Annotations in Messages
-- Handle `file_citation` and `file_path` annotations.
-- Replace model-generated substrings with annotations for clarity.
-
-## Run and Run Steps
-- Monitor Run status for application flow control.
-- Examine Run Steps for insights into Assistant's decision-making process.
-
-## Data Access Guidelines
-- Implement robust authorization and access controls.
-- Separate accounts for different applications for data isolation.
-
-## Known Limitations and Upcoming Features
-- Streaming output and notifications.
-- DALL·E integration.
-- Image handling in user messages.
+# Supported File Formats for Tools
+| File Format | MIME Type | Code Interpreter | Retrieval |
+|-------------|-----------|-------------------|-----------|
+| .c          | text/x-c  | ✓                 |           |
+| .cpp        | text/x-c++| ✓                 |           |
+| .csv        | application/csv | ✓           | ✓         |
+| .docx       | application/vnd.openxmlformats-officedocument.wordprocessingml.document | | ✓ |
+| .html       | text/html | ✓                 |           |
+| ... and many more |
