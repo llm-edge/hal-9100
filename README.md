@@ -45,11 +45,6 @@ The Open Source Assistants API enables building AI assistants within application
 - Currently in beta with ongoing developments.
 - Future plans include streaming output, notifications, DALL·E integration, and image handling in user messages.
 
-## Next Steps
-- Explore [How Assistants Work](#how-assistants-work).
-- Check out the [Assistants Playground](#assistants-playground).
-- Dive into detailed [Tool Usage](#tools).
-
 ---
 
 # Supported File Formats for Tools
