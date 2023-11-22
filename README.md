@@ -1,4 +1,29 @@
-# Open Source Assistants API Documentation
+<br />
+
+
+<p align="center">
+<img width="150" alt="assistants" src="https://github.com/louis030195/assistants/assets/25003283/499b65e0-38fb-464b-a4d3-bb7f83f2a81b">
+  <h1 align="center">Open Source Assistants API</h1>
+
+  <h3 align="center">The Open Source Assistants API allows you to build AI assistants within your own applications</h3>
+
+  <p align="center">
+    <br />
+    <a href="https://discord.gg/xxx"><img alt="Discord" src="https://img.shields.io/discord/1066022656845025310?color=black&style=for-the-badge"></a>
+    <br />
+    <div align="center">
+      <a href="stripelink">💰 Pre-order the commercial license 10x cheaper now</a>
+      <br />
+      <a href="https://github.com/louis030195/assistants/issues/new?assignees=&labels=enhancement">✨ Request Feature</a>
+      <br />
+      <a href="https://github.com/louis030195/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Report Bug</a>
+    </div>
+    <br />
+  </p>
+</p>
+
+
+# Open Source Assistants API Documentation (wip)
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using models, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
