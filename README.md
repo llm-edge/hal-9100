@@ -54,6 +54,10 @@ The Open Source Assistants API enables building AI assistants within application
 - **Function Invocation**: The Assistant API pauses execution during a Run when it invokes functions.
 - **Output Submission**: Submit tool output from the function calls to continue the Run execution.
 
+## What are people building
+
+- 🚀 Open Source Assistants is being tested at **NASA facilities** to be deployed in space soon.
+
 ## Integration Steps
 1. **Create an Assistant**: Define instructions, pick a model, and enable tools.
 2. **Create a Thread**: Represents a conversation session with user-specific context.
