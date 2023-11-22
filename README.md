@@ -21,7 +21,9 @@
   </p>
 </p>
 
-# Open Source Assistants API Documentation (wip)
+# Open Source Assistants API
+
+**Code coming soon - cleaning up**
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using models, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
