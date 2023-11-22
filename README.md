@@ -2,9 +2,9 @@
 
 <p align="center">
 <img width="150" alt="assistants" src="https://github.com/louis030195/assistants/assets/25003283/499b65e0-38fb-464b-a4d3-bb7f83f2a81b">
-  <h1 align="center">Open Source Assistants API</h1>
+  <h1 align="center">⭐️ Open Source ⭐️ <s>OpenAI</s> Assistants API</h1>
 
-  <h3 align="center">The Open Source Assistants API allows you to build AI assistants within your own applications</h3>
+  <h3 align="center">The ⭐️ Open Source ⭐️ <s>OpenAI</s> Assistants API allows you to build AI assistants within your own applications</h3>
 
   <p align="center">
     <br />
