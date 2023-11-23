@@ -8,7 +8,7 @@
 
   <p align="center">
     <br />
-    <a href="https://discord.gg/xxx"><img alt="Discord" src="https://img.shields.io/discord/1066022656845025310?color=black&style=for-the-badge"></a>
+    <a href="https://discord.gg/XMetBW3zCG"><img alt="Discord" src="https://img.shields.io/discord/1066022656845025310?color=black&style=for-the-badge"></a>
     <br />
     <div align="center">
       <a href="stripelink">💰 Pre-order the commercial license 10x cheaper now</a>
