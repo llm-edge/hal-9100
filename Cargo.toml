@@ -1,0 +1,6 @@
+[workspace]
+members = ["assistants-core", "assistants-*", "examples/*"]
+# Only check / build main crates by default (check all with `--workspace`)
+default-members = ["assistants-core", "assistants-*"]
+exclude = []
+resolver = "2"

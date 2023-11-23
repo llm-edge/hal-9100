@@ -1,0 +1,22 @@
+# Ignore the target directory in the root of the project
+/target/
+
+# Ignore any target directories in subdirectories
+**/target/
+
+# Dependency directory
+**/Cargo.lock
+
+# These directories can contain user-specific configuration, build artifacts, etc
+/.idea/
+.vscode/
+
+# Backup files
+*.bak
+
+# Other files and directories to ignore
+*.o
+*.lo
+*.la
+.env
+

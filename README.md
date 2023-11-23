@@ -54,8 +54,15 @@ For example, to create an Assistant:
 ## What are people building
 
 - 🛸 Open Source Assistants API is used in spacecrafts (currently in stealth mode)
+<<<<<<< Updated upstream
 
 ## Tech stack
 
 - 🦀 Rust for performance, reliability, security
 
+=======
+
+## Tech stack
+
+- 🦀 Rust for performance, reliability, security
+>>>>>>> Stashed changes
