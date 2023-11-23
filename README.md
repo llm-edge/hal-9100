@@ -29,10 +29,10 @@
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
 
 ### Key Features
-- **Code Interpreter**: Runs Python code in a sandboxed environment.
-- **Knowledge Retrieval**: Retrieves external knowledge or documents.
-- **Function Calling**: Defines and executes custom functions.
-- **File Handling**: Supports a range of file formats.
+- [ ] **Code Interpreter**: Runs Python code in a sandboxed environment.
+- [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
+- [ ] **Function Calling**: Defines and executes custom functions.
+- [x] **File Handling**: Supports a range of file formats.
 
 ## Assistants API Beta
 - The Assistants API allows integration of AI assistants into applications.

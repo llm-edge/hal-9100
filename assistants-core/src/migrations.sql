@@ -22,11 +22,16 @@ CREATE TABLE threads (
 
 -- Create messages table
 CREATE TABLE messages (
-    id SERIAL PRIMARY KEY,
-    thread_id TEXT,
-    role TEXT,
-    content TEXT,
-    user_id TEXT
+    id TEXT PRIMARY KEY NOT NULL,
+    created_at BIGINT NOT NULL,
+    thread_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content JSONB NOT NULL,
+    assistant_id TEXT,
+    run_id TEXT,
+    file_ids TEXT[],
+    metadata JSONB,
+    user_id TEXT NOT NULL
 );
 
 -- Create runs table
