@@ -55,3 +55,7 @@ For example, to create an Assistant:
 
 - Open Source Assistants API is used in spacecrafts (currently in stealth mode)
 
+## Tech stack
+
+- Rust for performance, reliability, security
+
