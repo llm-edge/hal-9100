@@ -1,12 +1,8 @@
 use reqwest::header::InvalidHeaderValue;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::fmt;
-use futures::StreamExt;
-use reqwest::Body;
-use bytes::Bytes;
-
+use std::collections::HashMap; 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -27,6 +23,11 @@ struct RequestBody {
     prompt: String,
     max_tokens_to_sample: i32,
     temperature: f32,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    top_k: Option<i32>,
+    metadata: Option<HashMap<String, String>>,
+    stream: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -85,7 +86,16 @@ impl From<reqwest::Error> for ApiError {
     }
 }
 
-async fn call_anthropic_api_stream() -> Result<bytes::Bytes, ApiError> {
+async fn call_anthropic_api_stream(
+    prompt: String,
+    max_tokens_to_sample: i32,
+    model: Option<String>,
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    top_k: Option<i32>,
+    metadata: Option<HashMap<String, String>>,
+) -> Result<bytes::Bytes, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
 
@@ -94,17 +104,32 @@ async fn call_anthropic_api_stream() -> Result<bytes::Bytes, ApiError> {
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
 
     let body = RequestBody {
-        model: "claude-2".to_string(),
-        prompt: "Human: Hello, world! Assistant:".to_string(),
-        max_tokens_to_sample: 100,
-        temperature: 1.0,
+        model: model.unwrap_or_else(|| "claude-2.1".to_string()),
+        prompt,
+        max_tokens_to_sample,
+        temperature: temperature.unwrap_or(1.0),
+        stop_sequences,
+        top_p,
+        top_k,
+        metadata,
+        stream: Some(true),
     };
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
     Ok(res.bytes().await?)
 }
-async fn call_anthropic_api() -> Result<ResponseBody, ApiError> {
+
+async fn call_anthropic_api(
+    prompt: String,
+    max_tokens_to_sample: i32,
+    model: Option<String>,
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    top_k: Option<i32>,
+    metadata: Option<HashMap<String, String>>,
+) -> Result<ResponseBody, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
 
@@ -113,10 +138,15 @@ async fn call_anthropic_api() -> Result<ResponseBody, ApiError> {
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
 
     let body = RequestBody {
-        model: "claude-2".to_string(),
-        prompt: "Human: Hello, world! Assistant:".to_string(),
-        max_tokens_to_sample: 100,
-        temperature: 1.0,
+        model: model.unwrap_or_else(|| "claude-2.1".to_string()),
+        prompt,
+        max_tokens_to_sample,
+        temperature: temperature.unwrap_or(1.0),
+        stop_sequences,
+        top_p,
+        top_k,
+        metadata,
+        stream: Some(false),
     };
 
     let client = reqwest::Client::new();
@@ -139,6 +169,7 @@ async fn call_anthropic_api() -> Result<ResponseBody, ApiError> {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,24 +177,41 @@ mod tests {
     #[tokio::test]
     async fn test_call_anthropic_api() {
         dotenv::dotenv().ok();
-        let result = call_anthropic_api().await;
+        let prompt = "Human: Say '0' Assistant:".to_string();
+        let max_tokens_to_sample = 100;
+        let model = Some("claude-2.1".to_string());
+        let temperature = Some(1.0);
+        let stop_sequences = Some(vec!["Test".to_string()]);
+        let top_p = Some(1.0);
+        let top_k = Some(1);
+        let metadata = Some(HashMap::new());
+
+        let result = call_anthropic_api(prompt, max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await;
 
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(response.completion, " Hello!");
+                assert_eq!(response.completion, " 0");
                 assert_eq!(response.stop_reason, "stop_sequence");
                 assert_eq!(response.model, "claude-2.1");
             }
             Err(e) => panic!("API call failed: {}", e),
         }
     }
-    use futures::StreamExt;
 
     #[tokio::test]
     async fn test_call_anthropic_api_stream() {
         dotenv::dotenv().ok();
-        let bytes = call_anthropic_api_stream().await.expect("API call failed");
+        let prompt = "Human: Say '0' Assistant:".to_string();
+        let max_tokens_to_sample = 100;
+        let model = Some("claude-2.1".to_string());
+        let temperature = Some(1.0);
+        let stop_sequences = Some(vec!["Test".to_string()]);
+        let top_p = Some(1.0);
+        let top_k = Some(1);
+        let metadata = Some(HashMap::new());
+
+        let bytes = call_anthropic_api_stream(prompt, max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await.expect("API call failed");
         for chunk in bytes.chunks(1024) { // process in chunks of 1024 bytes
             println!("Received data: {:?}", chunk);
         }
