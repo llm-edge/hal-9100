@@ -23,7 +23,7 @@
 
 # Open Source Assistants API
 
-**The code is coming soon, [you can pre-order a commercial license at 10x the release cost now]()**
+**The full code is coming soon, [you can pre-order a commercial license at 10x the release cost now]()**
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
@@ -51,18 +51,25 @@ For example, to create an Assistant:
 
 ![Pika UI mockup](https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568)
 
-## What are people building
+## System Architecture
 
-- 🛸 Open Source Assistants API is used in spacecrafts (currently in stealth mode)
-<<<<<<< Updated upstream
+The Open Source Assistants API is built on a robust and flexible infrastructure designed to handle a variety of AI tasks. Here's a high-level overview of how it works:
 
-## Tech stack
+1. **AI Models**: The core of the system is powered by AI models. These models can be from Open Source or other AI providers than OpenAI. You have the flexibility to set your model according to your needs.
 
-- 🦀 Rust for performance, reliability, security
+2. **API Gateway**: The API Gateway is the entry point for all requests. It routes requests to the appropriate service and handles tasks like rate limiting and authentication.
 
-=======
+3. **Services**: The system is composed of several services, each responsible for a specific task. These include a Code Interpreter, Knowledge Retrieval, Function Calling, and File Handling. Each service runs in a sandboxed environment for security.
 
-## Tech stack
+4. **Data Storage**: The system uses a combination of in-memory and persistent storage to manage data. This ensures fast response times and durability.
 
-- 🦀 Rust for performance, reliability, security
->>>>>>> Stashed changes
+5. **Deployment**: The system can be deployed on any platform that supports Rust, such as Railway.app. You just need to change the API domain and remove unnecessary headers.
+
+This architecture is designed to be scalable and reliable, making it suitable for a wide range of applications. Whether you're building a simple chatbot or a complex AI assistant, the Open Source Assistants API has you covered.
+
+## Maintenance and Support
+
+The Open Source Assistants API will be maintained and used in production in extreme environments requiring high security, redundancy, and performance.
+
+**Support is not our primary focus**. We're a small team focused on improving the API and using it in production. However, we're considering paid support packages for commercial applications in the future.
+
