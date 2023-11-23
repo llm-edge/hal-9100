@@ -1,5 +1,5 @@
 [package]
-name = "assistants"
+name = "assistants-core"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.65"
@@ -7,11 +7,7 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# axum = "0.6.13"
 axum = { version= "0.6.13", features = ["headers"] }
-
-# axum-extra = { version= "0.7.4", features = ["typed-header"] }
-# axum-extra = "0.7.4"
 futures = "0.3"
 headers = "0.3"
 tokio = { version = "1.0", features = ["full"] }
@@ -19,3 +15,12 @@ tokio-stream = "0.1"
 tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx = { version = "0.5", features = ["macros", "postgres", "runtime-async-std-rustls"] }
+
+[build-dependencies]
+syn = "1"
+
+[dev-dependencies]
+dotenv = "0.15"
+
+
