@@ -13,9 +13,9 @@
     <div align="center">
       <a href="stripelink">💰 Pre-order the commercial license 10x cheaper now</a>
       <br />
-      <a href="https://github.com/louis030195/assistants/issues/new?assignees=&labels=enhancement">✨ Request Feature</a>
+      <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Request Feature</a>
       <br />
-      <a href="https://github.com/louis030195/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Report Bug</a>
+      <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Report Bug</a>
     </div>
     <br />
   </p>
