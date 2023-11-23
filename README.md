@@ -1,7 +1,7 @@
 
 
 <p align="center">
-<img width="800" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568">
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568">
   <h1 align="center">⭐️ Open Source ⭐️ <s>OpenAI</s> Assistants API</h1>
 
   <h3 align="center">The ⭐️ Open Source ⭐️ <s>OpenAI</s> Assistants API allows you to build AI assistants within your own applications</h3>
