@@ -23,7 +23,7 @@
 
 # Open Source Assistants API
 
-**Code coming soon - cleaning up**
+**The code is coming soon, [you can pre-order a commercial license at 10x the release cost now]()**
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
@@ -53,9 +53,9 @@ For example, to create an Assistant:
 
 ## What are people building
 
-- Open Source Assistants API is used in spacecrafts (currently in stealth mode)
+- 🛸 Open Source Assistants API is used in spacecrafts (currently in stealth mode)
 
 ## Tech stack
 
-- Rust for performance, reliability, security
+- 🦀 Rust for performance, reliability, security
 
