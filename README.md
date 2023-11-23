@@ -51,4 +51,7 @@ For example, to create an Assistant:
 
 ![Pika UI mockup](https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568)
 
+## What are people building
+
+- Open Source Assistants API is used in spacecrafts (currently in stealth mode)
 
