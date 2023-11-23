@@ -3,6 +3,9 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
+use futures::StreamExt;
+use reqwest::Body;
+use bytes::Bytes;
 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -81,6 +84,26 @@ impl From<reqwest::Error> for ApiError {
         ApiError::InvalidRequestError(error.to_string())
     }
 }
+
+async fn call_anthropic_api_stream() -> Result<bytes::Bytes, ApiError> {
+    let url = "https://api.anthropic.com/v1/complete";
+    let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
+
+    let body = RequestBody {
+        model: "claude-2".to_string(),
+        prompt: "Human: Hello, world! Assistant:".to_string(),
+        max_tokens_to_sample: 100,
+        temperature: 1.0,
+    };
+
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    Ok(res.bytes().await?)
+}
 async fn call_anthropic_api() -> Result<ResponseBody, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
@@ -120,7 +143,6 @@ async fn call_anthropic_api() -> Result<ResponseBody, ApiError> {
 mod tests {
     use super::*;
     use dotenv;
-
     #[tokio::test]
     async fn test_call_anthropic_api() {
         dotenv::dotenv().ok();
@@ -136,4 +158,15 @@ mod tests {
             Err(e) => panic!("API call failed: {}", e),
         }
     }
+    use futures::StreamExt;
+
+    #[tokio::test]
+    async fn test_call_anthropic_api_stream() {
+        dotenv::dotenv().ok();
+        let bytes = call_anthropic_api_stream().await.expect("API call failed");
+        for chunk in bytes.chunks(1024) { // process in chunks of 1024 bytes
+            println!("Received data: {:?}", chunk);
+        }
+    }
 }
+
