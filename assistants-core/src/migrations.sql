@@ -1,3 +1,6 @@
+
+\c mydatabase;
+
 -- Drop existing tables
 DROP TABLE IF EXISTS assistants;
 DROP TABLE IF EXISTS threads;

@@ -1,16 +1,28 @@
-// data storage
-// init
-// docker run --name pg -e POSTGRES_PASSWORD=secret -d -p 5432:5432 postgres
-// docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;"
+/*
+data storage
+init
+docker run --name pg -e POSTGRES_PASSWORD=secret -d -p 5432:5432 postgres
+docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;"
 
-// migrations
-// docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql
+migrations
+docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql
 
-// checks
-// docker exec -it pg psql -U postgres -d mydatabase -c "\dt"
+checks
+docker exec -it pg psql -U postgres -d mydatabase -c "\dt"
 
-// queue
-// docker run --name redis -d -p 6379:6379 redis
+queue
+docker run --name redis -d -p 6379:6379 redis
+
+MINIO
+
+docker run -d -p 9000:9000 -p 9001:9001 \
+--name minio1 \
+-e "MINIO_ROOT_USER=minioadmin" \
+-e "MINIO_ROOT_PASSWORD=minioadmin" \
+minio/minio server /data --console-address ":9001"
+
+check docker/docker-compose.yml
+*/
 
 use sqlx::PgPool;
 use serde_json;
@@ -58,13 +70,7 @@ pub struct Run {
     pub instructions: String,
     pub status: String,
 }
-fn from_sql_value<'de, D>(deserializer: D) -> Result<Vec<Content>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: serde_json::Value = Deserialize::deserialize(deserializer)?;
-    serde_json::from_value(value).map_err(serde::de::Error::custom)
-}
+
 
 pub struct Assistant {
     pub instructions: String,
@@ -134,31 +140,6 @@ pub async fn list_messages(pool: &PgPool, thread_id: &str) -> Result<Vec<Message
     .collect();
     Ok(messages)
 }
-
-// pub async fn check_run_status(pool: &PgPool, run_id: &i32) -> Result<Option<String>, sqlx::Error> { // Change run_id type to i32 and return type to Option<String>
-//     let row = sqlx::query!(
-//         r#"
-//         SELECT status FROM runs WHERE id = $1
-//         "#,
-//         &run_id
-//     )
-//     .fetch_one(pool)
-//     .await?;
-//     Ok(row.status)
-// }
-
-// // Change the return type to Vec<Record> in display_assistant_response function
-// pub async fn display_assistant_response(pool: &PgPool, thread_id: &str, user_id: &str) -> Result<Vec<Record>, sqlx::Error> {
-//     let rows = sqlx::query!(
-//         r#"
-//         SELECT content FROM messages WHERE thread_id = $1 AND user_id = $2 AND role = 'assistant'
-//         "#,
-//         &thread_id, &user_id
-//     )
-//     .fetch_all(pool)
-//     .await?;
-//     Ok(rows)
-// }
 
 
 pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<(), sqlx::Error> {

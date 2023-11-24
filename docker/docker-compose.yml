@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  postgres:
+    container_name: pg
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: mydatabase
+    ports:
+      - 5432:5432
+    command: postgres
+  redis:
+    container_name: redis 
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+
+  minio:
+    container_name: minio1
+    image: minio/minio
+    restart: always
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
