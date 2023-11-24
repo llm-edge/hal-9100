@@ -1,3 +1,4 @@
+// data storage
 // init
 // docker run --name pg -e POSTGRES_PASSWORD=secret -d -p 5432:5432 postgres
 // docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;"
@@ -8,11 +9,55 @@
 // checks
 // docker exec -it pg psql -U postgres -d mydatabase -c "\dt"
 
+// queue
+// docker run --name redis -d -p 6379:6379 redis
 
 use sqlx::PgPool;
 use serde_json;
 use serde::{self, Serialize, Deserialize, Deserializer};
+use redis::AsyncCommands;
 
+use std::error::Error;
+use std::fmt;
+
+use crate::assistants_extra::anthropic::call_anthropic_api;
+
+#[derive(Debug)]
+enum MyError {
+    SqlxError(sqlx::Error),
+    RedisError(redis::RedisError),
+}
+
+impl fmt::Display for MyError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MyError::SqlxError(e) => write!(f, "SqlxError: {}", e),
+            MyError::RedisError(e) => write!(f, "RedisError: {}", e),
+        }
+    }
+}
+
+impl Error for MyError {}
+
+impl From<sqlx::Error> for MyError {
+    fn from(err: sqlx::Error) -> MyError {
+        MyError::SqlxError(err)
+    }
+}
+
+impl From<redis::RedisError> for MyError {
+    fn from(err: redis::RedisError) -> MyError {
+        MyError::RedisError(err)
+    }
+}
+
+pub struct Run {
+    pub id: i32,
+    pub thread_id: String,
+    pub assistant_id: String,
+    pub instructions: String,
+    pub status: String,
+}
 fn from_sql_value<'de, D>(deserializer: D) -> Result<Vec<Content>, D::Error>
 where
     D: Deserializer<'de>,
@@ -43,7 +88,7 @@ pub struct Text {
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct Message {
-    pub id: String,
+    pub id: i32,
     pub created_at: i64,
     pub thread_id: String,
     pub role: String,
@@ -143,8 +188,7 @@ pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<(), sqlx::Err
     .await?;
     Ok(())
 }
-
-pub async fn add_message_to_thread(pool: &PgPool, thread_id: &str, role: &str, content: Vec<Content>) -> Result<(), sqlx::Error> {
+pub async fn add_message_to_thread(pool: &PgPool, thread_id: &str, role: &str, content: Vec<Content>, user_id: &str) -> Result<(), sqlx::Error> {
     let content_json = match serde_json::to_string(&content) {
         Ok(json) => json,
         Err(e) => return Err(sqlx::Error::Configuration(e.into())),
@@ -152,31 +196,74 @@ pub async fn add_message_to_thread(pool: &PgPool, thread_id: &str, role: &str, c
     let content_value: serde_json::Value = serde_json::from_str(&content_json).unwrap();
     sqlx::query!(
         r#"
-        INSERT INTO messages (thread_id, role, content)
-        VALUES ($1, $2, to_jsonb($3::jsonb))
+        INSERT INTO messages (thread_id, role, content, user_id)
+        VALUES ($1, $2, to_jsonb($3::jsonb), $4)
         "#,
-        &thread_id, &role, &content_value
+        &thread_id, &role, &content_value, &user_id
     )
     .execute(pool)
     .await?;
     Ok(())
 }
 
+pub async fn run_assistant(pool: &PgPool, thread_id: &str, assistant_id: &str, instructions: &str) -> Result<(), sqlx::Error> {
+    // Create Run in database
+    let run_id = create_run_in_db(pool, thread_id, assistant_id, instructions).await?;
 
-// pub async fn run_assistant(pool: &PgPool, thread_id: &str, assistant_id: &str, instructions: &str) -> Result<(), sqlx::Error> {
-//     sqlx::query!(
-//         r#"
-//         INSERT INTO runs (thread_id, assistant_id, instructions)
-//         VALUES ($1, $2, $3)
-//         "#,
-//         &thread_id, &assistant_id, &instructions
-//     )
-//     .execute(pool)
-//     .await?;
-//     Ok(())
-// }
+    // Add run_id to Redis queue
+    let client = match redis::Client::open("redis://127.0.0.1/") {
+        Ok(client) => client,
+        Err(e) => {
+            eprintln!("Failed to open Redis client: {}", e);
+            return Err(sqlx::Error::Configuration(e.into()));
+        }
+    };
+    
+    let mut con = client.get_async_connection().await.map_err(|e| sqlx::Error::Configuration(e.into()))?;
+    con.lpush("run_queue", run_id).await.map_err(|e| sqlx::Error::Configuration(e.into()))?;
 
+    Ok(())
+}
 
+async fn create_run_in_db(pool: &PgPool, thread_id: &str, assistant_id: &str, instructions: &str) -> Result<i32, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        INSERT INTO runs (thread_id, assistant_id, instructions)
+        VALUES ($1, $2, $3)
+        RETURNING id
+        "#,
+        &thread_id, &assistant_id, &instructions
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(row.id)
+}
+
+pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT * FROM runs WHERE id = $1
+        "#,
+        &run_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(Run {
+        id: row.id,
+        thread_id: row.thread_id.unwrap_or_default(), // If thread_id is None, use an empty string
+        assistant_id: row.assistant_id.unwrap_or_default(), // If assistant_id is None, use an empty string
+        instructions: row.instructions.unwrap_or_default(), // If instructions is None, use an empty string
+        status: row.status.unwrap_or_default(), // If status is None, use an empty string
+    })
+}
+
+pub async fn simulate_assistant_response(pool: &PgPool, run_id: i32) -> Result<(), sqlx::Error> {
+    let run = get_run_from_db(pool, run_id).await?;
+    let result = call_anthropic_api(run.instructions, 100, None, None, None, None, None, None).await?;
+    update_run_in_db(pool, run_id, result.completion).await?;
+    Ok(())
+}
 
 
 #[cfg(test)]
@@ -203,7 +290,7 @@ mod tests {
             instructions: "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
             name: "Math Tutor".to_string(),
             tools: vec!["code_interpreter".to_string()],
-            model: "gpt-4".to_string(),
+            model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
         };
         let result = create_assistant(&pool, &assistant).await;
@@ -227,7 +314,8 @@ mod tests {
                 annotations: vec![],
             },
         }];
-        let result = add_message_to_thread(&pool, "thread1", "user", content).await;
+        let result = add_message_to_thread(&pool, "thread1", "user", content, "user1").await;
+        println!("{:?}", result);
         assert!(result.is_ok());
     }
 
@@ -236,6 +324,28 @@ mod tests {
     async fn test_list_messages() {
         let pool = setup().await;
         let result = list_messages(&pool, &"thread1").await;
+        assert!(result.is_ok());
+    }
+
+
+    #[tokio::test]
+    async fn test_run_assistant() {
+        dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        let result = run_assistant(&pool, "thread1", "assistant1", "Please address the user as Jane Doe. The user has a premium account.").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_simulate_assistant_response() {
+        let pool = setup().await;
+        let run_id = 1; // Replace with a valid run_id
+        let result = simulate_assistant_response(&pool, run_id).await;
         assert!(result.is_ok());
     }
 }

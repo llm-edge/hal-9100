@@ -22,8 +22,8 @@ CREATE TABLE threads (
 
 -- Create messages table
 CREATE TABLE messages (
-    id TEXT PRIMARY KEY NOT NULL,
-    created_at BIGINT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
     thread_id TEXT NOT NULL,
     role TEXT NOT NULL,
     content JSONB NOT NULL,
