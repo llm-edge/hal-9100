@@ -19,8 +19,8 @@ use redis::AsyncCommands;
 
 use std::error::Error;
 use std::fmt;
-
-use crate::assistants_extra::anthropic::call_anthropic_api;
+use assistants_extra::anthropic;
+use assistants_extra::anthropic::call_anthropic_api;
 
 #[derive(Debug)]
 enum MyError {
@@ -258,9 +258,35 @@ pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Er
     })
 }
 
+async fn update_run_in_db(pool: &PgPool, run_id: i32, completion: String) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        UPDATE runs SET status = $1 WHERE id = $2
+        "#,
+        &completion, &run_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+#[derive(Debug)]
+struct AnthropicApiError(anthropic::ApiError);
+
+impl fmt::Display for AnthropicApiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Anthropic API error: {}", self.0)
+    }
+}
+
+impl Error for AnthropicApiError {}
+
 pub async fn simulate_assistant_response(pool: &PgPool, run_id: i32) -> Result<(), sqlx::Error> {
     let run = get_run_from_db(pool, run_id).await?;
-    let result = call_anthropic_api(run.instructions, 100, None, None, None, None, None, None).await?;
+    let result = call_anthropic_api(run.instructions, 100, None, None, None, None, None, None).await.map_err(|e| {
+        eprintln!("Anthropic API error: {}", e);
+        sqlx::Error::Configuration(AnthropicApiError(e).into())
+    })?;
     update_run_in_db(pool, run_id, result.completion).await?;
     Ok(())
 }
@@ -344,7 +370,7 @@ mod tests {
     #[tokio::test]
     async fn test_simulate_assistant_response() {
         let pool = setup().await;
-        let run_id = 1; // Replace with a valid run_id
+        let run_id = create_run_in_db(&pool, "thread1", "assistant1", "Human: Please address the user as Jane Doe. Assistant: ").await.unwrap(); // Replace with a valid run_id
         let result = simulate_assistant_response(&pool, run_id).await;
         assert!(result.is_ok());
     }

@@ -31,21 +31,21 @@ struct RequestBody {
 }
 
 #[derive(Deserialize, Debug)]
-struct ResponseBody {
-    completion: String,
-    stop_reason: String,
-    model: String,
+pub struct ResponseBody {
+    pub completion: String,
+    pub stop_reason: String,
+    pub model: String,
 }
 
 #[derive(Deserialize)]
-struct Usage {
-    prompt_tokens: i32,
-    completion_tokens: i32,
-    total_tokens: i32,
+pub struct Usage {
+    pub prompt_tokens: i32,
+    pub completion_tokens: i32,
+    pub total_tokens: i32,
 }
 
 #[derive(Debug)]
-enum ApiError {
+pub enum ApiError {
     InvalidRequestError(String),
     AuthenticationError(String),
     PermissionError(String),
@@ -86,7 +86,7 @@ impl From<reqwest::Error> for ApiError {
     }
 }
 
-async fn call_anthropic_api_stream(
+pub async fn call_anthropic_api_stream(
     prompt: String,
     max_tokens_to_sample: i32,
     model: Option<String>,
@@ -103,24 +103,32 @@ async fn call_anthropic_api_stream(
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
 
-    let body = RequestBody {
-        model: model.unwrap_or_else(|| "claude-2.1".to_string()),
-        prompt,
-        max_tokens_to_sample,
-        temperature: temperature.unwrap_or(1.0),
-        stop_sequences,
-        top_p,
-        top_k,
-        metadata,
-        stream: Some(true),
-    };
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())));
+    body.insert("prompt", serde_json::json!(prompt));
+    body.insert("max_tokens_to_sample", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(true));
+    
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop_sequences", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+    if let Some(top_k) = top_k {
+        body.insert("top_k", serde_json::json!(top_k));
+    }
+    if let Some(metadata) = metadata {
+        body.insert("metadata", serde_json::json!(metadata));
+    }
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
     Ok(res.bytes().await?)
 }
 
-async fn call_anthropic_api(
+pub async fn call_anthropic_api(
     prompt: String,
     max_tokens_to_sample: i32,
     model: Option<String>,
@@ -137,17 +145,26 @@ async fn call_anthropic_api(
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
 
-    let body = RequestBody {
-        model: model.unwrap_or_else(|| "claude-2.1".to_string()),
-        prompt,
-        max_tokens_to_sample,
-        temperature: temperature.unwrap_or(1.0),
-        stop_sequences,
-        top_p,
-        top_k,
-        metadata,
-        stream: Some(false),
-    };
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())));
+    body.insert("prompt", serde_json::json!(prompt));
+    body.insert("max_tokens_to_sample", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(false));
+    
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop_sequences", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+    if let Some(top_k) = top_k {
+        body.insert("top_k", serde_json::json!(top_k));
+    }
+    if let Some(metadata) = metadata {
+        body.insert("metadata", serde_json::json!(metadata));
+    }
+    
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
