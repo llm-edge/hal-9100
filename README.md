@@ -11,8 +11,6 @@
     <a href="https://discord.gg/XMetBW3zCG"><img alt="Discord" src="https://img.shields.io/discord/1066022656845025310?color=black&style=for-the-badge"></a>
     <br />
     <div align="center">
-      <a href="stripelink">💰 Pre-order the commercial license 10x cheaper now</a>
-      <br />
       <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Request Feature</a>
       <br />
       <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Report Bug</a>
@@ -22,8 +20,6 @@
 </p>
 
 # Open Source Assistants API
-
-**The full code is coming soon, [you can pre-order a commercial license at 10x the release cost now]()**
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
@@ -38,6 +34,12 @@ The Open Source Assistants API enables building AI assistants within application
 - The Assistants API allows integration of AI assistants into applications.
 - Supports tools like Code Interpreter, Retrieval, and Function calling.
 - Will follow OpenAI Assistants evolutions
+
+## Goals 
+- **Highly reliable**: The API is designed to be highly reliable, tested, and used in production even in extreme environments with human lives at stake.
+- **Compatible with OpenAI Assistants API**: The API is designed to be compatible with OpenAI Assistants API.
+- **Thin abstraction layer**: The API is designed as a thin, easy to understand, covering most valuable use cases, layer of abstraction on top of the best Open Source projects that have stood the test of time.
+- **Free**: The API is designed to be free and Open Source, with no hidden costs.
 
 ### Integration Steps
 
@@ -59,17 +61,8 @@ The Open Source Assistants API is built on a robust and flexible infrastructure 
 
 2. **API Gateway**: The API Gateway is the entry point for all requests. It routes requests to the appropriate service and handles tasks like rate limiting and authentication.
 
-3. **Services**: The system is composed of several services, each responsible for a specific task. These include a Code Interpreter, Knowledge Retrieval, Function Calling, and File Handling. Each service runs in a sandboxed environment for security.
+3. **Services**: The system is composed of several services, each responsible for a specific task. These include a Code Interpreter, Knowledge Retrieval, Function Calling, and File Handling.
 
 4. **Data Storage**: The system uses a combination of in-memory and persistent storage to manage data. This ensures fast response times and durability.
 
-5. **Deployment**: The system can be deployed on any platform that supports Rust, such as Railway.app. You just need to change the API domain and remove unnecessary headers.
-
-This architecture is designed to be scalable and reliable, making it suitable for a wide range of applications. Whether you're building a simple chatbot or a complex AI assistant, the Open Source Assistants API has you covered.
-
-## Maintenance and Support
-
-The Open Source Assistants API will be maintained and used in production in extreme environments requiring high security, redundancy, and performance.
-
-**Support is not our primary focus**. We're a small team focused on improving the API and using it in production. However, we're considering paid support packages for commercial applications in the future.
-
+5. **Deployment**: The system can be deployed on any platform that supports Docker, such as Railway.app.

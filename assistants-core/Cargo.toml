@@ -20,8 +20,8 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 assistants-extra = { path = "../assistants-extra" }
-rusoto_core = "0.46.0"
-rusoto_s3 = "0.46.0"
+bytes = "1.0"
+minio = "0.1.0"
 
 [build-dependencies]
 syn = "1"

@@ -1,47 +1,30 @@
-# name: Rust CI
+name: Rust CI
 
-# on:
-#   push:
-#     branches: [ master ]
-#   pull_request:
-#     branches: [ master ]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-# env:
-#   CARGO_TERM_COLOR: always
+env:
+  CARGO_TERM_COLOR: always
 
-# jobs:
-#   build:
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-#     runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
 
-#     steps:
-#     - uses: actions/checkout@v2
-#     - name: Setup Rust
-#       uses: actions-rs/toolchain@v1
-#       with:
-#         toolchain: stable
-#         override: true
+    - name: Start Docker containers
+      run: docker-compose -f docker/docker-compose.yml up -d
 
-#     - name: Check
-#       uses: actions-rs/cargo@v1
-#       with:
-#         command: check
-
-#     - name: Test
-#       uses: actions-rs/cargo@v1
-#       with:
-#         command: test
-
-#     - name: Set up Docker container for PostgreSQL
-#     run: |
-#         docker run --name pg -e POSTGRES_PASSWORD=secret -d -p 5432:5432 postgres
-#         sleep 10  # Give PostgreSQL some time to start
-#         docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;"
-
-#     - name: Run migrations
-#     run: |
-#         docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql
-
-#     - name: Check database
-#     run: |
-#         docker exec -it pg psql -U postgres -d mydatabase -c "\dt"
+    - name: Run tests
+      env:
+        ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+      run: cargo test

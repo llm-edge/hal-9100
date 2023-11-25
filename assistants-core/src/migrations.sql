@@ -14,23 +14,25 @@ CREATE TABLE assistants (
     name TEXT,
     tools TEXT[],
     model TEXT,
-    user_id TEXT
+    user_id TEXT,
+    file_ids TEXT[]
 );
 
 -- Create threads table
 CREATE TABLE threads (
     id SERIAL PRIMARY KEY,
-    user_id TEXT
+    user_id INTEGER REFERENCES assistants(id),
+    file_ids TEXT[]
 );
 
 -- Create messages table
 CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
     created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
-    thread_id TEXT NOT NULL,
+    thread_id INTEGER REFERENCES threads(id),
     role TEXT NOT NULL,
     content JSONB NOT NULL,
-    assistant_id TEXT,
+    assistant_id INTEGER REFERENCES assistants(id),
     run_id TEXT,
     file_ids TEXT[],
     metadata JSONB,
@@ -40,10 +42,10 @@ CREATE TABLE messages (
 -- Create runs table
 CREATE TABLE runs (
     id SERIAL PRIMARY KEY,
-    thread_id TEXT,
-    assistant_id TEXT,
+    thread_id INTEGER REFERENCES threads(id),
+    assistant_id INTEGER REFERENCES assistants(id),
     instructions TEXT,
     status TEXT,
-    user_id TEXT
+    user_id INTEGER
 );
 
