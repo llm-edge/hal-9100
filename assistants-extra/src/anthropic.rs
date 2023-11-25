@@ -2,6 +2,7 @@ use reqwest::header::InvalidHeaderValue;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use log::debug;
 use std::collections::HashMap; 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -86,8 +87,20 @@ impl From<reqwest::Error> for ApiError {
     }
 }
 
+fn format_prompt(mut prompt: String) -> String {
+    debug!("Original prompt: {}", prompt);
+    if !prompt.starts_with("Human:") {
+        prompt = format!("Human: {}", prompt);
+    }
+    if !prompt.ends_with("Assistant:") {
+        prompt = format!("{} Assistant:", prompt);
+    }
+    debug!("Formatted prompt: {}", prompt);
+    prompt
+}
+
 pub async fn call_anthropic_api_stream(
-    prompt: String,
+    mut prompt: String,
     max_tokens_to_sample: i32,
     model: Option<String>,
     temperature: Option<f32>,
@@ -98,7 +111,7 @@ pub async fn call_anthropic_api_stream(
 ) -> Result<bytes::Bytes, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
-
+    prompt = format_prompt(prompt);
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
@@ -129,7 +142,7 @@ pub async fn call_anthropic_api_stream(
 }
 
 pub async fn call_anthropic_api(
-    prompt: String,
+    mut prompt: String,
     max_tokens_to_sample: i32,
     model: Option<String>,
     temperature: Option<f32>,
@@ -140,7 +153,7 @@ pub async fn call_anthropic_api(
 ) -> Result<ResponseBody, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
-
+    prompt = format_prompt(prompt);
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
@@ -194,7 +207,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_anthropic_api() {
         dotenv::dotenv().ok();
-        let prompt = "Human: Say '0' Assistant:".to_string();
+        let prompt = "Say '0'".to_string();
         let max_tokens_to_sample = 100;
         let model = Some("claude-2.1".to_string());
         let temperature = Some(1.0);
@@ -219,7 +232,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_anthropic_api_stream() {
         dotenv::dotenv().ok();
-        let prompt = "Human: Say '0' Assistant:".to_string();
+        let prompt = "Say '0'".to_string();
         let max_tokens_to_sample = 100;
         let model = Some("claude-2.1".to_string());
         let temperature = Some(1.0);

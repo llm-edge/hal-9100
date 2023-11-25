@@ -78,6 +78,7 @@ pub struct Thread {
 }
 
 pub struct Assistant {
+    pub id: i32,
     pub instructions: String,
     pub name: String,
     pub tools: Vec<String>,

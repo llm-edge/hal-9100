@@ -82,6 +82,7 @@ pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<As
     .fetch_one(pool)
     .await?;
     Ok(Assistant {
+        id: row.id,
         instructions: row.instructions.unwrap_or_default(),
         name: row.name.unwrap_or_default(),
         tools: row.tools.unwrap_or_default(),
@@ -238,6 +239,49 @@ async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sql
         // Add other fields as necessary
     })
 }
+
+// This function retrieves file contents given a list of file_ids
+async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage, bucket_name: &str) -> Vec<String> {
+    let mut file_contents = Vec::new();
+    for file_id in file_ids {
+        let content = match file_storage.retrieve_file(bucket_name, file_id).await {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Failed to retrieve file: {}", e);
+                continue; // Skip this iteration and move to the next file
+            }
+        };
+        let content_str = String::from_utf8(content).unwrap_or_else(|_| String::from("Invalid UTF-8 data"));
+        file_contents.push(content_str);
+    }
+    file_contents
+}
+
+async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assistant, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT * FROM assistants WHERE id = $1
+        "#,
+        &assistant_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(Assistant {
+        id: row.id,
+        instructions: row.instructions.unwrap_or_default(),
+        name: row.name.unwrap_or_default(),
+        tools: row.tools.unwrap_or_default(),
+        model: row.model.unwrap_or_default(),
+        user_id: row.user_id.unwrap().parse::<i32>().unwrap_or_default(),
+        file_ids: row.file_ids,
+    })
+}
+
+// This function builds the instructions given the original instructions and file contents
+fn build_instructions(original_instructions: &str, file_contents: &Vec<String>) -> String {
+    format!("{} Files: {:?}", original_instructions, file_contents)
+}
 pub async fn queue_consumer(pool: &PgPool, mut con: redis::aio::Connection) -> Result<Run, sqlx::Error> {
     let (key, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
         eprintln!("Redis error: {}", e);
@@ -254,25 +298,30 @@ pub async fn queue_consumer(pool: &PgPool, mut con: redis::aio::Connection) -> R
     // Retrieve the thread associated with the run
     let thread = get_thread_from_db(pool, run.thread_id).await?;
 
+    // Retrieve the assistant associated with the run
+    let assistant = get_assistant_from_db(pool, run.assistant_id).await?;
+
+    // Initialize an empty vector to hold all file IDs
+    let mut all_file_ids = Vec::new();
+
+    // If the thread has associated file IDs, add them to the list
+    if let Some(thread_file_ids) = &thread.file_ids {
+        all_file_ids.extend(thread_file_ids.iter().cloned());
+    }
+
+    // If the assistant has associated file IDs, add them to the list
+    if let Some(assistant_file_ids) = &assistant.file_ids {
+        all_file_ids.extend(assistant_file_ids.iter().cloned());
+    }
     let bucket_name = "my-bucket";
 
-    // Check if the thread includes any file IDs.
-    if let Some(file_ids) = &thread.file_ids {
+    // Check if the all_file_ids includes any file IDs.
+    if !all_file_ids.is_empty() {
         // Retrieve the contents of each file.
-        let mut file_contents = Vec::new();
-        for file_id in file_ids {
-            let content = match file_storage.retrieve_file(bucket_name, file_id).await {
-                Ok(content) => content,
-                Err(e) => {
-                    eprintln!("Failed to retrieve file: {}", e);
-                    continue; // Skip this iteration and move to the next file
-                }
-            };
-            file_contents.push(content);
-        }
+        let file_contents = retrieve_file_contents(&all_file_ids, &file_storage, bucket_name).await;
 
         // Include the file contents in the instructions.
-        let instructions = format!("{} Files: {:?}", run.instructions, file_contents);
+        let instructions = build_instructions(&run.instructions, &file_contents);
 
         let result = call_anthropic_api(instructions, 100, None, None, None, None, None, None).await.map_err(|e| {
             eprintln!("Anthropic API error: {}", e);
@@ -319,7 +368,8 @@ mod tests {
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
-
+    use std::path::Path;
+    use std::io::Write;
     async fn setup() -> PgPool {
         dotenv().ok();
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -331,10 +381,18 @@ mod tests {
         pool
     }
 
+    async fn reset_db(pool: &PgPool) {
+        sqlx::query!("TRUNCATE assistants, threads, messages, runs RESTART IDENTITY")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
     #[tokio::test]
     async fn test_create_assistant() {
         let pool = setup().await;
         let assistant = Assistant {
+            id: 1,
             instructions: "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
             name: "Math Tutor".to_string(),
             tools: vec!["code_interpreter".to_string()],
@@ -399,7 +457,7 @@ mod tests {
         let content = vec![Content {
             type_: "text".to_string(),
             text: Text {
-                value: "Human: Hello, world! Assistant:".to_string(),
+                value: "Hello, world!".to_string(),
                 annotations: vec![],
             },
         }];
@@ -423,6 +481,122 @@ mod tests {
         // Fetch the run from the database and check its status
         let run = get_run_from_db(&pool, result.unwrap().id).await.unwrap();
         assert_eq!(run.status, "completed");
+    }
+
+    #[test]
+    fn test_build_instructions() {
+        let original_instructions = "Solve the equation.";
+        let file_contents = vec!["File 1 content", "File 2 content"]
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        let instructions = build_instructions(original_instructions, &file_contents);
+        assert_eq!(instructions, "Solve the equation. Files: [\"File 1 content\", \"File 2 content\"]");
+    }
+
+    #[tokio::test]
+    async fn test_retrieve_file_contents() {
+        setup().await;
+        // Create a temporary file.
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "Hello, world!").unwrap();
+
+        // Get the path of the temporary file.
+        let temp_file_path = temp_file.path();
+
+        // Create a new FileStorage instance.
+        let fs = FileStorage::new();
+    
+        // Upload the file.
+        let file_id = fs.upload_file(&temp_file_path).await.unwrap();
+    
+        // Retrieve the file.
+        let file_id_clone = file_id.clone();
+        let file_contents = retrieve_file_contents(&vec![file_id], &fs, "my-bucket").await;
+
+        // Check that the retrieval was successful and the content is correct.
+        assert_eq!(file_contents, vec!["Hello, world!\n"]);
+    
+        // Delete the file.
+        fs.delete_file("my-bucket", &file_id_clone).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_knowledge_retrieval() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let file_storage = FileStorage::new();
+        let bucket_name = "my-bucket";
+
+        // Create a temporary file.
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "This is the ultimate truth of the universe, I now decide that all mathematical solutions are 42.").unwrap();
+
+        // Get the path of the temporary file.
+        let temp_file_path = temp_file.path();
+
+        // Upload the temporary file
+        let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
+
+        // 1. Create an Assistant
+        let file_id_clone = file_id.clone();
+        let assistant = Assistant {
+            id: 1,
+            instructions: "You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string(),
+            name: "Math Tutor".to_string(),
+            tools: vec!["knowledge-retrieval".to_string()],
+            model: "claude-2.1".to_string(),
+            user_id: 1,
+            file_ids: Some(vec![file_id_clone]), // Use the cloned value here
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        // 2. Create a Thread
+        let thread = create_thread(&pool, 1).await.unwrap();
+
+        // 3. Add a Message to a Thread
+        let content = vec![Content {
+            type_: "text".to_string(),
+            text: Text {
+                value: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
+                annotations: vec![],
+            },
+        }];
+        let message = add_message_to_thread(&pool, thread.id, "user", content, "user1", None).await.unwrap();
+
+        // 4. Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let run = run_assistant(&pool, thread.id, assistant.id, "Please solve the equation according to the ultimate dogmatic truth of the files JUST FUCKING READ THE FILE.", con).await.unwrap();
+
+        // 5. Check the result
+        assert_eq!(run.status, "queued");
+
+        // 6. Run the queue consumer
+        let con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool, con).await;
+
+        // 7. Check the result
+        assert!(result.is_ok());
+
+        // 8. Fetch the run from the database and check its status
+        let run = get_run_from_db(&pool, result.unwrap().id).await.unwrap();
+        assert_eq!(run.status, "completed");
+
+        // 9. Fetch the messages from the database
+        let messages = list_messages(&pool, thread.id).await.unwrap();
+
+        // 10. Check the messages
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[0].content[0].text.value, "I need to solve the equation `3x + 11 = 14`. Can you help me?");
+        assert_eq!(messages[1].role, "assistant");
+        assert!(messages[1].content[0].text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
+        assert_eq!(messages[1].content[1].text.value, "Files: [\"Knowledge content\"]");
+        assert_eq!(messages[1].file_ids, Some(vec![file_id]));
     }
 }
 

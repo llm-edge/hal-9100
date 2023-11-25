@@ -24,3 +24,6 @@ clean: ## Stop and remove docker-postgres-1, docker-redis-1, docker-minio-1 cont
 	docker stop $$(docker ps -a -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || echo "No containers to stop"
 	docker rm $$(docker ps -a -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || true 
 	docker volume rm $$(docker volume ls -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || true
+
+## Clean and run docker compose up
+reboot: clean docker ## Clean and run docker compose up
