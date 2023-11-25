@@ -15,6 +15,9 @@ tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 sqlx = { version = "0.5", features = ["macros", "postgres", "runtime-async-std-rustls"] }
+assistants-core = { path = "../assistants-core" }
+redis = { version = "0.23.3", features = ["tokio-comp"] }
+minio = "0.1.0"
 
 [build-dependencies]
 syn = "1"

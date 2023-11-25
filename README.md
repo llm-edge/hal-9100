@@ -21,6 +21,8 @@
 
 # Open Source Assistants API
 
+🚀 **Status: Experimental** 🚀 We're moving fast and breaking things. Not usable in production yet.
+
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
 
