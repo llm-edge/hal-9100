@@ -2,6 +2,18 @@
 
 At the moment, you need both **Rust** and **Docker** installed to run the API.
 
+Additionally, `Assistants` currently only supports Anthropic, you need an API key that you can put in a `.env` file in the root of the project:
+
+```bash
+ANTHROPIC_API_KEY="..."
+DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase
+REDIS_URL=redis://127.0.0.1/
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_BUCKET_NAME=mybucket
+```
+
 ## Steps to Run the API
 
 1. **Start the server**
