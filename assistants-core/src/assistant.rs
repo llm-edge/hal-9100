@@ -56,7 +56,7 @@ pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>
             run_id: row.run_id,
             file_ids: row.file_ids,
             metadata: row.metadata,
-            user_id: row.user_id.parse::<i32>().unwrap_or_default(),
+            user_id: row.user_id.unwrap_or_default(),
         }
     })
     .collect();
@@ -87,12 +87,12 @@ pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<As
         name: row.name.unwrap_or_default(),
         tools: row.tools.unwrap_or_default(),
         model: row.model.unwrap_or_default(),
-        user_id: row.user_id.unwrap().parse::<i32>().unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
         file_ids: row.file_ids,
     })
 }
 
-pub async fn create_thread(pool: &PgPool, user_id: i32) -> Result<Thread, sqlx::Error> {
+pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, sqlx::Error> {
     let row = sqlx::query!(
         r#"
         INSERT INTO threads (user_id)
@@ -142,7 +142,7 @@ pub async fn add_message_to_thread(pool: &PgPool, thread_id: i32, role: &str, co
         run_id: row.run_id,
         file_ids: row.file_ids,
         metadata: row.metadata,
-        user_id: row.user_id.parse::<i32>().unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
     })
 }
 
@@ -241,18 +241,17 @@ async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sql
 }
 
 // This function retrieves file contents given a list of file_ids
-async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage, bucket_name: &str) -> Vec<String> {
+async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage) -> Vec<String> {
     let mut file_contents = Vec::new();
     for file_id in file_ids {
-        let content = match file_storage.retrieve_file(bucket_name, file_id).await {
+        let content = match file_storage.retrieve_file(file_id).await {
             Ok(content) => content,
             Err(e) => {
                 eprintln!("Failed to retrieve file: {}", e);
                 continue; // Skip this iteration and move to the next file
             }
         };
-        let content_str = String::from_utf8(content).unwrap_or_else(|_| String::from("Invalid UTF-8 data"));
-        file_contents.push(content_str);
+        file_contents.push(content);
     }
     file_contents
 }
@@ -273,7 +272,7 @@ async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assis
         name: row.name.unwrap_or_default(),
         tools: row.tools.unwrap_or_default(),
         model: row.model.unwrap_or_default(),
-        user_id: row.user_id.unwrap().parse::<i32>().unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
         file_ids: row.file_ids,
     })
 }
@@ -282,7 +281,7 @@ async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assis
 fn build_instructions(original_instructions: &str, file_contents: &Vec<String>) -> String {
     format!("{} Files: {:?}", original_instructions, file_contents)
 }
-pub async fn queue_consumer(pool: &PgPool, mut con: redis::aio::Connection) -> Result<Run, sqlx::Error> {
+pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, sqlx::Error> {
     let (key, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
         eprintln!("Redis error: {}", e);
         sqlx::Error::Configuration(e.into())
@@ -293,7 +292,7 @@ pub async fn queue_consumer(pool: &PgPool, mut con: redis::aio::Connection) -> R
     run = update_run_in_db(pool, run.id, "running".to_string()).await?;
 
     // Initialize FileStorage
-    let file_storage = FileStorage::new();
+    let file_storage = FileStorage::new().await;
     
     // Retrieve the thread associated with the run
     let thread = get_thread_from_db(pool, run.thread_id).await?;
@@ -313,12 +312,11 @@ pub async fn queue_consumer(pool: &PgPool, mut con: redis::aio::Connection) -> R
     if let Some(assistant_file_ids) = &assistant.file_ids {
         all_file_ids.extend(assistant_file_ids.iter().cloned());
     }
-    let bucket_name = "my-bucket";
 
     // Check if the all_file_ids includes any file IDs.
     if !all_file_ids.is_empty() {
         // Retrieve the contents of each file.
-        let file_contents = retrieve_file_contents(&all_file_ids, &file_storage, bucket_name).await;
+        let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
 
         // Include the file contents in the instructions.
         let instructions = build_instructions(&run.instructions, &file_contents);
@@ -397,7 +395,7 @@ mod tests {
             name: "Math Tutor".to_string(),
             tools: vec!["code_interpreter".to_string()],
             model: "claude-2.1".to_string(),
-            user_id: 1,
+            user_id: "user1".to_string(),
             file_ids: None,
         };
         let result = create_assistant(&pool, &assistant).await;
@@ -407,14 +405,14 @@ mod tests {
     #[tokio::test]
     async fn test_create_thread() {
         let pool = setup().await;
-        let result = create_thread(&pool, 1).await;
+        let result = create_thread(&pool, "user1").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_add_message_to_thread() {
         let pool = setup().await;
-        let thread = create_thread(&pool, 1).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
             type_: "text".to_string(),
             text: Text {
@@ -438,7 +436,7 @@ mod tests {
     #[tokio::test]
     async fn test_run_assistant() {
         let pool = setup().await;
-        let thread = create_thread(&pool, 1).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
     
         // Get Redis URL from environment variable
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
@@ -453,7 +451,7 @@ mod tests {
     #[tokio::test]
     async fn test_queue_consumer() {
         let pool = setup().await;
-        let thread = create_thread(&pool, 1).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
             type_: "text".to_string(),
             text: Text {
@@ -472,8 +470,8 @@ mod tests {
         
         assert!(run.is_ok());
 
-        let con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, con).await;
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool, &mut con).await;
         
         // Check the result
         assert!(result.is_ok());
@@ -505,20 +503,20 @@ mod tests {
         let temp_file_path = temp_file.path();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new();
+        let fs = FileStorage::new().await;
     
         // Upload the file.
         let file_id = fs.upload_file(&temp_file_path).await.unwrap();
     
         // Retrieve the file.
         let file_id_clone = file_id.clone();
-        let file_contents = retrieve_file_contents(&vec![file_id], &fs, "my-bucket").await;
+        let file_contents = retrieve_file_contents(&vec![file_id], &fs).await;
 
         // Check that the retrieval was successful and the content is correct.
         assert_eq!(file_contents, vec!["Hello, world!\n"]);
     
         // Delete the file.
-        fs.delete_file("my-bucket", &file_id_clone).await.unwrap();
+        fs.delete_file(&file_id_clone).await.unwrap();
     }
 
     #[tokio::test]
@@ -526,7 +524,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
-        let file_storage = FileStorage::new();
+        let file_storage = FileStorage::new().await;
         let bucket_name = "my-bucket";
 
         // Create a temporary file.
@@ -547,13 +545,13 @@ mod tests {
             name: "Math Tutor".to_string(),
             tools: vec!["knowledge-retrieval".to_string()],
             model: "claude-2.1".to_string(),
-            user_id: 1,
+            user_id: "user1".to_string(),
             file_ids: Some(vec![file_id_clone]), // Use the cloned value here
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // 2. Create a Thread
-        let thread = create_thread(&pool, 1).await.unwrap();
+        let thread = create_thread(&pool, "user1").await.unwrap();
 
         // 3. Add a Message to a Thread
         let content = vec![Content {
@@ -576,8 +574,8 @@ mod tests {
         assert_eq!(run.status, "queued");
 
         // 6. Run the queue consumer
-        let con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, con).await;
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool, &mut con).await;
 
         // 7. Check the result
         assert!(result.is_ok());

@@ -6,18 +6,27 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version= "0.6.13", features = ["headers"] }
+axum = { version= "0.6.20", features = ["headers", "multipart", "macros", "tracing"] }
 futures = "0.3"
 headers = "0.3"
 tokio = { version = "1.0", features = ["full"] }
 tokio-stream = "0.1"
-tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 sqlx = { version = "0.5", features = ["macros", "postgres", "runtime-async-std-rustls"] }
 assistants-core = { path = "../assistants-core" }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 minio = "0.1.0"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tempfile = "3.2.0"
+tower-http = { version = "0.4.0", features = ["fs", "limit", "trace"] }
+tower = "0.4.12"
 
+[dev-dependencies]
+mime = "0.3.16"
+hyper = "0.14.11"
+dotenv = "0.15.0"
+reqwest = { version = "0.11", features = ["multipart"] }
 [build-dependencies]
 syn = "1"

@@ -46,44 +46,47 @@ pub struct Text {
     pub annotations: Vec<String>,
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Message {
     pub id: i32,
     pub created_at: i64,
     pub thread_id: i32,
     pub role: String,
-    #[serde(deserialize_with = "from_sql_value")]
+    // #[serde(deserialize_with = "from_sql_value")]
     pub content: Vec<Content>,
     pub assistant_id: Option<i32>,
     pub run_id: Option<String>,
     pub file_ids: Option<Vec<String>>,
     pub metadata: Option<serde_json::Value>,
-    pub user_id: i32,
+    pub user_id: String,
 }
 
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Run {
     pub id: i32,
     pub thread_id: i32,
     pub assistant_id: i32,
     pub instructions: String,
     pub status: String,
-    pub user_id: i32,
+    pub user_id: String,
 }
 
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Thread {
     pub id: i32,
-    pub user_id: i32,
+    pub user_id: String,
     pub file_ids: Option<Vec<String>>,
     // Add other fields as necessary
 }
 
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Assistant {
     pub id: i32,
     pub instructions: String,
     pub name: String,
     pub tools: Vec<String>,
     pub model: String,
-    pub user_id: i32,
+    pub user_id: String,
     pub file_ids: Option<Vec<String>>,
 }
 

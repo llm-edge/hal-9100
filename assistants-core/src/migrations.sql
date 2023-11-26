@@ -21,7 +21,7 @@ CREATE TABLE assistants (
 -- Create threads table
 CREATE TABLE threads (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES assistants(id),
+    user_id TEXT,
     file_ids TEXT[]
 );
 
@@ -36,7 +36,7 @@ CREATE TABLE messages (
     run_id TEXT,
     file_ids TEXT[],
     metadata JSONB,
-    user_id TEXT NOT NULL
+    user_id TEXT
 );
 
 -- Create runs table
@@ -46,6 +46,6 @@ CREATE TABLE runs (
     assistant_id INTEGER REFERENCES assistants(id),
     instructions TEXT,
     status TEXT,
-    user_id INTEGER
+    user_id TEXT
 );
 
