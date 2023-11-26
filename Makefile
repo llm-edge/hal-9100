@@ -1,5 +1,8 @@
 .PHONY: help docker clean
 
+include .env
+export
+
 .DEFAULT_GOAL := help
 
 ## Colors
@@ -27,3 +30,45 @@ clean: ## Stop and remove docker-postgres-1, docker-redis-1, docker-minio-1 cont
 
 ## Clean and run docker compose up
 reboot: clean docker ## Clean and run docker compose up
+
+## Run the consumer
+consumer: ## Run the consumer
+	@set -a && . .env && set +a && \
+	cargo run --package assistants-core --bin run_consumer
+
+
+## Run the server
+server: ## Run the server
+	@set -a && . .env && set +a && \
+	cargo run --package assistants-api-communication
+
+## Run consumer, server, and dockers
+all: reboot
+	@$(MAKE) -j2 consumer server
+
+display: ## Display the ascii art
+	@echo "$$ASCII_ART"
+
+define ASCII_ART
+ ________  ________   ________  ___  ________  _________  ________  ________   _________  ________      
+|\   __  \|\   ____\ |\   ____\|\  \|\   ____\|\___   ___\\   __  \|\   ___  \|\___   ___\\   ____\     
+\ \  \|\  \ \  \___|_\ \  \___|\ \  \ \  \___|\|___ \  \_\ \  \|\  \ \  \\ \  \|___ \  \_\ \  \___|_    
+ \ \   __  \ \_____  \\ \_____  \ \  \ \_____  \   \ \  \ \ \   __  \ \  \\ \  \   \ \  \ \ \_____  \   
+  \ \  \ \  \|____|\  \\|____|\  \ \  \|____|\  \   \ \  \ \ \  \ \  \ \  \\ \  \   \ \  \ \|____|\  \  
+   \ \__\ \__\____\_\  \ ____\_\  \ \__\____\_\  \   \ \__\ \ \__\ \__\ \__\\ \__\   \ \__\  ____\_\  \ 
+    \|__|\|__|\_________\\_________\|__|\_________\   \|__|  \|__|\|__|\|__| \|__|    \|__| |\_________\
+             \|_________\|_________|   \|_________|                                         \|_________|
+                                                                                                        
+						___                          ___                          ___     
+						/__/\                        /__/\                        /__/\    
+						\  \:\                       \  \:\                       \  \:\   
+						\__\:\                       \__\:\                       \__\:\  
+						/  /::\                      /  /::\                      /  /::\ 
+						/  /:/\:\                    /  /:/\:\                    /  /:/\:\
+						/  /:/__\/                   /  /:/__\/                   /  /:/__\/
+					/__/:/                       /__/:/                       /__/:/     
+					\__\/                        \__\/                        \__\/      
+																							
+endef
+export ASCII_ART
+

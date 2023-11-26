@@ -23,6 +23,7 @@ use std::sync::{Arc, Mutex};
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 use env_logger;
+use log::{info, error};
 #[derive(Clone)]
 struct AppState {
     pool: Arc<PgPool>,
@@ -60,10 +61,26 @@ async fn main() {
 
     let app = app(app_state);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    info!("Starting server on {}", addr);
+    let server = axum::Server::bind(&addr)
+        .serve(app.into_make_service());
+
+    let graceful_shutdown = server.with_graceful_shutdown(shutdown_signal());
+
+    if let Err(e) = graceful_shutdown.await {
+        error!("server error: {}", e);
+    }
+}
+
+async fn shutdown_signal() {
+    // Wait for the SIGINT or SIGTERM signal
+    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())
+        .unwrap()
+        .recv()
         .await
         .unwrap();
+
+    info!("signal received, starting graceful shutdown");
 }
 
 /// Having a function that produces our app makes it easy to call it from tests
@@ -79,12 +96,17 @@ fn app(app_state: AppState) -> Router {
         .route("/threads/:thread_id/runs/:run_id", get(check_run_status_handler))
         .route("/threads/:thread_id/messages", get(list_messages_handler))
         .route("/files", post(upload_file_handler))
+        .route("/health", get(health_handler)) // new health check route
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024)) // 250mb
         // .route("/assistants/:assistant_id/files/:file_id", delete(delete_file_handler))
         // https://docs.rs/tower-http/latest/tower_http/trace/index.html
         .layer(TraceLayer::new_for_http()) // Add this line
         .with_state(app_state)
+}
+
+async fn health_handler() -> impl IntoResponse {
+    (StatusCode::OK, "OK")
 }
 
 async fn create_assistant_handler(
@@ -490,7 +512,7 @@ mod tests {
             created_at: 1,
             thread_id: thread.id,
             role: "user".to_string(),
-            content: vec![Content {
+            content: vec![Content { // TODO: fix should be ""content": "I need to solve the equation `3x + 11 = 14`. Can you help me?""
                 type_: "text".to_string(),
                 text: Text {
                     value: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
