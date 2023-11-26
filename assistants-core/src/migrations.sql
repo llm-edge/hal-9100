@@ -1,4 +1,3 @@
-
 \c mydatabase;
 
 -- Drop existing tables
@@ -10,24 +9,32 @@ DROP TABLE IF EXISTS runs;
 -- Create assistants table
 CREATE TABLE assistants (
     id SERIAL PRIMARY KEY,
-    instructions TEXT,
+    object TEXT,
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
     name TEXT,
-    tools TEXT[],
+    description TEXT,
     model TEXT,
-    user_id TEXT,
-    file_ids TEXT[]
+    instructions TEXT,
+    tools TEXT[],
+    file_ids TEXT[],
+    metadata JSONB,
+    user_id TEXT
 );
 
 -- Create threads table
 CREATE TABLE threads (
     id SERIAL PRIMARY KEY,
     user_id TEXT,
-    file_ids TEXT[]
+    file_ids TEXT[],
+    object TEXT,
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
+    metadata JSONB
 );
 
 -- Create messages table
 CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
+    object TEXT,
     created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
     thread_id INTEGER REFERENCES threads(id),
     role TEXT NOT NULL,
@@ -42,10 +49,22 @@ CREATE TABLE messages (
 -- Create runs table
 CREATE TABLE runs (
     id SERIAL PRIMARY KEY,
+    object TEXT,
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
     thread_id INTEGER REFERENCES threads(id),
     assistant_id INTEGER REFERENCES assistants(id),
-    instructions TEXT,
     status TEXT,
+    required_action JSONB,
+    last_error JSONB,
+    expires_at BIGINT,
+    started_at BIGINT,
+    cancelled_at BIGINT,
+    failed_at BIGINT,
+    completed_at BIGINT,
+    model TEXT,
+    instructions TEXT,
+    tools TEXT[],
+    file_ids TEXT[],
+    metadata JSONB,
     user_id TEXT
 );
-

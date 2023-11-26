@@ -1,29 +1,31 @@
 use axum::{
-    extract::{Json, State, Path, DefaultBodyLimit, Multipart, FromRef},
-    response::Json as JsonResponse,
+    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
+    http::StatusCode,
     response::IntoResponse,
-    routing::{get, post, delete},
-    http::{request::Parts, StatusCode},
+    response::Json as JsonResponse,
+    routing::{get, post},
     Router,
     debug_handler,
 };
-use serde::{Deserialize, Serialize};
-use assistants_core::assistant::{create_assistant, create_thread, add_message_to_thread, run_assistant, list_messages, get_run_from_db};
-use assistants_core::file_storage::{FileStorage};
+use assistants_core::assistant::{add_message_to_thread, create_assistant, create_thread, get_run_from_db, list_messages, run_assistant};
+use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Assistant, Message, Run, Thread, Content, Text};
-use std::convert::Infallible;
+use env_logger;
+use log::{error, info};
+use models::{CreateAssistant, CreateMessage, CreateRun, ListMessage};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::postgres::{PgPool, PgPoolOptions, Postgres};
-use sqlx::Pool;
-use std::{net::SocketAddr, time::Duration};
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::io::Write;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 use tempfile;
-use tempfile::NamedTempFile;
-use std::sync::{Arc, Mutex};
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
-use env_logger;
-use log::{info, error};
+
+mod models;
+
 #[derive(Clone)]
 struct AppState {
     pool: Arc<PgPool>,
@@ -44,6 +46,8 @@ impl FromRef<AppState> for Arc<FileStorage> {
 
 #[tokio::main]
 async fn main() {
+    env_logger::builder().filter_level(log::LevelFilter::Info).init();
+
     let db_connection_str = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:password@localhost".to_string());
 
@@ -87,7 +91,6 @@ async fn shutdown_signal() {
 /// without having to create an HTTP server.
 #[allow(dead_code)]
 fn app(app_state: AppState) -> Router {
-    env_logger::builder().filter_level(log::LevelFilter::Info).init();
     Router::new()
         .route("/assistants", post(create_assistant_handler))
         .route("/threads", post(create_thread_handler))
@@ -111,9 +114,21 @@ async fn health_handler() -> impl IntoResponse {
 
 async fn create_assistant_handler(
     State(app_state): State<AppState>,
-    Json(assistant): Json<Assistant>,
+    Json(assistant): Json<CreateAssistant>,
 ) -> Result<JsonResponse<Assistant>, (StatusCode, String)> {
-    let assistant = create_assistant(&app_state.pool, &assistant).await;
+    let assistant = create_assistant(&app_state.pool, &Assistant{
+        id: 0,
+        instructions: assistant.instructions,
+        name: assistant.name,
+        tools: assistant.tools.unwrap_or(vec![]),
+        model: assistant.model,
+        user_id: "user1".to_string(),
+        file_ids: assistant.file_ids,
+        object: Default::default(),
+        created_at: chrono::Utc::now().timestamp(),
+        description: Default::default(),
+        metadata: Default::default(),
+    }).await;
     match assistant {
         Ok(assistant) => Ok(JsonResponse(assistant)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
@@ -136,10 +151,16 @@ async fn create_thread_handler(
 async fn add_message_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
-    Json(message): Json<Message>,
+    Json(message): Json<CreateMessage>,
 ) -> Result<JsonResponse<Message>, (StatusCode, String)> {
     let user_id = "user1";
-    let message = add_message_to_thread(&app_state.pool, thread_id, "user", message.content, user_id, None).await;
+    let message = add_message_to_thread(&app_state.pool, thread_id, "user", vec![Content {
+        type_: "user".to_string(),
+        text: Text { 
+            value : message.content,
+            annotations: vec![]
+         }
+    }], user_id, None).await;
     match message {
         Ok(message) => Ok(JsonResponse(message)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
@@ -155,15 +176,15 @@ struct RunInput {
 async fn run_assistant_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
-    Json(run_input): Json<RunInput>,
+    Json(run_input): Json<CreateRun>,
 ) -> Result<JsonResponse<Run>, (StatusCode, String)> {
     // You can now access the assistant_id and instructions from run_input
     // For example: let assistant_id = &run_input.assistant_id;
     // TODO: Use the assistant_id and instructions as needed
     let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
     let client = redis::Client::open(redis_url).unwrap();
-    let mut con = client.get_async_connection().await.unwrap();
-    let run = run_assistant(&app_state.pool, thread_id, run_input.assistant_id, &run_input.instructions, con).await;
+    let con = client.get_async_connection().await.unwrap();
+    let run = run_assistant(&app_state.pool, thread_id, run_input.assistant_id, &run_input.instructions.unwrap_or_default(), con).await;
     match run {
         Ok(run) => Ok(JsonResponse(run)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
@@ -184,6 +205,7 @@ async fn check_run_status_handler(
 async fn list_messages_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
+    body: Option<Json<ListMessage>>, // TODO
 ) -> Result<JsonResponse<Vec<Message>>, (StatusCode, String)> {
     let messages = list_messages(&app_state.pool, thread_id).await;
     match messages {
@@ -287,14 +309,14 @@ mod tests {
 
         let app = app(app_state);
         
-        let assistant = Assistant {
-            id: 1,
-            instructions: "test".to_string(),
-            name: "test".to_string(),
-            tools: vec!["test".to_string()],
+        let assistant = CreateAssistant {
+            instructions: Some("test".to_string()),
+            name: Some("test".to_string()),
+            tools: Some(vec!["test".to_string()]),
             model: "test".to_string(),
-            user_id: "user1".to_string(),
             file_ids: None,
+            description: None,
+            metadata: None,
         };
 
         let response = app
@@ -315,8 +337,8 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Assistant = serde_json::from_slice(&body).unwrap();
-        assert_eq!(body.instructions, "test");
-        assert_eq!(body.name, "test");
+        assert_eq!(body.instructions, Some("test".to_string()));
+        assert_eq!(body.name, Some("test".to_string()));
         assert_eq!(body.tools, vec!["test".to_string()]);
         assert_eq!(body.model, "test");
         assert_eq!(body.user_id, "user1");
@@ -376,23 +398,9 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
-        let message = Message {
-            id: 1,
-            created_at: 1,
-            thread_id: 1,
+        let message = CreateMessage {
             role: "user".to_string(),
-            content: vec![Content {
-                type_: "text".to_string(),
-                text: Text {
-                    value: "test message".to_string(),
-                    annotations: vec!["test".to_string()],
-                },
-            }],
-            assistant_id: None,
-            run_id: None,
-            file_ids: None,
-            metadata: None,
-            user_id: "user1".to_string(),
+            content:  "test message".to_string(),
         };
 
         let response = app
@@ -459,14 +467,14 @@ mod tests {
         let file_id = body["file_id"].as_str().unwrap().to_string();
 
         // 2. Create an Assistant with the uploaded file
-        let assistant = Assistant {
-            id: 1,
-            instructions: "You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string(),
-            name: "Math Tutor".to_string(),
-            tools: vec!["retrieval".to_string()],
+        let assistant = CreateAssistant {
+            instructions: Some("You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string()),
+            name: Some("Math Tutor".to_string()),
+            tools: Some(vec!["retrieval".to_string()]),
             model: "claude-2.1".to_string(),
-            user_id: "user1".to_string(),
             file_ids: Some(vec![file_id]), // Associate the uploaded file with the assistant
+            description: None,
+            metadata: None,
         };
         let response = app.clone()
             .oneshot(
@@ -507,23 +515,9 @@ mod tests {
         println!("Thread: {:?}", thread);
 
         // 4. Add a Message to a Thread
-        let message = Message {
-            id: 1,
-            created_at: 1,
-            thread_id: thread.id,
+        let message = CreateMessage {
             role: "user".to_string(),
-            content: vec![Content { // TODO: fix should be ""content": "I need to solve the equation `3x + 11 = 14`. Can you help me?""
-                type_: "text".to_string(),
-                text: Text {
-                    value: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
-                    annotations: vec!["test".to_string()],
-                },
-            }],
-            assistant_id: Some(assistant.id),
-            run_id: None,
-            file_ids: None,
-            metadata: None,
-            user_id: "user1".to_string(),
+            content: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
         };
 
         let response = app.clone()

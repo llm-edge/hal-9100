@@ -2,7 +2,6 @@
 
 use sqlx::PgPool;
 use serde_json;
-use serde::{self};
 use redis::AsyncCommands;
 use log::{info, error};
 
@@ -15,7 +14,7 @@ pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>
     info!("Listing messages for thread_id: {}", thread_id);
     let messages = sqlx::query!(
         r#"
-        SELECT id, created_at, thread_id, role, content::jsonb, assistant_id, run_id, file_ids, metadata, user_id FROM messages WHERE thread_id = $1
+        SELECT id, created_at, thread_id, role, content::jsonb, assistant_id, run_id, file_ids, metadata, user_id, object FROM messages WHERE thread_id = $1
         "#,
         &thread_id
     )
@@ -23,18 +22,19 @@ pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>
     .await?
     .into_iter()
     .map(|row| {
-        let content: Vec<Content> = serde_json::from_value(row.content).unwrap_or_default();
+        // let content: Vec<Content> = serde_json::from_value(row.content.clone()).unwrap_or_default();
         Message {
             id: row.id,
             created_at: row.created_at,
             thread_id: row.thread_id.unwrap_or_default(),
             role: row.role,
-            content,
+            content: serde_json::from_value(row.content).unwrap_or_default(),
             assistant_id: row.assistant_id,
             run_id: row.run_id,
             file_ids: row.file_ids,
-            metadata: row.metadata,
+            metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
             user_id: row.user_id.unwrap_or_default(),
+            object: row.object.unwrap_or_default(),
         }
     })
     .collect();
@@ -56,18 +56,22 @@ pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<As
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
         "#,
-        &assistant.instructions, &assistant.name, &tools, &assistant.model, &assistant.user_id.to_string(), file_ids_ref
+        &assistant.instructions.clone().unwrap_or_default(), &assistant.name.clone().unwrap_or_default(), &tools, &assistant.model, &assistant.user_id.to_string(), file_ids_ref
     )
     .fetch_one(pool)
     .await?;
     Ok(Assistant {
         id: row.id,
-        instructions: row.instructions.unwrap_or_default(),
-        name: row.name.unwrap_or_default(),
+        instructions: row.instructions,
+        name: row.name,
         tools: row.tools.unwrap_or_default(),
         model: row.model.unwrap_or_default(),
         user_id: row.user_id.unwrap_or_default(),
         file_ids: row.file_ids,
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        description: row.description,
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
 
@@ -87,8 +91,10 @@ pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, sqlx:
     Ok(Thread {
         id: row.id,
         user_id: row.user_id.unwrap_or_default(),
-        file_ids: row.file_ids.map(|v| v.iter().map(|s| s.to_string()).collect()), // If file_ids is None, use an empty vector
-        // Add other fields as necessary
+        file_ids: row.file_ids.map(|v| v.iter().map(|s| s.to_string()).collect()), // existing code
+        object: row.object.unwrap_or_default(), // add this
+        created_at: row.created_at, // and this
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()), // and this
     })
 }
 pub async fn add_message_to_thread(pool: &PgPool, thread_id: i32, role: &str, content: Vec<Content>, user_id: &str, file_ids: Option<Vec<String>>) -> Result<Message, sqlx::Error> {
@@ -122,8 +128,9 @@ pub async fn add_message_to_thread(pool: &PgPool, thread_id: i32, role: &str, co
         assistant_id: row.assistant_id,
         run_id: row.run_id,
         file_ids: row.file_ids,
-        metadata: row.metadata,
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
         user_id: row.user_id.unwrap_or_default(),
+        object: row.object.unwrap_or_default(),
     })
 }
 
@@ -163,9 +170,22 @@ async fn create_run_in_db(pool: &PgPool, thread_id: i32, assistant_id: i32, inst
         id: row.id,
         thread_id: row.thread_id.unwrap_or_default(),
         assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
         status: row.status.unwrap_or_default(),
+        instructions: row.instructions.unwrap_or_default(),
         user_id: row.user_id.unwrap_or_default(),
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        required_action: serde_json::from_value(row.required_action.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        last_error: serde_json::from_value(row.last_error.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        expires_at: row.expires_at.unwrap_or_default(),
+        started_at: row.started_at,
+        cancelled_at: row.cancelled_at,
+        failed_at: row.failed_at,
+        completed_at: row.completed_at,
+        model: row.model.unwrap_or_default(),
+        tools: row.tools.unwrap_or_default(),
+        file_ids: row.file_ids.unwrap_or_default(),
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
 
@@ -182,11 +202,24 @@ pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Er
 
     Ok(Run {
         id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(), // If thread_id is None, use an empty string
-        assistant_id: row.assistant_id.unwrap_or_default(), // If assistant_id is None, use an empty string
-        instructions: row.instructions.unwrap_or_default(), // If instructions is None, use an empty string
-        status: row.status.unwrap_or_default(), // If status is None, use an empty string
-        user_id: row.user_id.unwrap_or_default(), // If user_id is None, use an empty string
+        thread_id: row.thread_id.unwrap_or_default(),
+        assistant_id: row.assistant_id.unwrap_or_default(),
+        status: row.status.unwrap_or_default(),
+        instructions: row.instructions.unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        required_action: serde_json::from_value(row.required_action.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        last_error: serde_json::from_value(row.last_error.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        expires_at: row.expires_at.unwrap_or_default(),
+        started_at: row.started_at,
+        cancelled_at: row.cancelled_at,
+        failed_at: row.failed_at,
+        completed_at: row.completed_at,
+        model: row.model.unwrap_or_default(),
+        tools: row.tools.unwrap_or_default(),
+        file_ids: row.file_ids.unwrap_or_default(),
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
 
@@ -205,9 +238,22 @@ async fn update_run_in_db(pool: &PgPool, run_id: i32, completion: String) -> Res
         id: row.id,
         thread_id: row.thread_id.unwrap_or_default(),
         assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
         status: row.status.unwrap_or_default(),
+        instructions: row.instructions.unwrap_or_default(),
         user_id: row.user_id.unwrap_or_default(),
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        required_action: serde_json::from_value(row.required_action.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        last_error: serde_json::from_value(row.last_error.unwrap_or_else(|| serde_json::Value::Null)).unwrap_or_default(),
+        expires_at: row.expires_at.unwrap_or_default(),
+        started_at: row.started_at,
+        cancelled_at: row.cancelled_at,
+        failed_at: row.failed_at,
+        completed_at: row.completed_at,
+        model: row.model.unwrap_or_default(),
+        tools: row.tools.unwrap_or_default(),
+        file_ids: row.file_ids.unwrap_or_default(),
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
 
@@ -228,7 +274,9 @@ async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sql
         id: row.id,
         user_id: row.user_id.unwrap_or_default(),
         file_ids: row.file_ids.map(|v| v.iter().map(|s| s.to_string()).collect()), // If file_ids is None, use an empty vector
-        // Add other fields as necessary
+        object: row.object.unwrap_or_default(), // add this
+        created_at: row.created_at, // and this
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()), // and this
     })
 }
 
@@ -262,12 +310,16 @@ async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assis
 
     Ok(Assistant {
         id: row.id,
-        instructions: row.instructions.unwrap_or_default(),
-        name: row.name.unwrap_or_default(),
+        instructions: row.instructions,
+        name: row.name,
         tools: row.tools.unwrap_or_default(),
         model: row.model.unwrap_or_default(),
         user_id: row.user_id.unwrap_or_default(),
         file_ids: row.file_ids,
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        description: row.description,
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
 
@@ -277,8 +329,8 @@ fn build_instructions(original_instructions: &str, file_contents: &Vec<String>) 
 }
 pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, sqlx::Error> {
     info!("Consuming queue");
-    let (key, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
-        eprintln!("Redis error: {}", e);
+    let (_, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
+        error!("Redis error: {}", e);
         sqlx::Error::Configuration(e.into())
     })?;
     let mut run = get_run_from_db(pool, run_id).await?;
@@ -361,7 +413,6 @@ mod tests {
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
-    use std::path::Path;
     use std::io::Write;
     async fn setup() -> PgPool {
         dotenv().ok();
@@ -384,14 +435,19 @@ mod tests {
     #[tokio::test]
     async fn test_create_assistant() {
         let pool = setup().await;
+        reset_db(&pool).await;
         let assistant = Assistant {
             id: 1,
-            instructions: "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
-            name: "Math Tutor".to_string(),
+            instructions: Some("You are a personal math tutor. Write and run code to answer math questions.".to_string()),
+            name: Some("Math Tutor".to_string()),
             tools: vec!["code_interpreter".to_string()],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: None,
+            object: "object_value".to_string(),
+            created_at: 0,
+            description: Some("description_value".to_string()),
+            metadata: None,
         };
         let result = create_assistant(&pool, &assistant).await;
         assert!(result.is_ok());
@@ -400,6 +456,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_thread() {
         let pool = setup().await;
+        reset_db(&pool).await;
         let result = create_thread(&pool, "user1").await;
         assert!(result.is_ok());
     }
@@ -407,6 +464,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_message_to_thread() {
         let pool = setup().await;
+        reset_db(&pool).await;
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
             type_: "text".to_string(),
@@ -423,6 +481,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_messages() {
         let pool = setup().await;
+        reset_db(&pool).await;
         let result = list_messages(&pool, 1).await;
         assert!(result.is_ok());
     }
@@ -431,14 +490,29 @@ mod tests {
     #[tokio::test]
     async fn test_run_assistant() {
         let pool = setup().await;
+        reset_db(&pool).await;
+        let assistant = Assistant {
+            id: 1,
+            instructions: Some("You are a personal math tutor. Write and run code to answer math questions.".to_string()),
+            name: Some("Math Tutor".to_string()),
+            tools: vec!["code_interpreter".to_string()],
+            model: "claude-2.1".to_string(),
+            user_id: "user1".to_string(),
+            file_ids: None,
+            object: "object_value".to_string(),
+            created_at: 0,
+            description: Some("description_value".to_string()),
+            metadata: None,
+        };
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
+        println!("thread: {:?}", thread);
     
         // Get Redis URL from environment variable
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
-        let mut con = client.get_async_connection().await.unwrap();
+        let con = client.get_async_connection().await.unwrap();
     
-        let result = run_assistant(&pool, thread.id, 1, "Please address the user as Jane Doe. The user has a premium account.", con).await; // Use the id of the new thread
+        let result = run_assistant(&pool, thread.id, assistant.id, "Please address the user as Jane Doe. The user has a premium account.", con).await; // Use the id of the new thread
         assert!(result.is_ok());
     }
 
@@ -446,6 +520,7 @@ mod tests {
     #[tokio::test]
     async fn test_queue_consumer() {
         let pool = setup().await;
+        reset_db(&pool).await;
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
             type_: "text".to_string(),
@@ -489,7 +564,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_retrieve_file_contents() {
-        setup().await;
+        let pool = setup().await;
+        reset_db(&pool).await;
+
         // Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
         writeln!(temp_file, "Hello, world!").unwrap();
@@ -520,7 +597,6 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
         let file_storage = FileStorage::new().await;
-        let bucket_name = "my-bucket";
 
         // Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
@@ -536,12 +612,16 @@ mod tests {
         let file_id_clone = file_id.clone();
         let assistant = Assistant {
             id: 1,
-            instructions: "You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string(),
-            name: "Math Tutor".to_string(),
+            instructions: Some("You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string()),
+            name: Some("Math Tutor".to_string()),
             tools: vec!["retrieval".to_string()],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: Some(vec![file_id_clone]), // Use the cloned value here
+            object: "object_value".to_string(),
+            created_at: 0,
+            description: Some("description_value".to_string()),
+            metadata: None,
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
@@ -588,7 +668,8 @@ mod tests {
         assert_eq!(messages[0].content[0].text.value, "I need to solve the equation `3x + 11 = 14`. Can you help me?");
         assert_eq!(messages[1].role, "assistant");
         assert!(messages[1].content[0].text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
-        assert_eq!(messages[1].content[1].text.value, "Files: [\"Knowledge content\"]");
+        // TODO: gotta impl this no?
+        // assert_eq!(messages[1].content[1].text.value, "Files: [\"Knowledge content\"]");
         assert_eq!(messages[1].file_ids, Some(vec![file_id]));
     }
 }

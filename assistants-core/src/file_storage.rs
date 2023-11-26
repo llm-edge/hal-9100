@@ -4,7 +4,6 @@ use std::env;
 use std::path::Path;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use std::borrow::Cow;
 use rusty_s3::UrlStyle;
 use std::time::Duration;
 use url::Url;
