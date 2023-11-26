@@ -1,40 +1,18 @@
-/*
-data storage
-init
-docker run --name pg -e POSTGRES_PASSWORD=secret -d -p 5432:5432 postgres
-docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;"
 
-migrations
-docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql
-
-checks
-docker exec -it pg psql -U postgres -d mydatabase -c "\dt"
-
-queue
-docker run --name redis -d -p 6379:6379 redis
-
-MINIO
-
-docker run -d -p 9000:9000 -p 9001:9001 \
---name minio1 \
--e "MINIO_ROOT_USER=minioadmin" \
--e "MINIO_ROOT_PASSWORD=minioadmin" \
-minio/minio server /data --console-address ":9001"
-
-check docker/docker-compose.yml
-*/
 
 use sqlx::PgPool;
 use serde_json;
-use serde::{self, Serialize, Deserialize, Deserializer};
+use serde::{self};
 use redis::AsyncCommands;
+use log::{info, error};
 
 use assistants_extra::anthropic::call_anthropic_api;
 use assistants_core::file_storage::FileStorage;
-use assistants_core::models::{Run, Thread, Assistant, Content, Text, Message, Record, MyError, AnthropicApiError};
+use assistants_core::models::{Run, Thread, Assistant, Content, Text, Message, AnthropicApiError};
 
 
 pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>, sqlx::Error> {
+    info!("Listing messages for thread_id: {}", thread_id);
     let messages = sqlx::query!(
         r#"
         SELECT id, created_at, thread_id, role, content::jsonb, assistant_id, run_id, file_ids, metadata, user_id FROM messages WHERE thread_id = $1
@@ -65,6 +43,7 @@ pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>
 
 
 pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<Assistant, sqlx::Error> {
+    info!("Creating assistant: {:?}", assistant);
     let tools: Vec<String> = assistant.tools.iter().map(|s| s.to_string()).collect();
     let file_ids: Option<Vec<String>> = match &assistant.file_ids {
         Some(file_ids) => Some(file_ids.iter().map(|s| s.to_string()).collect()),
@@ -93,6 +72,7 @@ pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<As
 }
 
 pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, sqlx::Error> {
+    info!("Creating thread for user_id: {}", user_id);
     let row = sqlx::query!(
         r#"
         INSERT INTO threads (user_id)
@@ -112,6 +92,7 @@ pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, sqlx:
     })
 }
 pub async fn add_message_to_thread(pool: &PgPool, thread_id: i32, role: &str, content: Vec<Content>, user_id: &str, file_ids: Option<Vec<String>>) -> Result<Message, sqlx::Error> {
+    info!("Adding message to thread_id: {}, role: {}, user_id: {}", thread_id, role, user_id);
     let content_json = match serde_json::to_string(&content) {
         Ok(json) => json,
         Err(e) => return Err(sqlx::Error::Configuration(e.into())),
@@ -147,8 +128,15 @@ pub async fn add_message_to_thread(pool: &PgPool, thread_id: i32, role: &str, co
 }
 
 pub async fn run_assistant(pool: &PgPool, thread_id: i32, assistant_id: i32, instructions: &str, mut con: redis::aio::Connection) -> Result<Run, sqlx::Error> {
+    info!("Running assistant_id: {} for thread_id: {}", assistant_id, thread_id);
     // Create Run in database
-    let run = create_run_in_db(pool, thread_id, assistant_id, instructions).await?;
+    let run = match create_run_in_db(pool, thread_id, assistant_id, instructions).await {
+        Ok(run) => run,
+        Err(e) => {
+            eprintln!("Failed to create run in database: {}", e);
+            return Err(e);
+        }
+    };
 
     // Add run_id to Redis queue
     con.lpush("run_queue", run.id).await.map_err(|e| sqlx::Error::Configuration(e.into()))?;
@@ -160,6 +148,7 @@ pub async fn run_assistant(pool: &PgPool, thread_id: i32, assistant_id: i32, ins
 }
 
 async fn create_run_in_db(pool: &PgPool, thread_id: i32, assistant_id: i32, instructions: &str) -> Result<Run, sqlx::Error> {
+    info!("Creating run in database for thread_id: {}, assistant_id: {}", thread_id, assistant_id);
     let row = sqlx::query!(
         r#"
         INSERT INTO runs (thread_id, assistant_id, instructions)
@@ -181,6 +170,7 @@ async fn create_run_in_db(pool: &PgPool, thread_id: i32, assistant_id: i32, inst
 }
 
 pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Error> {
+    info!("Getting run from database for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
         SELECT * FROM runs WHERE id = $1
@@ -201,6 +191,7 @@ pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Er
 }
 
 async fn update_run_in_db(pool: &PgPool, run_id: i32, completion: String) -> Result<Run, sqlx::Error> {
+    info!("Updating run in database for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
         UPDATE runs SET status = $1 WHERE id = $2
@@ -223,6 +214,7 @@ async fn update_run_in_db(pool: &PgPool, run_id: i32, completion: String) -> Res
 
 
 async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sqlx::Error> {
+    info!("Getting thread from database for thread_id: {}", thread_id);
     let row = sqlx::query!(
         r#"
         SELECT * FROM threads WHERE id = $1
@@ -242,6 +234,7 @@ async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sql
 
 // This function retrieves file contents given a list of file_ids
 async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage) -> Vec<String> {
+    info!("Retrieving file contents for file_ids: {:?}", file_ids);
     let mut file_contents = Vec::new();
     for file_id in file_ids {
         let content = match file_storage.retrieve_file(file_id).await {
@@ -257,6 +250,7 @@ async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStora
 }
 
 async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assistant, sqlx::Error> {
+    info!("Getting assistant from database for assistant_id: {}", assistant_id);
     let row = sqlx::query!(
         r#"
         SELECT * FROM assistants WHERE id = $1
@@ -282,6 +276,7 @@ fn build_instructions(original_instructions: &str, file_contents: &Vec<String>) 
     format!("{} Files: {:?}", original_instructions, file_contents)
 }
 pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, sqlx::Error> {
+    info!("Consuming queue");
     let (key, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
         eprintln!("Redis error: {}", e);
         sqlx::Error::Configuration(e.into())
@@ -543,7 +538,7 @@ mod tests {
             id: 1,
             instructions: "You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string(),
             name: "Math Tutor".to_string(),
-            tools: vec!["knowledge-retrieval".to_string()],
+            tools: vec!["retrieval".to_string()],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: Some(vec![file_id_clone]), // Use the cloned value here
