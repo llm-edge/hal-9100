@@ -1,6 +1,7 @@
 
 
-https://github.com/stellar-amenities/assistants/assets/25003283/f2c587b3-2981-4527-b315-987cd0a7e90a
+
+https://github.com/stellar-amenities/assistants/assets/25003283/191f1f3d-3a06-4f93-9107-5d89ea9b289e
 
 ## Usage 
 
