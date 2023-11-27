@@ -8,6 +8,8 @@ use rusty_s3::UrlStyle;
 use std::time::Duration;
 use url::Url;
 use reqwest;
+use uuid;
+use bytes::Bytes;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
 
@@ -49,23 +51,35 @@ impl FileStorage {
     }
 
     pub async fn upload_file(&self, file_path: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let file_name = file_path.file_name().unwrap().to_str().unwrap();
-        let put = PutObject::new(&self.bucket, Some(&self.credentials), file_name);
-    
-        let mut file = File::open(file_path).await?;
+        let file_name = format!("{}.pdf", uuid::Uuid::new_v4());
+        let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_name);
+
+        let mut file = match File::open(file_path).await {
+            Ok(file) => file,
+            Err(e) => return Err(Box::new(e)),
+        };
         let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer).await?;
+        if let Err(e) = file.read_to_end(&mut buffer).await {
+            return Err(Box::new(e));
+        }
     
         let signed_url = put.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
     
         // You can then use this signed URL to upload the file to S3 using an HTTP client
         let client = reqwest::Client::new();
-        let response = client.put(signed_url).body(buffer).send().await?.error_for_status()?;
+        let response = match client.put(signed_url).body(buffer).send().await {
+            Ok(response) => response,
+            Err(e) => return Err(Box::new(e)),
+        };
+        match response.error_for_status() {
+            Ok(_) => (),
+            Err(e) => return Err(Box::new(e)),
+        }
 
         Ok(file_name.to_owned())
     }
 
-    pub async fn retrieve_file(&self, object_name: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn retrieve_file(&self, object_name: &str) -> Result<Bytes, Box<dyn std::error::Error + Send + Sync>> {
         let mut get = GetObject::new(&self.bucket, Some(&self.credentials), object_name);
         get.query_mut().insert("response-cache-control", "no-cache, no-store");
         let signed_url = get.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
@@ -74,7 +88,7 @@ impl FileStorage {
         let client = reqwest::Client::new();
         let response = client.get(signed_url).send().await?.error_for_status()?;
 
-        Ok(response.text().await?)
+        Ok(response.bytes().await?)
     }
 
     pub async fn delete_file(&self, object_name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

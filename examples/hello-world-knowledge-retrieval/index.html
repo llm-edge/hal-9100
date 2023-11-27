@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ask Assistant</title>
+    <style>
+        /* #container {
+            display: flex;
+            justify-content: space-between;
+        } */
+        #example {
+            position: fixed;
+            right: 30%; /* Adjust as needed */
+            top: 10%; /* Adjust as needed */
+        }
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ask Assistant</h1>
+    <form id="askForm">
+        <label for="pdfUpload">Upload PDF:</label><br>
+        <input type="file" id="pdfUpload" name="pdfUpload" accept=".pdf"><br>
+        <label for="question">Ask a question:</label><br>
+        <textarea id="question" name="question" rows="4" cols="50"></textarea><br>
+        <input type="submit" value="Ask">
+    </form>
+    <div id="example">
+        <button id="useVideoLLaVa">or use a Video-LLaVa paper
+        </button>
+        <div id="response"></div>
+    </div>  
+
+
+    <script>
+document.getElementById('useVideoLLaVa').addEventListener('click', async function(event) {
+    var responseDiv = document.getElementById('response');
+    responseDiv.innerHTML = 'Downloading and uploading PDF, please wait 3 seconds...';
+
+    // Download the PDF
+    var response = await fetch('https://arxiv.org/pdf/2311.10122.pdf');
+    var pdfBlob = await response.blob();
+
+    // Upload the PDF
+    var formData = new FormData();
+    formData.append('file', pdfBlob, '2311.10122.pdf');
+    formData.append('purpose', 'assistants');
+    var uploadResponse = await fetch('http://localhost:3000/files', {
+        method: 'POST',
+        body: formData
+    });
+    var uploadResult = await uploadResponse.json();
+    // Store fileId on the form
+    document.getElementById('askForm').fileId = uploadResult.file_id;
+
+    // Fill the input
+    document.getElementById('question').value = "Give me the last sentence in this given file";
+    responseDiv.innerHTML = 'PDF uploaded and question filled. You can now submit the form.';
+});
+document.getElementById('askForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    document.getElementById('askForm').classList.add('hide');
+    document.getElementById('useVideoLLaVa').classList.add('hide');
+
+    var pdfFile = document.getElementById('pdfUpload').files[0];
+    var question = document.getElementById('question').value;
+    var responseDiv = document.getElementById('response');
+    // Use fileId from the form
+    var fileId = document.getElementById('askForm').fileId;
+
+    console.log("fileId", fileId);
+    // 1. Upload the PDF file
+    if (!fileId) {
+        responseDiv.innerHTML = 'Uploading PDF...';
+        var formData = new FormData();
+        formData.append('file', pdfFile);
+        formData.append('purpose', 'assistants');
+        var uploadResponse = await fetch('http://localhost:3000/files', {
+            method: 'POST',
+            body: formData
+        });
+        var uploadResult = await uploadResponse.json();
+        var fileId = uploadResult.file_id;
+        responseDiv.innerHTML += '<br>PDF uploaded successfully. File ID: ' + fileId;
+    }
+
+    // 2. Create an Assistant
+    responseDiv.innerHTML += '<br>Creating assistant...';
+    var assistantResponse = await fetch('http://localhost:3000/assistants', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            instructions: "You are a personal assistant. Answer the user's questions",
+            name: "Assistant",
+            tools: ["retrieval"],
+            model: "claude-2.1",
+            file_ids: [fileId]
+        })
+    });
+    var assistantResult = await assistantResponse.json();
+    var assistantId = assistantResult.id;
+    responseDiv.innerHTML += '<br>Assistant created successfully. Assistant ID: ' + assistantId;
+
+    // 3. Create a Thread
+    responseDiv.innerHTML += '<br>Creating thread...';
+    var threadResponse = await fetch('http://localhost:3000/threads', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+    var threadResult = await threadResponse.json();
+    var threadId = threadResult.id;
+    responseDiv.innerHTML += '<br>Thread created successfully. Thread ID: ' + threadId;
+
+    // 4. Add a Message to a Thread
+    responseDiv.innerHTML += '<br>Adding message to thread...';
+    var messageResponse = await fetch(`http://localhost:3000/threads/${threadId}/messages`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            role: "user",
+            content: question
+        })
+    });
+    responseDiv.innerHTML += '<br>Message added to thread successfully.';
+
+    // 5. Run the Assistant
+    responseDiv.innerHTML += '<br>Running assistant...';
+    var runResponse = await fetch(`http://localhost:3000/threads/${threadId}/runs`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            assistant_id: assistantId,
+            instructions: "Please help me."
+        })
+    });
+    responseDiv.innerHTML += '<br>Assistant is running. Please wait for the assistant to respond.';
+
+    // 6. Poll for messages
+    var pollMessages = setInterval(async function() {
+        var messagesResponse = await fetch(`http://localhost:3000/threads/${threadId}/messages`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        var messagesResult = await messagesResponse.json();
+        if (messagesResult.length > 0 && messagesResult[messagesResult.length - 1].role === 'assistant') {
+            responseDiv.innerHTML += '<br><span style="color:blue;">Question: ' + question + '</span>';
+            responseDiv.innerHTML += '<br><span style="color:red;">Answer: ' + messagesResult[messagesResult.length - 1].content[0].text.value + '</span>';
+            clearInterval(pollMessages);
+        }
+    }, 1000);
+});
+    </script>
+</body>
+</html>
+

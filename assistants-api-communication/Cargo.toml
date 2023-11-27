@@ -20,7 +20,7 @@ minio = "0.1.0"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.2.0"
-tower-http = { version = "0.4.0", features = ["fs", "limit", "trace"] }
+tower-http = { version = "0.4.0", features = ["fs", "limit", "trace", "cors"] }
 tower = "0.4.12"
 log = "0.4"
 env_logger = "0.8"

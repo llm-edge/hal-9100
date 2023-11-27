@@ -6,6 +6,8 @@ use axum::{
     routing::{get, post},
     Router,
     debug_handler,
+    http::Method,
+    http::header::HeaderName,
 };
 use assistants_core::assistant::{add_message_to_thread, create_assistant, create_thread, get_run_from_db, list_messages, run_assistant};
 use assistants_core::file_storage::FileStorage;
@@ -23,7 +25,7 @@ use std::time::Duration;
 use tempfile;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
-
+use tower_http::cors::{Any, CorsLayer};
 mod models;
 
 #[derive(Clone)]
@@ -66,6 +68,35 @@ async fn main() {
     let app = app(app_state);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     info!("Starting server on {}", addr);
+
+    let ascii_art = r"
+    ___           ___           ___                       ___           ___           ___           ___           ___           ___     
+    /\  \         /\  \         /\  \          ___        /\  \         /\  \         /\  \         /\__\         /\  \         /\  \    
+   /::\  \       /::\  \       /::\  \        /\  \      /::\  \        \:\  \       /::\  \       /::|  |        \:\  \       /::\  \   
+  /:/\:\  \     /:/\ \  \     /:/\ \  \       \:\  \    /:/\ \  \        \:\  \     /:/\:\  \     /:|:|  |         \:\  \     /:/\ \  \  
+ /::\~\:\  \   _\:\~\ \  \   _\:\~\ \  \      /::\__\  _\:\~\ \  \       /::\  \   /::\~\:\  \   /:/|:|  |__       /::\  \   _\:\~\ \  \ 
+/:/\:\ \:\__\ /\ \:\ \ \__\ /\ \:\ \ \__\  __/:/\/__/ /\ \:\ \ \__\     /:/\:\__\ /:/\:\ \:\__\ /:/ |:| /\__\     /:/\:\__\ /\ \:\ \ \__\
+\/__\:\/:/  / \:\ \:\ \/__/ \:\ \:\ \/__/ /\/:/  /    \:\ \:\ \/__/    /:/  \/__/ \/__\:\/:/  / \/__|:|/:/  /    /:/  \/__/ \:\ \:\ \/__/
+     \::/  /   \:\ \:\__\    \:\ \:\__\   \::/__/      \:\ \:\__\     /:/  /           \::/  /      |:/:/  /    /:/  /       \:\ \:\__\  
+     /:/  /     \:\/:/  /     \:\/:/  /    \:\__\       \:\/:/  /     \/__/            /:/  /       |::/  /     \/__/         \:\/:/  /  
+    /:/  /       \::/  /       \::/  /      \/__/        \::/  /                      /:/  /        /:/  /                     \::/  /   
+    \/__/         \/__/         \/__/                     \/__/                       \/__/         \/__/                       \/__/                                                                                                                                     
+    
+                                         ___                    ___                    ___     
+                                        /\  \                  /\  \                  /\  \    
+                                        \:\  \                 \:\  \                 \:\  \   
+                                         \:\  \                 \:\  \                 \:\  \  
+                                         /::\  \                /::\  \                /::\  \ 
+                                        /:/\:\__\              /:/\:\__\              /:/\:\__\
+                                       /:/  \/__/             /:/  \/__/             /:/  \/__/
+                                      /:/  /                 /:/  /                 /:/  /     
+                                      \/__/                  \/__/                  \/__/      
+    
+    ";
+
+    info!("{}", ascii_art);
+
+
     let server = axum::Server::bind(&addr)
         .serve(app.into_make_service());
 
@@ -91,6 +122,13 @@ async fn shutdown_signal() {
 /// without having to create an HTTP server.
 #[allow(dead_code)]
 fn app(app_state: AppState) -> Router {
+    let cors = CorsLayer::new()
+    // allow `GET` and `POST` when accessing the resource
+    .allow_methods([Method::GET, Method::POST])
+    // allow requests from any origin
+    .allow_origin(Any)
+    .allow_headers(vec![HeaderName::from_static("content-type")]);
+
     Router::new()
         .route("/assistants", post(create_assistant_handler))
         .route("/threads", post(create_thread_handler))
@@ -105,6 +143,7 @@ fn app(app_state: AppState) -> Router {
         // .route("/assistants/:assistant_id/files/:file_id", delete(delete_file_handler))
         // https://docs.rs/tower-http/latest/tower_http/trace/index.html
         .layer(TraceLayer::new_for_http()) // Add this line
+        .layer(cors)
         .with_state(app_state)
 }
 
@@ -222,11 +261,14 @@ async fn upload_file_handler(
     
     let mut file_data = Vec::new();
     let mut purpose = String::new();
+    let mut content_type = String::new();
     
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
 
         if name == "file" {
+            content_type = field.content_type().unwrap().to_string();
+            println!("Content type: {:?}", content_type);
             file_data = field.bytes().await.unwrap().to_vec();
         } else if name == "purpose" {
             purpose = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
@@ -237,38 +279,27 @@ async fn upload_file_handler(
         return Err((StatusCode::BAD_REQUEST, "Missing file or purpose".to_string()));
     }
 
-   // TODO: Process the file data and purpose here
-    // let file_storage = FileStorage::new();
-    // let file_storage = Arc::new(Mutex::new(FileStorage::new()));
-    // let file_storage = Arc::new(tokio::sync::Mutex::new(FileStorage::new()));
-    // Create a temporary file.
-    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-    writeln!(temp_file, "{}", String::from_utf8(file_data).unwrap()).unwrap();
+    // Create a temporary file with the same content type
+    let mut temp_file = tempfile::Builder::new()
+        .suffix(&format!(".{}", content_type.split("/").collect::<Vec<&str>>()[1]))
+        .tempfile()
+        .unwrap();
+
+    // Write the file data to the temporary file
+    temp_file.write_all(&file_data).unwrap();
 
     // Get the path of the temporary file.
     let temp_file_path = temp_file.path();
-    // let mut file_storage = file_storage.lock().unwrap();
-    // let mut file_storage = app_state.file_storage.lock().u
 
     // Upload the file.
+    info!("Uploading file: {:?}", temp_file_path);
     let file_id = app_state.file_storage.upload_file(&temp_file_path).await.unwrap();
+    info!("Uploaded file: {:?}", file_id);
     Ok(JsonResponse(json!({
         "status": "success",
         "file_id": file_id,
     })))
 }
-
-// async fn delete_file_handler(
-//     Path((assistant_id, file_id)): Path<(String, String)>,
-//     State(app_state): State<AppState>,
-// ) -> Result<JsonResponse<()>, (StatusCode, String)> {
-//     let result = delete_file(&app_state.pool, &assistant_id, &file_id).await;
-//     match result {
-//         Ok(_) => Ok(JsonResponse(())),
-//         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-//     }
-// }
-
 
 #[cfg(test)]
 mod tests {

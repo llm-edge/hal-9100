@@ -9,6 +9,7 @@ use assistants_extra::anthropic::call_anthropic_api;
 use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Run, Thread, Assistant, Content, Text, Message, AnthropicApiError};
 
+use assistants_core::pdf_utils::{pdf_to_text, pdf_mem_to_text};
 
 pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>, sqlx::Error> {
     info!("Listing messages for thread_id: {}", thread_id);
@@ -280,19 +281,42 @@ async fn get_thread_from_db(pool: &PgPool, thread_id: i32) -> Result<Thread, sql
     })
 }
 
+// TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
 async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage) -> Vec<String> {
     info!("Retrieving file contents for file_ids: {:?}", file_ids);
     let mut file_contents = Vec::new();
     for file_id in file_ids {
-        let content = match file_storage.retrieve_file(file_id).await {
-            Ok(content) => content,
+        let file_string_content = match file_storage.retrieve_file(file_id).await {
+            Ok(file_byte_content) => {
+                // info!("Retrieved file from storage: {:?}", file_byte_content);
+                // Check if the file is a PDF
+                if file_id.ends_with(".pdf") {
+                    // If it's a PDF, extract the text
+                    match pdf_mem_to_text(&file_byte_content) {
+                        Ok(text) => text,
+                        Err(e) => {
+                            error!("Failed to extract text from PDF: {}", e);
+                            continue;
+                        }
+                    }
+                } else {
+                    // If it's not a PDF, use the content as is (bytes to string)
+                    match String::from_utf8(file_byte_content.to_vec()) {
+                        Ok(text) => text,
+                        Err(e) => {
+                            error!("Failed to convert bytes to string: {}", e);
+                            continue;
+                        }
+                    }
+                }
+            },
             Err(e) => {
                 eprintln!("Failed to retrieve file: {}", e);
                 continue; // Skip this iteration and move to the next file
             }
         };
-        file_contents.push(content);
+        file_contents.push(file_string_content);
     }
     file_contents
 }
@@ -323,9 +347,18 @@ async fn get_assistant_from_db(pool: &PgPool, assistant_id: i32) -> Result<Assis
     })
 }
 
-// This function builds the instructions given the original instructions and file contents
-fn build_instructions(original_instructions: &str, file_contents: &Vec<String>) -> String {
-    format!("{} Files: {:?}", original_instructions, file_contents)
+// This function formats the messages into a string
+fn format_messages(messages: &Vec<Message>) -> String {
+    let mut formatted_messages = String::new();
+    for message in messages {
+        formatted_messages.push_str(&format!("<message>\n{}\n</message>\n", serde_json::to_string(&message).unwrap()));
+    }
+    formatted_messages
+}
+
+// This function builds the instructions given the original instructions, file contents, and previous messages
+fn build_instructions(original_instructions: &str, file_contents: &Vec<String>, previous_messages: &str) -> String {
+    format!("<instructions>\n{}\n</instructions>\n<file>\n{:?}\n</file>\n<previous_messages>\n{}\n</previous_messages>", original_instructions, file_contents, previous_messages)
 }
 pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, sqlx::Error> {
     info!("Consuming queue");
@@ -360,15 +393,22 @@ pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> 
         all_file_ids.extend(assistant_file_ids.iter().cloned());
     }
 
+    // Fetch previous messages from the thread
+    let messages = list_messages(pool, thread.id).await?;
+
+    // Format messages into a string
+    let formatted_messages = format_messages(&messages);
+
     // Check if the all_file_ids includes any file IDs.
     if !all_file_ids.is_empty() {
         // Retrieve the contents of each file.
         let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
 
-        // Include the file contents in the instructions.
-        let instructions = build_instructions(&run.instructions, &file_contents);
+        // Include the file contents and previous messages in the instructions.
+        let instructions = build_instructions(&run.instructions, &file_contents, &formatted_messages);
 
-        let result = call_anthropic_api(instructions, 100, None, None, None, None, None, None).await.map_err(|e| {
+        info!("Calling Anthropic API with instructions: {}", instructions);
+        let result = call_anthropic_api(instructions, 500, None, None, None, None, None, None).await.map_err(|e| {
             eprintln!("Anthropic API error: {}", e);
             sqlx::Error::Configuration(AnthropicApiError::new(e).into())
         })?;
@@ -387,9 +427,11 @@ pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> 
 
         return Ok(run);
     } else {
+    
+        info!("Calling Anthropic API with instructions: {}", run.instructions);
         // If the run doesn't include any file IDs, call the Anthropic API as usual.
-        let result = call_anthropic_api(run.instructions, 100, None, None, None, None, None, None).await.map_err(|e| {
-            eprintln!("Anthropic API error: {}", e);
+        let result = call_anthropic_api(run.instructions, 500, None, None, None, None, None, None).await.map_err(|e| {
+            error!("Anthropic API error: {}", e);
             sqlx::Error::Configuration(AnthropicApiError::new(e).into())
         })?;
 
@@ -414,6 +456,9 @@ mod tests {
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
     use std::io::Write;
+    use tokio::fs::File;
+    use tokio::io::AsyncWriteExt;
+    
     async fn setup() -> PgPool {
         dotenv().ok();
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -422,6 +467,7 @@ mod tests {
             .connect(&database_url)
             .await
             .expect("Failed to create pool.");
+        env_logger::builder().filter_level(log::LevelFilter::Info).init();
         pool
     }
 
@@ -558,8 +604,10 @@ mod tests {
             .into_iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
-        let instructions = build_instructions(original_instructions, &file_contents);
-        assert_eq!(instructions, "Solve the equation. Files: [\"File 1 content\", \"File 2 content\"]");
+        let previous_messages = "<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n";
+        let instructions = build_instructions(original_instructions, &file_contents, previous_messages);
+        let expected_instructions = "Solve the equation.<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n</previous_messages>";
+        assert_eq!(instructions, expected_instructions);
     }
 
     #[tokio::test]
@@ -671,6 +719,57 @@ mod tests {
         // TODO: gotta impl this no?
         // assert_eq!(messages[1].content[1].text.value, "Files: [\"Knowledge content\"]");
         assert_eq!(messages[1].file_ids, Some(vec![file_id]));
+    }
+
+    #[tokio::test]
+    async fn test_read_pdf_content() {
+        // Download the PDF file
+        let response = reqwest::get("https://www.africau.edu/images/default/sample.pdf")
+            .await
+            .unwrap()
+            .bytes()
+            .await
+            .unwrap();
+
+        // Write the PDF file to disk
+        let mut file = File::create("sample.pdf").await.unwrap();
+        file.write_all(&response).await.unwrap();
+
+        // Read the PDF content
+        let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
+
+        // Check the content
+        assert!(content.contains("A Simple PDF File"));
+        assert!(content.contains("This is a small demonstration .pdf file"));
+    }
+
+    #[tokio::test]
+    async fn test_retrieve_file_contents_pdf() {
+        setup().await;
+        // Setup
+        let file_storage = FileStorage::new().await;
+
+        let url = "https://arxiv.org/pdf/2311.10122.pdf";
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
+            .build()
+            .unwrap();
+        let response = client.get(url).send().await.unwrap();
+
+        let bytes = response.bytes().await.unwrap();
+        let mut out = tokio::fs::File::create("2311.10122.pdf").await.unwrap();
+        out.write_all(&bytes).await.unwrap();
+        out.sync_all().await.unwrap(); // Ensure all bytes are written to the file
+
+        // let file_id = file_storage.upload_file(std::path::Path::new("2311.10122.pdf")).await.unwrap();
+
+        // Retrieve the file contents
+        let file_contents = retrieve_file_contents(&vec![String::from("2311.10122.pdf")], &file_storage).await;
+
+        // Check the file contents
+        assert!(file_contents[0].contains("Abstract"), "The PDF content should contain the word 'Abstract'. Instead, it contains: {}", file_contents[0]);
+        // Check got the end of the pdf too!
+        assert!(file_contents[0].contains("For Image Understanding As shown in Fig"), "The PDF content should contain the word 'Abstract'. Instead, it contains: {}", file_contents[0]);
     }
 }
 
