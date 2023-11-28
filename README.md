@@ -1,4 +1,10 @@
-
+<p align="center">
+  <a href="mailto:hi@louis030195.com?subject=Interest in Open Source Assistants API">
+    <button style="font-size:20px; color:white; background-color:#007BFF; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
+      🚀 Interested in this API in your infra? Email Me 🚀
+    </button>
+  </a>
+</p>
 
 <p align="center">
 <img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568">
