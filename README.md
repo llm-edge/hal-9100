@@ -29,6 +29,8 @@
 
 # Open Source Assistants API
 
+**🚀 Status: experimental - moving fast** DM if you need special [support](mailto:hi@louis030195.com)
+
 [👉 Try it now on your computer](./examples/hello-world-knowledge-retrieval/README.md)
 
 ## Overview
