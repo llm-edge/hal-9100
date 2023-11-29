@@ -86,7 +86,7 @@ impl From<reqwest::Error> for ApiError {
         ApiError::InvalidRequestError(error.to_string())
     }
 }
-
+impl std::error::Error for ApiError {}
 fn format_prompt(mut prompt: String) -> String {
     debug!("Original prompt: {}", prompt);
     if !prompt.starts_with("Human:") {

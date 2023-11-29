@@ -81,6 +81,21 @@ impl From<reqwest::Error> for OpenAIApiError {
     }
 }
 
+impl std::error::Error for OpenAIApiError {
+    
+}
+
+impl std::fmt::Display for OpenAIApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            OpenAIApiError::Reqwest(err) => write!(f, "Reqwest Error: {}", err),
+            OpenAIApiError::ApiError(err) => write!(f, "API Error: {}", err.error.message),
+            OpenAIApiError::JSONDeserialize(err) => write!(f, "Deserialization Error: {}", err),
+            OpenAIApiError::StreamError(err) => write!(f, "Stream Error: {}", err),
+            OpenAIApiError::InvalidArgument(err) => write!(f, "Invalid Argument: {}", err),
+        }
+    }
+}
 
 /// This function is used to interact with both the OpenAI Chat API and open-source language models with the same APIs.
 /// It sends a POST request to the specified API endpoint with the provided parameters.

@@ -6,6 +6,7 @@ use redis::AsyncCommands;
 use log::{info, error};
 
 use assistants_extra::anthropic::call_anthropic_api;
+use assistants_extra::openai::{call_openai_api, call_open_source_openai_api};
 use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Run, Thread, Assistant, Content, Text, Message, AnthropicApiError};
 
@@ -360,7 +361,25 @@ fn format_messages(messages: &Vec<Message>) -> String {
 fn build_instructions(original_instructions: &str, file_contents: &Vec<String>, previous_messages: &str) -> String {
     format!("<instructions>\n{}\n</instructions>\n<file>\n{:?}\n</file>\n<previous_messages>\n{}\n</previous_messages>", original_instructions, file_contents, previous_messages)
 }
-pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, sqlx::Error> {
+
+async fn run_assistant_based_on_model(assistant: Assistant, instructions: String) -> Result<String, Box<dyn std::error::Error>> {
+    // Check the model of the assistant
+    if assistant.model.contains("claude") {
+        // Call Anthropic API
+        call_anthropic_api(instructions, 500, None, None, None, None, None, None).await.map(|res| res.completion).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    } else if assistant.model.contains("gpt") {
+        // Call OpenAI API
+        call_openai_api(instructions, 500, None, None, None, None).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    } else if assistant.model.contains("/") {
+        // Call Open Source OpenAI API
+        call_open_source_openai_api(instructions, 500, assistant.model, None, None, None, "http://localhost:8000/v1/chat/completions".to_string()).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    } else {
+        // Handle unknown model
+        Err(Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unknown model")))
+    }
+}
+
+pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, Box<dyn std::error::Error>> {
     info!("Consuming queue");
     let (_, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
         error!("Redis error: {}", e);
@@ -399,54 +418,40 @@ pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> 
     // Format messages into a string
     let formatted_messages = format_messages(&messages);
 
+    let mut instructions = build_instructions(&run.instructions, &vec![], &formatted_messages);
+
     // Check if the all_file_ids includes any file IDs.
     if !all_file_ids.is_empty() {
         // Retrieve the contents of each file.
         let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
 
         // Include the file contents and previous messages in the instructions.
-        let instructions = build_instructions(&run.instructions, &file_contents, &formatted_messages);
+        instructions = build_instructions(&run.instructions, &file_contents, &formatted_messages);
+    } 
+    info!("Calling Anthropic API with instructions: {}", instructions);
 
-        info!("Calling Anthropic API with instructions: {}", instructions);
-        let result = call_anthropic_api(instructions, 500, None, None, None, None, None, None).await.map_err(|e| {
-            eprintln!("Anthropic API error: {}", e);
-            sqlx::Error::Configuration(AnthropicApiError::new(e).into())
-        })?;
+    let result = run_assistant_based_on_model(assistant, instructions).await;
 
-        let content = vec![Content {
-            type_: "text".to_string(),
-            text: Text {
-                value: result.completion,
-                annotations: vec![],
-            },
-        }];
-        
-        add_message_to_thread(pool, thread.id, "assistant", content, &run.user_id.to_string(), None).await?;
-        // Update run status to "completed"
-        run = update_run_in_db(pool, run.id, "completed".to_string()).await?;
-
-        return Ok(run);
-    } else {
-    
-        info!("Calling Anthropic API with instructions: {}", run.instructions);
-        // If the run doesn't include any file IDs, call the Anthropic API as usual.
-        let result = call_anthropic_api(run.instructions, 500, None, None, None, None, None, None).await.map_err(|e| {
-            error!("Anthropic API error: {}", e);
-            sqlx::Error::Configuration(AnthropicApiError::new(e).into())
-        })?;
-
-        let content = vec![Content {
-            type_: "text".to_string(),
-            text: Text {
-                value: result.completion,
-                annotations: vec![],
-            },
-        }];
-        add_message_to_thread(pool, thread.id, "assistant", content, &run.user_id.to_string(), None).await?;
-        // Update run status to "completed"
-        run = update_run_in_db(pool, run.id, "completed".to_string()).await?;
-
-        return Ok(run);
+    match result {
+        Ok(output) => {
+            let content = vec![Content {
+                type_: "text".to_string(),
+                text: Text {
+                    value: output.to_string(),
+                    annotations: vec![],
+                },
+            }];
+            add_message_to_thread(pool, thread.id, "assistant", content, &run.user_id.to_string(), None).await?;
+            // Update run status to "completed"
+            run = update_run_in_db(pool, run.id, "completed".to_string()).await?;
+            Ok(run)
+        },
+        Err(e) => {
+            error!("Assistant model error: {}", e);
+            // Update run status to "failed"
+            run = update_run_in_db(pool, run.id, "failed".to_string()).await?;
+            Err(e)
+        }
     }
 }
 
@@ -791,6 +796,42 @@ mod tests {
         assert!(file_contents[0].contains("Abstract"), "The PDF content should contain the word 'Abstract'. Instead, it contains: {}", file_contents[0]);
         // Check got the end of the pdf too!
         assert!(file_contents[0].contains("For Image Understanding As shown in Fig"), "The PDF content should contain the word 'Abstract'. Instead, it contains: {}", file_contents[0]);
+    }
+
+    #[tokio::test]
+    async fn test_run_assistant_based_on_model() {
+        setup().await;
+        let assistant_claude = Assistant {
+            model: "claude".to_string(),
+            ..Default::default()
+        };
+        let assistant_gpt = Assistant {
+            model: "gpt".to_string(),
+            ..Default::default()
+        };
+        let assistant_open_source = Assistant {
+            model: "/".to_string(),
+            ..Default::default()
+        };
+        let assistant_unknown = Assistant {
+            model: "unknown".to_string(),
+            ..Default::default()
+        };
+
+        let instructions = "Test instructions".to_string();
+
+        let result_claude = run_assistant_based_on_model(assistant_claude, instructions.clone()).await;
+        assert!(result_claude.is_ok());
+
+        let result_gpt = run_assistant_based_on_model(assistant_gpt, instructions.clone()).await;
+        assert!(result_gpt.is_ok());
+
+        // ! annoying - need to deploy some model somewhere i guess or run the llm in the ci :)
+        // let result_open_source = run_assistant_based_on_model(assistant_open_source, instructions.clone()).await;
+        // assert!(result_open_source.is_ok());
+
+        let result_unknown = run_assistant_based_on_model(assistant_unknown, instructions).await;
+        assert!(matches!(result_unknown, Err(e) if e.downcast_ref::<std::io::Error>().unwrap().kind() == std::io::ErrorKind::InvalidInput));
     }
 }
 

@@ -126,7 +126,23 @@ pub struct Assistant {
     pub user_id: String,
 }
 
-
+impl Default for Assistant {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            object: String::new(),
+            created_at: 0,
+            name: None,
+            description: None,
+            model: String::new(),
+            instructions: None,
+            tools: Vec::new(),
+            file_ids: None,
+            metadata: None,
+            user_id: String::new(),
+        }
+    }
+}
 
 // Define the Record struct
 pub struct Record {
