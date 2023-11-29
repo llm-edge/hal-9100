@@ -27,4 +27,5 @@ jobs:
     - name: Run tests
       env:
         ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-      run: make test
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: RUST_TEST_THREADS=1 cargo test --features ci
