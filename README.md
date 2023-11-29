@@ -29,8 +29,6 @@
 
 # Open Source Assistants API
 
-🚀 **Status: Experimental** 🚀 We're moving fast and breaking things. Not usable in production yet.
-
 [👉 Try it now on your computer](./examples/hello-world-knowledge-retrieval/README.md)
 
 ## Overview
