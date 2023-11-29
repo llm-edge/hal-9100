@@ -16,3 +16,6 @@ log = "0.4"
 
 [dev-dependencies]
 dotenv = "0.15.0"
+
+[features]
+ci = []

@@ -81,6 +81,7 @@ impl From<reqwest::Error> for OpenAIApiError {
     }
 }
 
+
 /// This function is used to interact with both the OpenAI Chat API and open-source language models with the same APIs.
 /// It sends a POST request to the specified API endpoint with the provided parameters.
 ///
@@ -106,18 +107,12 @@ pub async fn call_openai_api(
     temperature: Option<f32>,
     stop_sequences: Option<Vec<String>>,
     top_p: Option<f32>,
-    top_k: Option<i32>,
-    metadata: Option<HashMap<String, String>>,
 ) -> Result<ChatCompletion, OpenAIApiError> {
-    let default_url = "https://api.openai.com/v1/chat/completions";
+    let url = "https://api.openai.com/v1/chat/completions";
     let default_model = "gpt-3.5-turbo".to_string();
     let model = model.unwrap_or_else(|| default_model.clone());
-    let model_clone = model.clone();
-    let url = if model.starts_with("http") { model } else { default_url.to_string() };
-    let model = if url == default_url { model_clone } else { default_model };
 
     let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
-    // prompt = format_prompt(prompt);
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
@@ -127,7 +122,7 @@ pub async fn call_openai_api(
     headers.insert("Authorization", auth_value);
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
     body.insert("model", serde_json::json!(model));
-    body.insert("prompt", serde_json::json!(prompt));
+    body.insert("messages", serde_json::json!(vec![Message { role: "user".to_string(), content: prompt }]));
     body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
     body.insert("stream", serde_json::json!(false));
@@ -138,13 +133,7 @@ pub async fn call_openai_api(
     if let Some(top_p) = top_p {
         body.insert("top_p", serde_json::json!(top_p));
     }
-    if let Some(top_k) = top_k {
-        body.insert("top_k", serde_json::json!(top_k));
-    }
-    if let Some(metadata) = metadata {
-        body.insert("metadata", serde_json::json!(metadata));
-    }
-    
+
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
@@ -167,6 +156,46 @@ pub async fn call_openai_api(
     // }
 }
 
+pub async fn call_open_source_openai_api(
+    mut prompt: String,
+    max_tokens_to_sample: i32,
+    model: String, // model is required for open-source API
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    url: String, // url is required for open-source API
+) -> Result<ChatCompletion, OpenAIApiError> {
+    let default_model = "gpt-3.5-turbo".to_string();
+    let model = if url == "https://api.openai.com/v1/chat/completions" { default_model } else { model };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model));
+    body.insert("messages", serde_json::json!(vec![Message { role: "user".to_string(), content: prompt }]));
+    body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(false));
+    
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+
+
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    let raw_res = res.text().await?;
+    let api_res: Result<ChatCompletion, _> = serde_json::from_str(&raw_res);
+
+    match api_res {
+        Ok(res_body) => Ok(res_body),
+        Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -176,50 +205,58 @@ mod tests {
     #[tokio::test]
     async fn test_call_openai_api() {
         dotenv::dotenv().ok();
-        let prompt = "Translate the following English text to French: '{}'";
+        let prompt = "What is the ultimate solution to the universe according to the Hitchhiker's Guide to the Galaxy (answer very concisely, max one sentence)?";
         let max_tokens_to_sample = 60;
         let model = Some("gpt-3.5-turbo".to_string());
         let temperature = Some(0.5);
-        let stop_sequences = Some(vec!["\"".to_string()]);
+        let stop_sequences = None;
         let top_p = Some(1.0);
-        let top_k = Some(1);
-        let metadata = Some(HashMap::new());
 
-        let result = call_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await;
+        let result = call_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p).await;
 
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(response.model, "gpt-3.5-turbo");
+                assert_eq!(response.model.contains("gpt-3.5-turbo"), true);
+                assert_eq!(response.choices.len(), 1);
+                assert_eq!(response.choices[0].finish_reason, "stop");
+                assert_eq!(response.choices[0].message.role, "assistant");
+                assert_eq!(response.choices[0].message.content.contains("42"), true);
             }
             Err(e) => panic!("API call failed: {:?}", e),
         }
     }
 
+    #[cfg(not(feature = "ci"))]
     #[tokio::test]
     async fn test_call_openai_api_with_llm() {
         dotenv::dotenv().ok();
-        let prompt = "Translate the following English text to French: '{}'";
+        let prompt = "What is the ultimate solution to the universe according to the Hitchhiker's Guide to the Galaxy (answer very concisely, max one sentence)?";
         let max_tokens_to_sample = 60;
-        let model = Some("http://localhost:5000/v1/chat/completions".to_string());
+        let url = "http://localhost:8000/v1/chat/completions".to_string();
+        let model = "mistral-7b-openorca".to_string();
         let temperature = Some(0.5);
-        let stop_sequences = Some(vec!["\"".to_string()]);
+        let stop_sequences = None;
         let top_p = Some(1.0);
-        let top_k = Some(1);
-        let metadata = Some(HashMap::new());
 
-        let result = call_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await;
+        let result = call_open_source_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, url).await;
 
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
+                assert_eq!(response.model.contains("mistral-7b-openorca"), true);
+                assert_eq!(response.choices.len(), 1);
+                assert_eq!(response.choices[0].finish_reason, "stop");
+                assert_eq!(response.choices[0].message.role, "assistant");
+                assert_eq!(response.choices[0].message.content.contains("42"), true);
             }
             Err(e) => panic!("API call failed: {:?}", e),
         }
     }
 }
 
-
+// cd $HOME/Documents/FastChat
+// source env/bin/activate
 // python3 -m fastchat.serve.controller
 // python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit
 // python3 -m fastchat.serve.openai_api_server --host localhost --port 8000

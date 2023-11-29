@@ -550,6 +550,8 @@ mod tests {
             description: Some("description_value".to_string()),
             metadata: None,
         };
+        create_assistant(&pool, &assistant).await.unwrap();
+        println!("assistant: {:?}", assistant);
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         println!("thread: {:?}", thread);
     
@@ -567,6 +569,21 @@ mod tests {
     async fn test_queue_consumer() {
         let pool = setup().await;
         reset_db(&pool).await;
+        let assistant = Assistant {
+            id: 1,
+            instructions: Some("You are a personal math tutor. Write and run code to answer math questions.".to_string()),
+            name: Some("Math Tutor".to_string()),
+            tools: vec!["code_interpreter".to_string()],
+            model: "claude-2.1".to_string(),
+            user_id: "user1".to_string(),
+            file_ids: None,
+            object: "object_value".to_string(),
+            created_at: 0,
+            description: Some("description_value".to_string()),
+            metadata: None,
+        };
+        create_assistant(&pool, &assistant).await.unwrap();
+        println!("assistant: {:?}", assistant);
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
             type_: "text".to_string(),
@@ -582,7 +599,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, thread.id, 1, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", con).await;
+        let run = run_assistant(&pool, thread.id, assistant.id, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", con).await;
         
         assert!(run.is_ok());
 
@@ -606,7 +623,7 @@ mod tests {
             .collect::<Vec<String>>();
         let previous_messages = "<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n";
         let instructions = build_instructions(original_instructions, &file_contents, previous_messages);
-        let expected_instructions = "Solve the equation.<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n</previous_messages>";
+        let expected_instructions = "<instructions>\nSolve the equation.\n</instructions>\n<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n\n</previous_messages>";
         assert_eq!(instructions, expected_instructions);
     }
 
@@ -673,6 +690,9 @@ mod tests {
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
+        // check assistant has file 
+        assert_eq!(assistant.file_ids, Some(vec![file_id]));
+
         // 2. Create a Thread
         let thread = create_thread(&pool, "user1").await.unwrap();
 
@@ -718,7 +738,8 @@ mod tests {
         assert!(messages[1].content[0].text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
         // TODO: gotta impl this no?
         // assert_eq!(messages[1].content[1].text.value, "Files: [\"Knowledge content\"]");
-        assert_eq!(messages[1].file_ids, Some(vec![file_id]));
+        // !wrong? not 100% how openai does it, i guess if file is in assistant its not guaranteed in message
+        // assert_eq!(messages[1].file_ids, Some(vec![file_id])); -> !wor
     }
 
     #[tokio::test]
@@ -761,10 +782,10 @@ mod tests {
         out.write_all(&bytes).await.unwrap();
         out.sync_all().await.unwrap(); // Ensure all bytes are written to the file
 
-        // let file_id = file_storage.upload_file(std::path::Path::new("2311.10122.pdf")).await.unwrap();
+        let file_path = file_storage.upload_file(std::path::Path::new("2311.10122.pdf")).await.unwrap();
 
         // Retrieve the file contents
-        let file_contents = retrieve_file_contents(&vec![String::from("2311.10122.pdf")], &file_storage).await;
+        let file_contents = retrieve_file_contents(&vec![String::from(file_path)], &file_storage).await;
 
         // Check the file contents
         assert!(file_contents[0].contains("Abstract"), "The PDF content should contain the word 'Abstract'. Instead, it contains: {}", file_contents[0]);

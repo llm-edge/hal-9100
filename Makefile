@@ -72,3 +72,16 @@ define ASCII_ART
 endef
 export ASCII_ART
 
+
+## Test all
+test: ## Run all tests
+	@set -a && . .env && set +a && \
+	RUST_TEST_THREADS=1 cargo test --features ci
+
+
+# RUST_TEST_THREADS=1 cargo test --features ci -- --skip test_end_to_end_with_file_upload_and_retrieval && \
+# consumer & echo $$! > consumer.pid && \
+# sleep 5 && \
+# RUST_TEST_THREADS=1 cargo test --features ci -- test_end_to_end_with_file_upload_and_retrieval && \
+# kill `cat consumer.pid` && rm consumer.pid
+

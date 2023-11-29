@@ -27,4 +27,4 @@ jobs:
     - name: Run tests
       env:
         ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-      run: cargo test
+      run: make test

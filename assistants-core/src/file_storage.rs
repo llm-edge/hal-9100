@@ -51,9 +51,12 @@ impl FileStorage {
     }
 
     pub async fn upload_file(&self, file_path: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let file_name = format!("{}.pdf", uuid::Uuid::new_v4());
+        let extension = file_path.extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("");
+        let file_name = format!("{}.{}", uuid::Uuid::new_v4(), extension);
         let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_name);
-
+    
         let mut file = match File::open(file_path).await {
             Ok(file) => file,
             Err(e) => return Err(Box::new(e)),
@@ -152,7 +155,7 @@ mod tests {
         }
 
         // Check that the returned key is correct.
-        assert_eq!(result.unwrap(), "test.txt");
+        assert!(result.unwrap().ends_with(".txt"));
 
         // Clean up the temporary directory.
         dir.close().unwrap();
@@ -176,10 +179,10 @@ mod tests {
         let fs = FileStorage::new().await;
 
         // Upload the file.
-        fs.upload_file(&file_path).await.unwrap();
+        let new_file_name = fs.upload_file(&file_path).await.unwrap();
 
         // Retrieve the file.
-        let result = fs.retrieve_file("test.txt").await;
+        let result = fs.retrieve_file(&new_file_name).await;
 
         // Check that the retrieval was successful and the content is correct.
         assert_eq!(result.unwrap(), "Hello, world!\n");

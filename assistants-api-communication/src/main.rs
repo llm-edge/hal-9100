@@ -9,7 +9,7 @@ use axum::{
     http::Method,
     http::header::HeaderName,
 };
-use assistants_core::assistant::{add_message_to_thread, create_assistant, create_thread, get_run_from_db, list_messages, run_assistant};
+use assistants_core::assistant::{add_message_to_thread, create_assistant, create_thread, get_run_from_db, list_messages, run_assistant, queue_consumer};
 use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Assistant, Message, Run, Thread, Content, Text};
 use env_logger;
@@ -267,7 +267,7 @@ async fn upload_file_handler(
         let name = field.name().unwrap().to_string();
 
         if name == "file" {
-            content_type = field.content_type().unwrap().to_string();
+            content_type = field.content_type().unwrap_or("text/plain").to_string();
             println!("Content type: {:?}", content_type);
             file_data = field.bytes().await.unwrap().to_vec();
         } else if name == "purpose" {
@@ -428,17 +428,36 @@ mod tests {
     async fn test_add_message_handler() {
         let app_state = setup().await;
         let app = app(app_state);
-
+    
+        // Create a thread first
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+    
+        assert_eq!(response.status(), StatusCode::OK);
+    
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: Thread = serde_json::from_slice(&body).unwrap();
+    
+        // Now add a message to the created thread
         let message = CreateMessage {
             role: "user".to_string(),
             content:  "test message".to_string(),
         };
-
-        let response = app
+    
+        let response = app.clone()
             .oneshot(
                 Request::builder()
                     .method(http::Method::POST)
-                    .uri("/threads/1/messages")
+                    .uri(format!("/threads/{}/messages", thread.id)) // Use the thread ID here
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::from(
                         serde_json::to_vec(&message).unwrap(),
@@ -447,15 +466,14 @@ mod tests {
             )
             .await
             .unwrap();
-
+    
         assert_eq!(response.status(), StatusCode::OK);
-
+    
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Message = serde_json::from_slice(&body).unwrap();
         assert_eq!(body.content.len(), 1);
         assert_eq!(body.user_id, "user1");
     }
-
     use sysinfo::{System, SystemExt};
 
     #[tokio::test]
@@ -463,22 +481,23 @@ mod tests {
         
         // Setup
         let app_state = setup().await;
+        let pool_clone = app_state.pool.clone();
         reset_db(&app_state.pool).await;
         let app = app(app_state);
 
-        // Check if the run_consumer process is running
-        let s = System::new_all();
-        let process_name = "run_consumer";
-        let mut process = s.processes_by_name(process_name);
+        // // Check if the run_consumer process is running
+        // let s = System::new_all();
+        // let process_name = "run_consumer";
+        // let mut process = s.processes_by_name(process_name);
 
-        if process.next().is_none() {
-            panic!("The {} process is not running. Please start the process and try again.", process_name);
-        }
+        // if process.next().is_none() {
+        //     panic!("The {} process is not running. Please start the process and try again.", process_name);
+        // }
 
         // 1. Upload a file
         let boundary = "------------------------14737809831466499882746641449";
         let body = format!(
-            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\r\nThe answer to the ultimate question of life, the universe, and everything is 42.\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\nContent-Type: text/plain\r\n\r\nThe answer to the ultimate question of life, the universe, and everything is 42.\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
             boundary = boundary
         );
 
@@ -595,8 +614,19 @@ mod tests {
         let run: Run = serde_json::from_slice(&body).unwrap();
         println!("Run: {:?}", run);
 
-        // wait 7 seconds 
-        tokio::time::sleep(tokio::time::Duration::from_secs(7)).await;
+        // wait 7 seconds - kinda fked up when parallel testing, should do some polling retry thing
+        // tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        
+        // 6. Run the queue consumer
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool_clone, &mut con).await;
+
+        // 7. Check the result
+        assert!(result.is_ok());
+
+
 
         // 6. Check the Run Status
         let response = app.clone()
