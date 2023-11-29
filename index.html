@@ -1,1 +1,46 @@
-hello world
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Centered Button</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .newsletter-form-container {
+            text-align: center;
+        }
+
+        /* Your existing CSS here */
+    </style>
+</head>
+<body>
+    <div class="newsletter-form-container">
+        <form class="newsletter-form" action="https://app.loops.so/api/newsletter-form/clnz309q2003qlb0n2dqawmbn" method="POST" style="display: flex; flex-direction: row; align-items: center; justify-content: center; width: 100%;">
+            <input class="newsletter-form-input" name="newsletter-form-input" type="email" placeholder="you@example.com" required="" style="..."> <!-- Your style here -->
+            <button type="submit" class="newsletter-form-button" style="...">Get updates</button> <!-- Your style here -->
+            <button type="button" class="newsletter-loading-button" style="display: none; ...">Please wait...</button> <!-- Your style here -->
+        </form>
+        <div class="newsletter-success" style="display: none; ...">
+            <p class="newsletter-success-message" style="...">Time to ship your product!</p>
+        </div>
+        <div class="newsletter-error" style="display: none; ...">
+            <p class="newsletter-error-message" style="...">Oops! Something went wrong, please try again</p>
+        </div>
+        <button class='newsletter-back-button' type='button' style='...' onmouseout='this.style.textDecoration="none"' onmouseover='this.style.textDecoration="underline"'>
+            &larr; Back
+        </button>
+    </div>
+
+    <script>
+        // Insert your JavaScript here
+    </script>
+</body>
+</html>
