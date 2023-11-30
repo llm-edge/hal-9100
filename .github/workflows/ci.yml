@@ -52,7 +52,16 @@ jobs:
         toolchain: stable
         override: true
 
+    - name: Start Docker containers
+      run: |
+        docker-compose -f docker/docker-compose.yml up -d postgres
+        while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
+        docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
+        docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+  
     - name: Build Rust code
+      env:
+        DATABASE_URL: postgres://postgres:secret@pg:5432/mydatabase
       run: |
         cargo build --release --bin run_consumer
         cargo build --release --bin assistants-api-communication
