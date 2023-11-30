@@ -61,7 +61,7 @@ jobs:
   
     - name: Build Rust code
       env:
-        DATABASE_URL: postgres://postgres:secret@pg:5432/mydatabase
+        DATABASE_URL: postgres://postgres:secret@localhost:5432/mydatabase
       run: |
         cargo build --release --bin run_consumer
         cargo build --release --bin assistants-api-communication
