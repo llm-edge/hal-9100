@@ -1,7 +1,7 @@
 <p align="center">
-  <a href="mailto:hi@louis030195.com?subject=Interest in Open Source Assistants API">
+  <a href="https://cal.com/louis030195/assistants">
     <button style="font-size:20px; color:white; background-color:#007BFF; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
-      🚀 Interested in this API in your infra? Email Me 🚀
+      🚀 Interested in this API in your infra? 🚀
     </button>
   </a>
 </p>
@@ -31,9 +31,9 @@
 
 # Open Source Assistants API
 
-DM me if you need special [support](mailto:hi@louis030195.com)
+Need special [support](https://cal.com/louis030195/assistants)?
 
-[👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md)
+[👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md).
 
 ## News
 
