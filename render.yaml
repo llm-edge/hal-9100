@@ -2,7 +2,7 @@ services:
   - type: pserv
     name: assistants
     env: docker
-    image: ghcr.io/stellar-amenities/assistants/assistants:latest
+    image: stellar-amenities/assistants/assistants:latest
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
