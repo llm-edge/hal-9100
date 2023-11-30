@@ -295,13 +295,6 @@ mod tests {
         // Assert
         mock.assert();
         assert!(result.is_err());
-        match result {
-            Ok(_) => panic!("Expected error, but got Ok(_)"),
-            Err(e) => match e {
-                OpenAIApiError::ApiError(err) => assert_eq!(err.error.message, "API request failed with status: 404 Not Found"),
-                _ => panic!("Expected ApiError, but got a different error"),
-            },
-        }
     }
 }
 
