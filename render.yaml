@@ -2,14 +2,15 @@ services:
   - type: pserv
     name: assistants
     env: docker
-    image: stellar-amenities/assistants/assistants:latest
+    dockerCommand: "/bin/bash -c 'curl -L https://raw.githubusercontent.com/stellar-amenities/assistants/main/assistants-core/src/migrations.sql -o migrations.sql && psql -U postgres -d mydatabase -f migrations.sql && /app/entrypoint.sh'"
+    image: 
+      url: stellar-amenities/assistants/assistants:latest
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: DATABASE_URL
-        fromService:
-          name: postgres
-          type: pserv
+        fromDatabase:
+          name: pg
           property: connectionString
       - key: REDIS_URL
         fromService:
@@ -28,29 +29,34 @@ services:
       - key: S3_BUCKET_NAME
         value: "mybucket"
 
-  - type: pserv
-    name: postgres
-    env: docker
-    image: postgres:13
-    dockerCommand: "/bin/bash -c 'service postgresql start && until psql -U postgres -c \"CREATE DATABASE mydatabase;\"; do sleep 1; done && curl -L https://raw.githubusercontent.com/stellar-amenities/assistants/main/assistants-core/src/migrations.sql -o migrations.sql && psql -U postgres -d mydatabase -f migrations.sql && while true; do sleep 1000; done'"
-    envVars:
-      - key: POSTGRES_PASSWORD
-        value: "secret"
-
-  - type: pserv
-    name: redis
-    env: docker
-    dockerfile: Dockerfile
-    image: redis:6.2
+  - type: redis
+    name: lightning
+    ipAllowList: # required
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free
+    maxmemoryPolicy: noeviction # optional (defaults to allkeys-lru)
 
   - type: pserv
     name: minio
     env: docker
-    dockerfile: Dockerfile
-    image: minio/minio
+    healthCheckPath: /minio/health/live
+    runtime: image
+    image:
+      url: docker.io/minio/minio:RELEASE.2023-08-04T17-40-21Z.hotfix.04968f7ec
+    dockerCommand: minio server /data
+    autoDeploy: false
+    disk:
+      name: data
+      mountPath: /data
     envVars:
       - key: MINIO_ACCESS_KEY
         value: "minioadmin"
       - key: MINIO_SECRET_KEY
         value: "minioadmin"
-    healthCheckPath: /minio/health/live
+
+databases:
+  - name: pg
+    plan: free
+    databaseName: mydatabase
+    user: postgres
