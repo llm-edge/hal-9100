@@ -22,7 +22,7 @@ jobs:
         override: true
 
     - name: Start Docker containers
-      run: docker-compose -f docker/docker-compose.yml up -d
+      run: make docker
 
     - name: Run tests
       env:
