@@ -231,10 +231,10 @@ async fn run_assistant_handler(
 }
 
 async fn check_run_status_handler(
-    Path((_, run_id)): Path<(i32, i32)>,
+    Path((thread_id, run_id)): Path<(i32, i32)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    let run = get_run_from_db(&app_state.pool, run_id).await;
+    let run = get_run_from_db(&app_state.pool, thread_id, run_id).await;
     match run {
         Ok(run) => Ok(JsonResponse(run)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),

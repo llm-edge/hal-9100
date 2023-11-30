@@ -147,11 +147,20 @@ pub async fn run_assistant(pool: &PgPool, thread_id: i32, assistant_id: i32, ins
         }
     };
 
+    // Create a JSON object with run_id and thread_id
+    let ids = serde_json::json!({
+        "run_id": run.id,
+        "thread_id": thread_id
+    });
+
+    // Convert the JSON object to a string
+    let ids_string = ids.to_string();
+
     // Add run_id to Redis queue
-    con.lpush("run_queue", run.id).await.map_err(|e| sqlx::Error::Configuration(e.into()))?;
+    con.lpush("run_queue", ids_string).await.map_err(|e| sqlx::Error::Configuration(e.into()))?;
 
     // Set run status to "queued" in database
-    let updated_run = update_run_in_db(pool, run.id, "queued".to_string()).await?;
+    let updated_run = update_run_in_db(pool, run.id, "queued".to_string(), None).await?;
 
     Ok(updated_run)
 }
@@ -191,13 +200,13 @@ async fn create_run_in_db(pool: &PgPool, thread_id: i32, assistant_id: i32, inst
     })
 }
 
-pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Error> {
+pub async fn get_run_from_db(pool: &PgPool, thread_id: i32, run_id: i32) -> Result<Run, sqlx::Error> {
     info!("Getting run from database for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
-        SELECT * FROM runs WHERE id = $1
+        SELECT * FROM runs WHERE thread_id = $1 AND id = $2
         "#,
-        &run_id
+        &thread_id, &run_id
     )
     .fetch_one(pool)
     .await?;
@@ -224,15 +233,14 @@ pub async fn get_run_from_db(pool: &PgPool, run_id: i32) -> Result<Run, sqlx::Er
         metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
 }
-
-async fn update_run_in_db(pool: &PgPool, run_id: i32, completion: String) -> Result<Run, sqlx::Error> {
+async fn update_run_in_db(pool: &PgPool, run_id: i32, status: String, model: Option<String>) -> Result<Run, sqlx::Error> {
     info!("Updating run in database for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
-        UPDATE runs SET status = $1 WHERE id = $2
+        UPDATE runs SET status = $1, model = $2 WHERE id = $3
         RETURNING *
         "#,
-        &completion, &run_id
+        &status, &model.unwrap_or_default(), &run_id
     )
     .fetch_one(pool)
     .await?;
@@ -372,7 +380,9 @@ async fn run_assistant_based_on_model(assistant: Assistant, instructions: String
         call_openai_api(instructions, 500, None, None, None, None).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     } else if assistant.model.contains("/") {
         // Call Open Source OpenAI API
-        call_open_source_openai_api(instructions, 500, assistant.model, None, None, None, "http://localhost:8000/v1/chat/completions".to_string()).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+        // ! kinda hacky - FastChat thing (weird stuff - want the whole org/model to run cli but then expect the the model thru REST)
+        let model_name = assistant.model.split('/').last().unwrap_or_default();
+        call_open_source_openai_api(instructions, 500, model_name.to_string(), None, None, None, "http://localhost:8000/v1/chat/completions".to_string()).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     } else {
         // Handle unknown model
         Err(Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unknown model")))
@@ -381,23 +391,33 @@ async fn run_assistant_based_on_model(assistant: Assistant, instructions: String
 
 pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> Result<Run, Box<dyn std::error::Error>> {
     info!("Consuming queue");
-    let (_, run_id): (String, i32) = con.brpop("run_queue", 0).await.map_err(|e| {
+    let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
         error!("Redis error: {}", e);
         sqlx::Error::Configuration(e.into())
     })?;
-    let mut run = get_run_from_db(pool, run_id).await?;
+    
+    // Parse the string back into a JSON object
+    let ids: serde_json::Value = serde_json::from_str(&ids_string).unwrap();
+    
+    // Extract the run_id and thread_id
+    let run_id = ids["run_id"].as_i64().unwrap() as i32;
+    let thread_id = ids["thread_id"].as_i64().unwrap() as i32;
+    
+    let mut run = get_run_from_db(pool, thread_id, run_id).await?;
+
+    // Retrieve the assistant associated with the run
+    let assistant = get_assistant_from_db(pool, run.assistant_id).await?;
+
+    let model = assistant.model.clone();
 
     // Update run status to "running"
-    run = update_run_in_db(pool, run.id, "running".to_string()).await?;
+    run = update_run_in_db(pool, run.id, "running".to_string(), Some(model.clone())).await?;
 
     // Initialize FileStorage
     let file_storage = FileStorage::new().await;
     
     // Retrieve the thread associated with the run
     let thread = get_thread_from_db(pool, run.thread_id).await?;
-
-    // Retrieve the assistant associated with the run
-    let assistant = get_assistant_from_db(pool, run.assistant_id).await?;
 
     // Initialize an empty vector to hold all file IDs
     let mut all_file_ids = Vec::new();
@@ -428,7 +448,7 @@ pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> 
         // Include the file contents and previous messages in the instructions.
         instructions = build_instructions(&run.instructions, &file_contents, &formatted_messages);
     } 
-    info!("Calling Anthropic API with instructions: {}", instructions);
+    info!("Calling LLM API with instructions: {}", instructions);
 
     let result = run_assistant_based_on_model(assistant, instructions).await;
 
@@ -443,13 +463,13 @@ pub async fn queue_consumer(pool: &PgPool, con: &mut redis::aio::Connection) -> 
             }];
             add_message_to_thread(pool, thread.id, "assistant", content, &run.user_id.to_string(), None).await?;
             // Update run status to "completed"
-            run = update_run_in_db(pool, run.id, "completed".to_string()).await?;
+            run = update_run_in_db(pool, run.id, "completed".to_string(), Some(model.clone())).await?;
             Ok(run)
         },
         Err(e) => {
             error!("Assistant model error: {}", e);
             // Update run status to "failed"
-            run = update_run_in_db(pool, run.id, "failed".to_string()).await?;
+            run = update_run_in_db(pool, run.id, "failed".to_string(), Some(model.clone())).await?;
             Err(e)
         }
     }
@@ -587,7 +607,7 @@ mod tests {
             description: Some("description_value".to_string()),
             metadata: None,
         };
-        create_assistant(&pool, &assistant).await.unwrap();
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
@@ -615,7 +635,7 @@ mod tests {
         assert!(result.is_ok());
         
         // Fetch the run from the database and check its status
-        let run = get_run_from_db(&pool, result.unwrap().id).await.unwrap();
+        let run = get_run_from_db(&pool, thread.id, result.unwrap().id).await.unwrap();
         assert_eq!(run.status, "completed");
     }
 
@@ -729,7 +749,7 @@ mod tests {
         assert!(result.is_ok());
 
         // 8. Fetch the run from the database and check its status
-        let run = get_run_from_db(&pool, result.unwrap().id).await.unwrap();
+        let run = get_run_from_db(&pool, thread.id, result.unwrap().id).await.unwrap();
         assert_eq!(run.status, "completed");
 
         // 9. Fetch the messages from the database

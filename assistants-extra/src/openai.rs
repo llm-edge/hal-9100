@@ -159,20 +159,10 @@ pub async fn call_openai_api(
         Ok(res_body) => Ok(res_body),
         Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
     }
-    // match api_res {
-    //     Ok(res_body) => Ok(res_body),
-    //     Err(err) => match err {
-    //         OpenAIApiError::Reqwest(_) => Err(err),
-    //         OpenAIApiError::ApiError(_) => Err(err),
-    //         OpenAIApiError::JSONDeserialize(_) => Err(err),
-    //         OpenAIApiError::StreamError(_) => Err(err),
-    //         OpenAIApiError::InvalidArgument(_) => Err(err),
-    //     },
-    // }
 }
 
 pub async fn call_open_source_openai_api(
-    mut prompt: String,
+    prompt: String,
     max_tokens_to_sample: i32,
     model: String, // model is required for open-source API
     temperature: Option<f32>,
@@ -180,9 +170,6 @@ pub async fn call_open_source_openai_api(
     top_p: Option<f32>,
     url: String, // url is required for open-source API
 ) -> Result<ChatCompletion, OpenAIApiError> {
-    let default_model = "gpt-3.5-turbo".to_string();
-    let model = if url == "https://api.openai.com/v1/chat/completions" { default_model } else { model };
-
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
@@ -202,7 +189,20 @@ pub async fn call_open_source_openai_api(
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
+    let status = res.status();
     let raw_res = res.text().await?;
+
+    if !status.is_success() {
+        return Err(OpenAIApiError::ApiError(ApiErrorResponse {
+            error: ApiErrorDetail {
+                message: format!("API request failed with status: {}. Response body: {}", status, raw_res),
+                r#type: "API Request Error".to_string(),
+                param: None,
+                code: None,
+            },
+        }));
+    }
+
     let api_res: Result<ChatCompletion, _> = serde_json::from_str(&raw_res);
 
     match api_res {
@@ -249,7 +249,7 @@ mod tests {
         let prompt = "What is the ultimate solution to the universe according to the Hitchhiker's Guide to the Galaxy (answer very concisely, max one sentence)?";
         let max_tokens_to_sample = 60;
         let url = "http://localhost:8000/v1/chat/completions".to_string();
-        let model = "mistral-7b-openorca".to_string();
+        let model = "open-orca/mistral-7b-openorca".to_string();
         let temperature = Some(0.5);
         let stop_sequences = None;
         let top_p = Some(1.0);
@@ -259,7 +259,7 @@ mod tests {
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(response.model.contains("mistral-7b-openorca"), true);
+                assert_eq!(response.model.contains("open-orca/mistral-7b-openorca"), true);
                 assert_eq!(response.choices.len(), 1);
                 assert_eq!(response.choices[0].finish_reason, "stop");
                 assert_eq!(response.choices[0].message.role, "assistant");
@@ -268,15 +268,51 @@ mod tests {
             Err(e) => panic!("API call failed: {:?}", e),
         }
     }
+
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
+
+    #[tokio::test]
+    async fn test_call_open_source_openai_api_error_handling() {
+        // Arrange
+        let server = MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(POST).path("/v1/chat/completions");
+            then.status(404);
+        });
+
+        let prompt = "Hello, world!";
+        let max_tokens_to_sample = 60;
+        let model = "open-orca/mistral-7b-openorca".to_string();
+        let temperature = Some(0.5);
+        let stop_sequences = None;
+        let top_p = Some(1.0);
+        let url = server.url("/v1/chat/completions");
+
+        // Act
+        let result = call_open_source_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, url).await;
+
+        // Assert
+        mock.assert();
+        assert!(result.is_err());
+        match result {
+            Ok(_) => panic!("Expected error, but got Ok(_)"),
+            Err(e) => match e {
+                OpenAIApiError::ApiError(err) => assert_eq!(err.error.message, "API request failed with status: 404 Not Found"),
+                _ => panic!("Expected ApiError, but got a different error"),
+            },
+        }
+    }
 }
 
-// cd $HOME/Documents/FastChat
-// source env/bin/activate
-// python3 -m fastchat.serve.controller
-// python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit
-// python3 -m fastchat.serve.openai_api_server --host localhost --port 8000
-// curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{"model": "mistral-7b-openorca","messages": [{"role": "user", "content": "Hello! What is your name?"}]}' 
-// {"id":"chatcmpl-3Aq4UGShsQyUNDTNY9FrDE","object":"chat.completion","created":1701218657,"model":"mistral-7b-openorca","choices":[{"index":0,"message":{"role":"assistant","content":"Hello! I am MistralOrca, a large language model trained by Alignment Lab AI."},"finish_reason":"stop"}],"usage":{"prompt_tokens":55,"total_tokens":76,"completion_tokens":21}}
+/* 
 
+source $HOME/Documents/FastChat/env/bin/activate
+python3 -m fastchat.serve.controller
+python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit
+python3 -m fastchat.serve.openai_api_server --host localhost --port 8000
+curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{"model": "mistral-7b-openorca","messages": [{"role": "user", "content": "Hello! What is your name?"}]}' 
+{"id":"chatcmpl-3Aq4UGShsQyUNDTNY9FrDE","object":"chat.completion","created":1701218657,"model":"mistral-7b-openorca","choices":[{"index":0,"message":{"role":"assistant","content":"Hello! I am MistralOrca, a large language model trained by Alignment Lab AI."},"finish_reason":"stop"}],"usage":{"prompt_tokens":55,"total_tokens":76,"completion_tokens":21}}
 
+*/
 

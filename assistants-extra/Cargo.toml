@@ -16,6 +16,8 @@ log = "0.4"
 
 [dev-dependencies]
 dotenv = "0.15.0"
+httpmock = { version = "0.6", features = ["standalone"] }
+regex = "1.10.2"
 
 [features]
 ci = []

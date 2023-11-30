@@ -2,10 +2,9 @@
 
 At the moment, you need both **Rust** and **Docker** installed to run the API.
 
-Additionally, `Assistants` currently only supports Anthropic, you need an API key that you can put in a `.env` file in the root of the project:
+Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
 
 ```bash
-ANTHROPIC_API_KEY="..."
 DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase
 REDIS_URL=redis://127.0.0.1/
 S3_ENDPOINT=http://localhost:9000
@@ -15,6 +14,33 @@ S3_BUCKET_NAME=mybucket
 ```
 
 ## Steps to Run the API
+
+1. **Run Mistral open source LLM**
+
+We'll be using [FastChat](https://github.com/lm-sys/FastChat) to run the LLM, but many options are available, [let me know if you need help or want to run this in your infra](mailto:hi@louis030195.com).
+
+Assuming you have Python 3 and virtualenv installed.
+
+On MacOS M1/M2:
+
+```bash
+virtualenv env
+source env/bin/activate
+pip3 install "fschat[model_worker]"
+
+# Terminal 1
+python3 -m fastchat.serve.controller
+
+# Terminal 2
+python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit
+
+# Terminal 3
+python3 -m fastchat.serve.openai_api_server --host localhost --port 8000
+
+# Terminal 4
+# Test if it works properly:
+curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{"model": "mistral-7b-openorca","messages": [{"role": "user", "content": "Hello! What is your name?"}]}' 
+```
 
 1. **Start the server**
 
@@ -31,10 +57,24 @@ curl -X POST http://localhost:3000/assistants \
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
     "tools": ["retrieval"],
-    "model": "claude-2.1"
+    "model": "open-orca/mistral-7b-openorca"
 }'
 ```
-Result: Assistant created successfully
+```json
+{
+    "id": 1,
+    "object": "",
+    "created_at": 1701298908915,
+    "name": "Math Tutor",
+    "description": null,
+    "model": "open-orca/mistral-7b-openorca",
+    "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
+    "tools": ["retrieval"],
+    "file_ids": null,
+    "metadata": null,
+    "user_id": "user1"
+}
+```
 
 3. **Create a Thread**
 
@@ -127,6 +167,7 @@ curl -X POST http://localhost:3000/threads/1/runs \
 curl -X GET http://localhost:3000/threads/1/runs/1 \
 -H "Content-Type: application/json"
 ```
+(feel free to run this command multiple times until the run is completed - LLM can be slow, especially if you run it on your coffee machine)
 ```json
 {
     "id": 1,
@@ -162,7 +203,7 @@ curl http://localhost:3000/threads/1/messages \
     {
         "id": 1,
         "object": "",
-        "created_at": 1701039816652,
+        "created_at": 1701301908671,
         "thread_id": 1,
         "role": "user",
         "content": [
@@ -183,14 +224,14 @@ curl http://localhost:3000/threads/1/messages \
     {
         "id": 2,
         "object": "",
-        "created_at": 1701039826151,
+        "created_at": 1701302114890,
         "thread_id": 1,
         "role": "assistant",
         "content": [
             {
                 "type_": "text",
                 "text": {
-                    "value": " Unfortunately I do not have enough context to solve the equation. Please provide the full equation you would like me to solve, and I will do my best to assist you in solving it. Some examples of helpful context that would allow me to solve an equation are:\n\n- Specifying the full equation, including all variables, numbers, and mathematical operators (+, - , /, , =, etc)\n- Providing any constraints or requirements on the variables\n- Specifying the desired form of the solution",
+                    "value": "To solve the equation 3x + 11 = 14, we need to isolate the variable x. Here's the step-by-step reasoning:\n\n1. Our goal is to find the value of x that makes the equation true.\n2. First, let's subtract 11 from both sides of the equation to isolate the term with the variable (3x) on one side:\n   3x + 11 - 11 = 14 - 11\n   \n   This simplifies to:\n   3x = 3\n\n3. Now, divide both sides of the equation by 3 to get the value of x:\n   (3x) / 3 = 3 / 3\n\n   This simplifies to:\n   x = 1\n\nSo the solution to the equation is x = 1.",
                     "annotations": []
                 }
             }

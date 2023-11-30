@@ -79,9 +79,31 @@ test: ## Run all tests
 	RUST_TEST_THREADS=1 cargo test --features ci
 
 
-# RUST_TEST_THREADS=1 cargo test --features ci -- --skip test_end_to_end_with_file_upload_and_retrieval && \
-# consumer & echo $$! > consumer.pid && \
-# sleep 5 && \
-# RUST_TEST_THREADS=1 cargo test --features ci -- test_end_to_end_with_file_upload_and_retrieval && \
-# kill `cat consumer.pid` && rm consumer.pid
+# ! very experimental :D 
 
+
+VENV_PATH ?= $HOME/Documents/FastChat/env
+
+run: ## Start all services, stop them on SIGINT
+	@echo "Starting services..."
+	@source $(VENV_PATH)/bin/activate && \
+	(python3 -m fastchat.serve.controller & echo $$! > controller.pid) && \
+	(python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit & echo $$! > model_worker.pid) && \
+	(python3 -m fastchat.serve.openai_api_server --host localhost --port 8000 & echo $$! > openai_api_server.pid)
+	@echo "Services started. Press Ctrl+C to stop."
+	@trap 'echo "Stopping services..."; \
+	kill `cat controller.pid` && rm controller.pid || true; \
+	kill `cat model_worker.pid` && rm model_worker.pid || true; \
+	kill `cat openai_api_server.pid` && rm openai_api_server.pid || true; \
+	echo "Services stopped."' SIGINT
+	@while true; do sleep 1; done
+
+
+##@ Development
+## Check db/queue content
+check: ## Check db/queue content
+	@echo "Here's a one-liner Docker CLI command to display the content of the runs table:"
+	@echo "docker exec -it pg psql -U postgres -d mydatabase -c \"SELECT * FROM runs;\""
+	@echo "Here's a one-liner Docker CLI command to display the content of your Redis instance:"
+	@echo "docker exec -it redis redis-cli LRANGE run_queue 0 -1"
+	
