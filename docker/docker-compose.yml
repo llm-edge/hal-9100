@@ -1,3 +1,4 @@
+# ! This does not run the Rust server (only db, queue, storage)
 version: '3.8'
 services:
   postgres:

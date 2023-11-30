@@ -492,7 +492,11 @@ mod tests {
             .connect(&database_url)
             .await
             .expect("Failed to create pool.");
-        env_logger::builder().filter_level(log::LevelFilter::Info).init();
+        // Initialize the logger with an info level filter
+        match env_logger::builder().filter_level(log::LevelFilter::Info).try_init() {
+            Ok(_) => (),
+            Err(e) => eprintln!("Failed to initialize logger: {}", e),
+        };
         pool
     }
 

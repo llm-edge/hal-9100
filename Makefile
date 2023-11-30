@@ -107,3 +107,17 @@ check: ## Check db/queue content
 	@echo "Here's a one-liner Docker CLI command to display the content of your Redis instance:"
 	@echo "docker exec -it redis redis-cli LRANGE run_queue 0 -1"
 	
+# Build the Docker image
+docker-build: ## Build the Docker image
+	docker-compose -f docker/docker-compose.yml up -d postgres
+	while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
+	docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
+	docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+	cargo build --release --bin run_consumer
+	cargo build --release --bin assistants-api-communication
+	docker build -f docker/Dockerfile -t assistants .
+	$(MAKE) clean
+
+# Run the Docker image
+docker-run: ## Run the Docker image
+	docker run -p 8080:8080 assistants
