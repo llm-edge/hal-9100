@@ -53,7 +53,8 @@ curl -X POST http://localhost:3000/threads \
 }
 ```
 4. **Add a Message to a Thread**
-# Replace 1 with the actual thread id
+
+*Replace 1 with the actual thread id*
 
 ```bash
 curl -X POST http://localhost:3000/threads/1/messages \
@@ -87,7 +88,8 @@ curl -X POST http://localhost:3000/threads/1/messages \
 }
 ```
 5. **Run the Assistant**
-# Replace :thread_id and :assistant_id with the actual thread id and assistant id
+
+*Replace :thread_id and :assistant_id with the actual thread id and assistant id*
 
 ```bash
 curl -X POST http://localhost:3000/threads/1/runs \
@@ -121,7 +123,8 @@ curl -X POST http://localhost:3000/threads/1/runs \
 }
 ```
 6. **Check the Run Status**
-# Replace :thread_id and :run_id with the actual thread id and run id
+
+*Replace :thread_id and :run_id with the actual thread id and run id*
 
 ```bash
 curl -X GET http://localhost:3000/threads/1/runs/1 \
@@ -151,7 +154,8 @@ curl -X GET http://localhost:3000/threads/1/runs/1 \
 }
 ```
 7. **Display the Assistant's Response**
-# Replace :thread_id with the actual thread id
+
+*Replace :thread_id with the actual thread id*
 
 ```bash
 curl http://localhost:3000/threads/1/messages \
