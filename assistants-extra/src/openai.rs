@@ -172,8 +172,19 @@ pub async fn call_open_source_openai_api(
 ) -> Result<ChatCompletion, OpenAIApiError> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+    // If the deployed LLM need API key, you can add it here.
+    let api_key = std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string());
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
+        Ok(v) => v,
+        Err(_) => return Err(OpenAIApiError::InvalidArgument("Invalid API Key".to_string())),
+    };
+    headers.insert("Authorization", auth_value);
+
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
     body.insert("model", serde_json::json!(model));
+    // TODO: prompt template https://huggingface.co/Open-Orca/Mistral-7B-OpenOrca#prompt-template
     body.insert("messages", serde_json::json!(vec![Message { role: "user".to_string(), content: prompt }]));
     body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));

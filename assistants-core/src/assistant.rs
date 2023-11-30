@@ -382,7 +382,8 @@ async fn run_assistant_based_on_model(assistant: Assistant, instructions: String
         // Call Open Source OpenAI API
         // ! kinda hacky - FastChat thing (weird stuff - want the whole org/model to run cli but then expect the the model thru REST)
         let model_name = assistant.model.split('/').last().unwrap_or_default();
-        call_open_source_openai_api(instructions, 500, model_name.to_string(), None, None, None, "http://localhost:8000/v1/chat/completions".to_string()).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+        let url = std::env::var("MODEL_URL").unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
+        call_open_source_openai_api(instructions, 500, model_name.to_string(), None, None, None, url).await.map(|res| res.choices[0].message.content.clone()).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     } else {
         // Handle unknown model
         Err(Box::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unknown model")))
