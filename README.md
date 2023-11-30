@@ -33,6 +33,10 @@
 
 [👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md)
 
+## News
+
+- [2023/29/11] 🔥 We released an example of using **Mistral7b**, an open source LLM. Read the [example](./examples/hello-world-mistral-curl/README.md).
+
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
 
