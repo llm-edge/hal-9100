@@ -31,7 +31,7 @@
 
 **🚀 Status: experimental - moving fast** DM if you need special [support](mailto:hi@louis030195.com)
 
-[👉 Try it now on your computer](./examples/hello-world-knowledge-retrieval/README.md)
+[👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md)
 
 ## Overview
 The Open Source Assistants API enables building AI assistants within applications using **Open Source** models or **other AI providers than OpenAI**, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools.
