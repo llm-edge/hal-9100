@@ -21,7 +21,7 @@ services:
         fromService:
           name: minio
           type: pserv
-          property: host
+          property: hostport
       - key: S3_ACCESS_KEY
         value: "minioadmin"
       - key: S3_SECRET_KEY
