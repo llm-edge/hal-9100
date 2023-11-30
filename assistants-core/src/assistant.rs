@@ -784,6 +784,7 @@ mod tests {
         // Write the PDF file to disk
         let mut file = File::create("sample.pdf").await.unwrap();
         file.write_all(&response).await.unwrap();
+        file.sync_all().await.unwrap(); // Ensure all bytes are written to the file
 
         // Read the PDF content
         let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
