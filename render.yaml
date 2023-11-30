@@ -1,0 +1,56 @@
+services:
+  - type: pserv
+    name: assistants
+    env: docker
+    image: ghcr.io/stellar-amenities/assistants/assistants:latest
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromService:
+          name: postgres
+          type: pserv
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: redis
+          type: pserv
+          property: connectionString
+      - key: S3_ENDPOINT
+        fromService:
+          name: minio
+          type: pserv
+          property: url
+      - key: S3_ACCESS_KEY
+        value: "minioadmin"
+      - key: S3_SECRET_KEY
+        value: "minioadmin"
+      - key: S3_BUCKET_NAME
+        value: "mybucket"
+
+  - type: pserv
+    name: postgres
+    env: docker
+    image: postgres:13
+    dockerCommand: "/bin/bash -c 'service postgresql start && until psql -U postgres -c \"CREATE DATABASE mydatabase;\"; do sleep 1; done && curl -L https://raw.githubusercontent.com/stellar-amenities/assistants/main/assistants-core/src/migrations.sql -o migrations.sql && psql -U postgres -d mydatabase -f migrations.sql && while true; do sleep 1000; done'"
+    envVars:
+      - key: POSTGRES_PASSWORD
+        value: "secret"
+
+  - type: pserv
+    name: redis
+    env: docker
+    dockerfile: Dockerfile
+    image: redis:6.2
+
+  - type: pserv
+    name: minio
+    env: docker
+    dockerfile: Dockerfile
+    image: minio/minio
+    envVars:
+      - key: MINIO_ACCESS_KEY
+        value: "minioadmin"
+      - key: MINIO_SECRET_KEY
+        value: "minioadmin"
+    healthCheckPath: /minio/health/live
