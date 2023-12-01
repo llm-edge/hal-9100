@@ -18,7 +18,7 @@ COPY . /app
 # Start a new stage to create a lean final image
 FROM debian:buster-slim
 
-RUN apt-get update && apt-get install -y libssl-dev
+RUN apt-get update && apt-get install -y libssl-dev openssl
 
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@pg:5432/mydatabase
