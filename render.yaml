@@ -20,7 +20,7 @@ services:
       - key: S3_ENDPOINT
         fromService:
           name: minio
-          type: pserv
+          type: web
           property: host
       - key: S3_ACCESS_KEY
         value: "minioadmin"
