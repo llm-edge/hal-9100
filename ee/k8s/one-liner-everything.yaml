@@ -63,8 +63,17 @@ spec:
           value: minioadmin
         - name: S3_BUCKET_NAME
           value: mybucket
-        # command: ["/bin/bash", "-c"]
-        # args: ["curl -L https://raw.githubusercontent.com/stellar-amenities/assistants/main/assistants-core/src/migrations.sql -o migrations.sql && psql -U postgres -d mydatabase -f migrations.sql && /app/entrypoint.sh"]
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anthropic-api-key
+              key: ANTHROPIC_API_KEY
+        readinessProbe:
+          exec:
+            command:
+            - /readiness-probe.sh http://localhost:3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
       volumes:
       - name: migration-script
         configMap:
@@ -80,10 +89,17 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080
+      targetPort: 3000
   type: LoadBalancer
 
+
 # kubectl create namespace assistants 
+# kubectl delete secret anthropic-api-key -n assistants
+# kubectl create secret generic anthropic-api-key --from-literal=ANTHROPIC_API_KEY=$(grep ANTHROPIC_API_KEY .env | cut -d '=' -f2) -n assistants
+# kubectl delete secret model-url -n assistants
+# kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep MODEL_URL .env | cut -d '=' -f2) -n assistants
+# kubectl delete secret model-api-key -n assistants
+# kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep MODEL_API_KEY .env | cut -d '=' -f2) -n assistants
 # kubectl create configmap migration-script --from-file=assistants-core/src/migrations.sql -n assistants
 # kubectl apply -f ee/k8s/one-liner-everything.yaml -n assistants 
 # kubectl replace -f ee/k8s/one-liner-everything.yaml -n assistants --force
@@ -92,4 +108,7 @@ spec:
 # kubectl get pods -n assistants -l app=assistants
 # POD_NAME=$(kubectl get pods -n assistants -l app=assistants -o jsonpath="{.items[0].metadata.name}")
 # kubectl logs $POD_NAME -n assistants -c rust-api
+# URL=$(kubectl get svc rust-api-service -n assistants -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+# curl -X GET http://$URL/threads/1/runs/1 -H "Content-Type: application/json"
 
+# ./ee/k8s/readiness-probe.sh $URL

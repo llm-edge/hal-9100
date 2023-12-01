@@ -31,6 +31,10 @@ ENV S3_BUCKET_NAME=mybucket
 # Set the working directory
 WORKDIR /app
 
+# Copy the wait script to the image
+COPY readiness-probe.sh /readiness-probe.sh
+RUN chmod +x /readiness-probe.sh
+
 # Copy the binary from the builder stage
 # COPY --from=builder /app/target/release/run_consumer /app/run_consumer
 # COPY --from=builder /app/target/release/assistants-api-communication /app/assistants-api-communication
