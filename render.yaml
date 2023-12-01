@@ -23,9 +23,15 @@ services:
           type: web
           property: host
       - key: S3_ACCESS_KEY
-        value: "minioadmin"
+        fromService:
+          name: minio
+          type: web
+          property: MINIO_ROOT_USER
       - key: S3_SECRET_KEY
-        value: "minioadmin"
+        fromService:
+          name: minio
+          type: web
+          property: MINIO_ROOT_PASSWORD
       - key: S3_BUCKET_NAME
         value: "mybucket"
 
@@ -40,6 +46,7 @@ services:
   - type: web
     name: minio
     runtime: image
+    healthCheckPath: /minio/health/live
     image:
       url: docker.io/minio/minio:RELEASE.2023-08-04T17-40-21Z.hotfix.04968f7ec
     dockerCommand: minio server /data
@@ -48,10 +55,10 @@ services:
       name: data
       mountPath: /data
     envVars:
-      - key: MINIO_ACCESS_KEY
-        value: "minioadmin"
-      - key: MINIO_SECRET_KEY
-        value: "minioadmin"
+      - key: MINIO_ROOT_USER
+        generateValue: true
+      - key: MINIO_ROOT_PASSWORD
+        generateValue: true
       - key: MINIO_BROWSER
         value: "off"
 databases:
