@@ -1,5 +1,5 @@
 # Use an official Rust runtime as a parent image
-FROM rust:1.74 as builder
+FROM rust:bookworm as builder
 
 # Set the working directory in the image to /app
 WORKDIR /app
@@ -16,7 +16,7 @@ COPY . /app
 # RUN cargo build --release --bin assistants-api-communication
 
 # Start a new stage to create a lean final image
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y libssl-dev openssl
 
