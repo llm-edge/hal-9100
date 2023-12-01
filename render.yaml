@@ -21,7 +21,7 @@ services:
         fromService:
           name: minio
           type: pserv
-          property: hostport
+          property: host
       - key: S3_ACCESS_KEY
         value: "minioadmin"
       - key: S3_SECRET_KEY
@@ -37,9 +37,8 @@ services:
     plan: free
     maxmemoryPolicy: noeviction # optional (defaults to allkeys-lru)
 
-  - type: pserv
+  - type: web
     name: minio
-    env: docker
     runtime: image
     image:
       url: docker.io/minio/minio:RELEASE.2023-08-04T17-40-21Z.hotfix.04968f7ec
@@ -53,7 +52,8 @@ services:
         value: "minioadmin"
       - key: MINIO_SECRET_KEY
         value: "minioadmin"
-
+      - key: MINIO_BROWSER
+        value: "off"
 databases:
   - name: pg
     plan: free
