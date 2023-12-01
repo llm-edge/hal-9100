@@ -107,16 +107,27 @@ check: ## Check db/queue content
 	@echo "Here's a one-liner Docker CLI command to display the content of your Redis instance:"
 	@echo "docker exec -it redis redis-cli LRANGE run_queue 0 -1"
 	
-# Build the Docker image
-docker-build: ## Build the Docker image
+# Build the Docker image locally for Mac M1/M2
+docker-build: ## Build the Docker image locally for Mac M1/M2
 	docker-compose -f docker/docker-compose.yml up -d postgres
 	while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
 	docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
 	docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
-	cargo build --release --bin run_consumer
-	cargo build --release --bin assistants-api-communication
-	docker build -f docker/Dockerfile -t assistants .
-	$(MAKE) clean
+	cargo build --target aarch64-apple-darwin --release --bin run_consumer
+	cargo build --target aarch64-apple-darwin --release --bin assistants-api-communication
+	docker build --platform linux/arm64 -f docker/Dockerfile -t assistants .
+	$(MAKE) clean > /dev/null 2>&1 || true
+
+## Build the Docker image locally for Linux amd64
+docker-build-amd64: ## Build the Docker image locally for Linux amd64
+	docker-compose -f docker/docker-compose.yml up -d postgres
+	while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
+	docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
+	docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+	cargo build --target x86_64-unknown-linux-gnu --release --bin run_consumer
+	cargo build --target x86_64-unknown-linux-gnu --release --bin assistants-api-communication
+	docker build --platform linux/amd64 -f docker/Dockerfile -t assistants .
+	$(MAKE) clean > /dev/null 2>&1 || true
 
 # Run the Docker image
 docker-run: ## Run the Docker image
