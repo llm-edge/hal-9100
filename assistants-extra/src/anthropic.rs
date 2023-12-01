@@ -179,7 +179,9 @@ pub async fn call_anthropic_api(
     }
     
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()?;
     let res = client.post(url).headers(headers).json(&body).send().await?;
     let raw_res = res.text().await?;
     let api_res: ApiResponseBody = serde_json::from_str(&raw_res)?;
