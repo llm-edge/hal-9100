@@ -18,6 +18,8 @@ COPY . /app
 # Start a new stage to create a lean final image
 FROM debian:buster-slim
 
+RUN apt-get update && apt-get install -y curl
+
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@pg:5432/mydatabase
 ENV REDIS_URL=redis://redis/
