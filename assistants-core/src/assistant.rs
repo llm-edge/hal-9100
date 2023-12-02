@@ -43,6 +43,30 @@ pub async fn list_messages(pool: &PgPool, thread_id: i32) -> Result<Vec<Message>
     Ok(messages)
 }
 
+pub async fn get_assistant(pool: &PgPool, assistant_id: i32) -> Result<Assistant, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT * FROM assistants WHERE id = $1
+        "#,
+        assistant_id
+    )
+    .fetch_one(pool)
+    .await?;
+    
+    Ok(Assistant {
+        id: row.id,
+        instructions: row.instructions,
+        name: row.name,
+        tools: row.tools.unwrap_or_default(),
+        model: row.model.unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
+        file_ids: row.file_ids,
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        description: row.description,
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
+    })
+}
 
 pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<Assistant, sqlx::Error> {
     info!("Creating assistant: {:?}", assistant);
@@ -75,6 +99,83 @@ pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<As
         description: row.description,
         metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
     })
+}
+
+pub async fn update_assistant(pool: &PgPool, assistant_id: i32, assistant: &Assistant) -> Result<Assistant, sqlx::Error> {
+    let tools: Vec<String> = assistant.tools.iter().map(|s| s.to_string()).collect();
+    let file_ids: Option<Vec<String>> = match &assistant.file_ids {
+        Some(file_ids) => Some(file_ids.iter().map(|s| s.to_string()).collect()),
+        None => None,
+    };
+    let file_ids_ref: Option<&[String]> = file_ids.as_ref().map(|v| v.as_slice());
+    let row = sqlx::query!(
+        r#"
+        UPDATE assistants 
+        SET instructions = $2, name = $3, tools = $4, model = $5, user_id = $6, file_ids = $7
+        WHERE id = $1
+        RETURNING *
+        "#,
+        assistant_id, assistant.instructions, assistant.name, &tools, assistant.model, assistant.user_id, file_ids_ref
+    )
+    .fetch_one(pool)
+    .await?;
+    
+    Ok(Assistant {
+        id: row.id,
+        instructions: row.instructions,
+        name: row.name,
+        tools: row.tools.unwrap_or_default(),
+        model: row.model.unwrap_or_default(),
+        user_id: row.user_id.unwrap_or_default(),
+        file_ids: row.file_ids,
+        object: row.object.unwrap_or_default(),
+        created_at: row.created_at,
+        description: row.description,
+        metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
+    })
+}
+
+pub async fn delete_assistant(pool: &PgPool, assistant_id: i32, user_id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        DELETE FROM assistants WHERE id = $1 AND user_id = $2
+        "#,
+        assistant_id, user_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn list_assistants(pool: &PgPool, user_id: &str) -> Result<Vec<Assistant>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT * FROM assistants WHERE user_id = $1
+        "#,
+        user_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut assistants = Vec::new();
+    for row in rows {
+        assistants.push(Assistant {
+            id: row.id,
+            instructions: row.instructions,
+            name: row.name,
+            tools: row.tools.unwrap_or_default(),
+            model: row.model.unwrap_or_default(),
+            user_id: row.user_id.unwrap_or_default(),
+            file_ids: row.file_ids,
+            object: row.object.unwrap_or_default(),
+            created_at: row.created_at,
+            description: row.description,
+            metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
+        });
+    }
+
+    Ok(assistants)
 }
 
 pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, sqlx::Error> {

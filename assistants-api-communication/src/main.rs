@@ -14,7 +14,8 @@ use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Assistant, Message, Run, Thread, Content, Text};
 use env_logger;
 use log::{error, info};
-use models::{CreateAssistant, CreateMessage, CreateRun, ListMessage};
+use assistants_api_communication::models::{CreateAssistant, CreateMessage, CreateRun, ListMessage, AppState};
+use assistants_api_communication::assistants::create_assistant_handler;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -26,25 +27,9 @@ use tempfile;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tower_http::cors::{Any, CorsLayer};
-mod models;
 
-#[derive(Clone)]
-struct AppState {
-    pool: Arc<PgPool>,
-    file_storage: Arc<FileStorage>,
-}
 
-impl FromRef<AppState> for Arc<PgPool> {
-    fn from_ref(state: &AppState) -> Self {
-        state.pool.clone()
-    }
-}
 
-impl FromRef<AppState> for Arc<FileStorage> {
-    fn from_ref(state: &AppState) -> Self {
-        state.file_storage.clone()
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -131,6 +116,10 @@ fn app(app_state: AppState) -> Router {
 
     Router::new()
         .route("/assistants", post(create_assistant_handler))
+        // .route("/assistants/:assistant_id", get(get_assistant_handler))
+        // .route("/assistants/:assistant_id", patch(update_assistant_handler))
+        // .route("/assistants/:assistant_id", delete(delete_assistant_handler))
+        // .route("/assistants", get(list_assistants_handler))
         .route("/threads", post(create_thread_handler))
         .route("/threads/:thread_id/messages", post(add_message_handler))
         .route("/threads/:thread_id/runs", post(run_assistant_handler))
@@ -151,28 +140,7 @@ async fn health_handler() -> impl IntoResponse {
     (StatusCode::OK, "OK")
 }
 
-async fn create_assistant_handler(
-    State(app_state): State<AppState>,
-    Json(assistant): Json<CreateAssistant>,
-) -> Result<JsonResponse<Assistant>, (StatusCode, String)> {
-    let assistant = create_assistant(&app_state.pool, &Assistant{
-        id: 0,
-        instructions: assistant.instructions,
-        name: assistant.name,
-        tools: assistant.tools.unwrap_or(vec![]),
-        model: assistant.model,
-        user_id: "user1".to_string(),
-        file_ids: assistant.file_ids,
-        object: Default::default(),
-        created_at: chrono::Utc::now().timestamp(),
-        description: Default::default(),
-        metadata: Default::default(),
-    }).await;
-    match assistant {
-        Ok(assistant) => Ok(JsonResponse(assistant)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-    }
-}
+
 
 async fn create_thread_handler(
     State(app_state): State<AppState>,
@@ -474,7 +442,6 @@ mod tests {
         assert_eq!(body.content.len(), 1);
         assert_eq!(body.user_id, "user1");
     }
-    use sysinfo::{System, SystemExt};
 
     #[tokio::test]
     async fn test_end_to_end_with_file_upload_and_retrieval() {
@@ -484,15 +451,6 @@ mod tests {
         let pool_clone = app_state.pool.clone();
         reset_db(&app_state.pool).await;
         let app = app(app_state);
-
-        // // Check if the run_consumer process is running
-        // let s = System::new_all();
-        // let process_name = "run_consumer";
-        // let mut process = s.processes_by_name(process_name);
-
-        // if process.next().is_none() {
-        //     panic!("The {} process is not running. Please start the process and try again.", process_name);
-        // }
 
         // 1. Upload a file
         let boundary = "------------------------14737809831466499882746641449";
