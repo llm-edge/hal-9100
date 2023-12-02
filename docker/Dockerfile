@@ -32,8 +32,8 @@ ENV S3_BUCKET_NAME=mybucket
 WORKDIR /app
 
 # Copy the wait script to the image
-COPY readiness-probe.sh /readiness-probe.sh
-RUN chmod +x /readiness-probe.sh
+COPY ee/k8s/readiness-probe.sh /app/readiness-probe.sh
+RUN chmod +x /app/readiness-probe.sh
 
 # Copy the binary from the builder stage
 # COPY --from=builder /app/target/release/run_consumer /app/run_consumer

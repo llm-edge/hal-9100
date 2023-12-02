@@ -71,7 +71,7 @@ spec:
         readinessProbe:
           exec:
             command:
-            - /readiness-probe.sh http://localhost:3000
+            - /app/readiness-probe.sh http://localhost:3000
           initialDelaySeconds: 30
           periodSeconds: 10
       volumes:
