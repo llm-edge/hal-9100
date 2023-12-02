@@ -81,6 +81,15 @@ pub struct CreateThread {
     pub messages: Vec<Message>,
 }
 
+// https://platform.openai.com/docs/api-reference/threads/modifyThread
+#[derive(Serialize, Deserialize, Validate)]
+pub struct UpdateThread {
+    
+    #[serde(rename = "metadata")]
+    pub metadata: Option<std::collections::HashMap<String, String>>,
+}
+
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateMessage {
     pub role: String,
@@ -88,12 +97,22 @@ pub struct CreateMessage {
     // pub content: Content,
 }
 
+
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct ListMessage {
     pub limit: Option<i32>,
     pub order: Option<String>,
     pub after: Option<String>,
     pub before: Option<String>,
+}
+
+// https://platform.openai.com/docs/api-reference/messages/modifyMessage
+#[derive(Serialize, Deserialize, Validate)]
+pub struct UpdateMessage {
+    
+    #[serde(rename = "metadata")]
+    pub metadata: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Validate)]

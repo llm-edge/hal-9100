@@ -1,43 +1,70 @@
+use assistants_core::threads::{create_thread, get_thread, list_threads, update_thread, delete_thread};
+use assistants_core::models::Thread;
+use assistants_api_communication::models::{UpdateThread, UpdateAssistant, AppState};
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    response::Json as JsonResponse,
+};
+
+pub async fn create_thread_handler(
+    State(app_state): State<AppState>,
+) -> Result<JsonResponse<Thread>, (StatusCode, String)> {
+    // TODO: Get user id from Authorization header
+    let user_id = "user1";
+    let thread = create_thread(&app_state.pool, user_id).await;
+    match thread {
+        Ok(thread) => Ok(JsonResponse(thread)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+// ! TODO fix all stuff properly segmented by user id 
+
 // Fetch a specific thread
-async fn get_thread_handler(
+pub async fn get_thread_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Thread>, (StatusCode, String)> {
-    // TODO: Implement the logic to fetch a specific thread from the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let thread = get_thread(&app_state.pool, thread_id, "user1").await;
+    match thread {
+        Ok(thread) => Ok(JsonResponse(thread)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
 
 // List all threads
-async fn list_threads_handler(
+pub async fn list_threads_handler(
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Vec<Thread>>, (StatusCode, String)> {
-    // TODO: Implement the logic to list all threads from the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let threads = list_threads(&app_state.pool, "user1").await;
+    match threads {
+        Ok(threads) => Ok(JsonResponse(threads)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
 
 // Update a specific thread
-async fn update_thread_handler(
+pub async fn update_thread_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
-    Json(thread_input): Json<ThreadInput>,
+    Json(thread_input): Json<UpdateThread>,
 ) -> Result<JsonResponse<Thread>, (StatusCode, String)> {
-    // TODO: Implement the logic to update a specific thread in the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let thread = update_thread(&app_state.pool, thread_id, "user1", thread_input.metadata).await;
+    match thread {
+        Ok(thread) => Ok(JsonResponse(thread)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
 
 // Delete a specific thread
-async fn delete_thread_handler(
+pub async fn delete_thread_handler(
     Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
-) -> Result<JsonResponse<Thread>, (StatusCode, String)> {
-    // TODO: Implement the logic to delete a specific thread from the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+) -> Result<JsonResponse<()>, (StatusCode, String)> {
+    let result = delete_thread(&app_state.pool, thread_id, "user1").await;
+    match result {
+        Ok(_) => Ok(JsonResponse(())),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
-
-// Router::new()
-//     // ... other routes ...
-//     .route("/v1/threads/:thread_id", get(get_thread_handler))
-//     .route("/v1/threads", get(list_threads_handler))
-//     .route("/v1/threads/:thread_id", patch(update_thread_handler))
-//     .route("/v1/threads/:thread_id", delete(delete_thread_handler))
-//     // ... other routes ...

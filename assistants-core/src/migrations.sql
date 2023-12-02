@@ -40,7 +40,7 @@ CREATE TABLE messages (
     role TEXT NOT NULL,
     content JSONB NOT NULL,
     assistant_id INTEGER REFERENCES assistants(id),
-    run_id TEXT,
+    run_id TEXT, -- ! TODO: Change to INTEGER REFERENCES runs(id)
     file_ids TEXT[],
     metadata JSONB,
     user_id TEXT

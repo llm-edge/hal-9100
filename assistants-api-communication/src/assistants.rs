@@ -1,10 +1,9 @@
-use assistants_core::assistant::{create_assistant, get_assistant, update_assistant, delete_assistant, list_assistants};
+use assistants_core::assistants::{create_assistant, get_assistant, update_assistant, delete_assistant, list_assistants};
 use assistants_core::models::Assistant;
 use assistants_api_communication::models::{CreateAssistant, UpdateAssistant, AppState};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
-    response::IntoResponse,
     response::Json as JsonResponse,
 };
 
@@ -36,7 +35,7 @@ pub async fn get_assistant_handler(
     Path((assistant_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Assistant>, (StatusCode, String)> {
-    match get_assistant(&app_state.pool, assistant_id).await {
+    match get_assistant(&app_state.pool, assistant_id, "user1").await {
         Ok(assistant) => Ok(JsonResponse(assistant)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
