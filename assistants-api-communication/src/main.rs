@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     response::Json as JsonResponse,
-    routing::{get, post},
+    routing::{get, post, delete, patch},
     Router,
     debug_handler,
     http::Method,
@@ -14,8 +14,8 @@ use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Assistant, Message, Run, Thread, Content, Text};
 use env_logger;
 use log::{error, info};
-use assistants_api_communication::models::{CreateAssistant, CreateMessage, CreateRun, ListMessage, AppState};
-use assistants_api_communication::assistants::create_assistant_handler;
+use assistants_api_communication::models::{CreateMessage, CreateRun, ListMessage, AppState, CreateAssistant, UpdateAssistant};
+use assistants_api_communication::assistants::{create_assistant_handler, get_assistant_handler, delete_assistant_handler, update_assistant_handler, list_assistants_handler};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -116,10 +116,10 @@ fn app(app_state: AppState) -> Router {
 
     Router::new()
         .route("/assistants", post(create_assistant_handler))
-        // .route("/assistants/:assistant_id", get(get_assistant_handler))
-        // .route("/assistants/:assistant_id", patch(update_assistant_handler))
-        // .route("/assistants/:assistant_id", delete(delete_assistant_handler))
-        // .route("/assistants", get(list_assistants_handler))
+        .route("/assistants/:assistant_id", get(get_assistant_handler))
+        .route("/assistants/:assistant_id", patch(update_assistant_handler))
+        .route("/assistants/:assistant_id", delete(delete_assistant_handler))
+        .route("/assistants", get(list_assistants_handler))
         .route("/threads", post(create_thread_handler))
         .route("/threads/:thread_id/messages", post(add_message_handler))
         .route("/threads/:thread_id/runs", post(run_assistant_handler))
@@ -343,6 +343,242 @@ mod tests {
         assert_eq!(body.user_id, "user1");
         assert_eq!(body.file_ids, None);
 
+    }
+
+    #[tokio::test]
+    async fn get_assistant() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Create an assistant first
+        let assistant = CreateAssistant {
+            instructions: Some("test".to_string()),
+            name: Some("test".to_string()),
+            tools: Some(vec!["test".to_string()]),
+            model: "test".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        serde_json::to_vec(&assistant).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+
+        // Now get the created assistant
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/assistants/{}", assistant.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+        assert_eq!(assistant.instructions, Some("test".to_string()));
+        assert_eq!(assistant.name, Some("test".to_string()));
+        assert_eq!(assistant.tools, vec!["test".to_string()]);
+        assert_eq!(assistant.model, "test");
+        assert_eq!(assistant.user_id, "user1");
+        assert_eq!(assistant.file_ids, None);
+    }
+
+    #[tokio::test]
+    async fn update_assistant() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Create an assistant first
+        let assistant = CreateAssistant {
+            instructions: Some("test".to_string()),
+            name: Some("test".to_string()),
+            tools: Some(vec!["test".to_string()]),
+            model: "test".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        serde_json::to_vec(&assistant).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+        let assistant_id = assistant.id;
+        // Now update the created assistant
+        let assistant = UpdateAssistant {
+            instructions: Some("updated test".to_string()),
+            name: Some("updated test".to_string()),
+            tools: Some(vec!["updated test".to_string()]),
+            model: Some("updated test".to_string()),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::PATCH)
+                    .uri(format!("/assistants/{}", assistant_id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        serde_json::to_vec(&assistant).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+        assert_eq!(assistant.instructions, Some("updated test".to_string()));
+        assert_eq!(assistant.name, Some("updated test".to_string()));
+        assert_eq!(assistant.tools, vec!["updated test".to_string()]);
+        assert_eq!(assistant.model, "updated test");
+        assert_eq!(assistant.user_id, "user1");
+        assert_eq!(assistant.file_ids, None);
+        assert_eq!(assistant.file_ids, None);
+    }
+
+    #[tokio::test]
+    async fn delete_assistant() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Create an assistant first
+        let assistant = CreateAssistant {
+            instructions: Some("test".to_string()),
+            name: Some("test".to_string()),
+            tools: Some(vec!["test".to_string()]),
+            model: "test".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        serde_json::to_vec(&assistant).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+
+        // Now delete the created assistant
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::DELETE)
+                    .uri(format!("/assistants/{}", assistant.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn list_assistants() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Create an assistant first
+        let assistant = CreateAssistant {
+            instructions: Some("test".to_string()),
+            name: Some("test".to_string()),
+            tools: Some(vec!["test".to_string()]),
+            model: "test".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        serde_json::to_vec(&assistant).unwrap(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // Now list the assistants
+        let response = app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistants: Vec<Assistant> = serde_json::from_slice(&body).unwrap();
+        assert!(assistants.len() > 0);
     }
 
     #[tokio::test]
