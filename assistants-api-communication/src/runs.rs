@@ -1,45 +1,89 @@
+// assistants-api-communication/src/runs.rs
 
-// Fetch a specific run
-async fn get_run_handler(
-    Path((assistant_id, run_id)): Path<(i32, i32)>,
+use assistants_api_communication::models::{AppState, CreateRun, UpdateRun};
+use assistants_core::models::Run;
+use assistants_core::runs::{create_run, delete_run, get_run, list_runs, update_run};
+use axum::{
+    extract::{Json, Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    response::Json as JsonResponse,
+};
+
+// TODO: test this in main.rs
+
+pub async fn create_run_handler(
+    Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
+    Json(run_input): Json<CreateRun>,
 ) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    // TODO: Implement the logic to fetch a specific run from the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let user_id = "user1";
+    let run = create_run(
+        &app_state.pool,
+        thread_id,
+        run_input.assistant_id,
+        &run_input.instructions.unwrap_or_default(),
+        user_id,
+    )
+    .await;
+    match run {
+        Ok(run) => Ok(JsonResponse(run)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
 
-// Update a specific run
-async fn update_run_handler(
-    Path((assistant_id, run_id)): Path<(i32, i32)>,
-    State(app_state): State<AppState>,
-    Json(run_input): Json<RunInput>,
-) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    // TODO: Implement the logic to update a specific run in the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
-}
-
-// Delete a specific run
-async fn delete_run_handler(
-    Path((assistant_id, run_id)): Path<(i32, i32)>,
+pub async fn get_run_handler(
+    Path((thread_id, run_id)): Path<(i32, i32)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    // TODO: Implement the logic to delete a specific run from the database
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let user_id = "user1";
+    let run = get_run(&app_state.pool, thread_id, run_id, user_id).await;
+    match run {
+        Ok(run) => Ok(JsonResponse(run)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
 
-// List all runs from an assistant
-async fn list_runs_handler(
-    Path((assistant_id,)): Path<(i32,)>,
+pub async fn update_run_handler(
+    Path((thread_id, run_id)): Path<(i32, i32)>,
+    State(app_state): State<AppState>,
+    Json(run_input): Json<UpdateRun>,
+) -> Result<JsonResponse<Run>, (StatusCode, String)> {
+    let user_id = "user1";
+    let run = update_run(
+        &app_state.pool,
+        thread_id,
+        run_id,
+        run_input.metadata.unwrap_or_default(),
+        user_id,
+    )
+    .await;
+    match run {
+        Ok(run) => Ok(JsonResponse(run)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+pub async fn delete_run_handler(
+    Path((thread_id, run_id)): Path<(i32, i32)>,
+    State(app_state): State<AppState>,
+) -> Result<JsonResponse<()>, (StatusCode, String)> {
+    let user_id = "user1";
+    let result = delete_run(&app_state.pool, thread_id, run_id, user_id).await;
+    match result {
+        Ok(_) => Ok(JsonResponse(())),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+pub async fn list_runs_handler(
+    Path((thread_id,)): Path<(i32,)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Vec<Run>>, (StatusCode, String)> {
-    // TODO: Implement the logic to list all runs from a specific assistant
-    Err((StatusCode::NOT_IMPLEMENTED, "Not implemented".to_string()))
+    let user_id = "user1";
+    let runs = list_runs(&app_state.pool, thread_id, user_id).await;
+    match runs {
+        Ok(runs) => Ok(JsonResponse(runs)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
 }
-
-// Router::new()
-//     // ... other routes ...
-//     .route("/v1/assistants/:assistant_id/runs/:run_id", get(get_run_handler))
-//     .route("/v1/assistants/:assistant_id/runs/:run_id", patch(update_run_handler))
-//     .route("/v1/assistants/:assistant_id/runs/:run_id", delete(delete_run_handler))
-//     .route("/v1/assistants/:assistant_id/runs", get(list_runs_handler))
-//     // ... other routes ...

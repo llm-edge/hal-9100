@@ -10,6 +10,9 @@ use assistants_api_communication::models::{
     AppState, CreateAssistant, CreateMessage, CreateRun, ListMessage, UpdateAssistant,
     UpdateMessage, UpdateThread,
 };
+use assistants_api_communication::runs::{
+    create_run_handler, delete_run_handler, get_run_handler, list_runs_handler, update_run_handler,
+};
 use assistants_api_communication::threads::{
     create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
     update_thread_handler,
@@ -28,13 +31,12 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
-use std::collections::HashMap;
-
 use env_logger;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::postgres::{PgPool, PgPoolOptions};
+use std::collections::HashMap;
 use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -161,16 +163,22 @@ fn app(app_state: AppState) -> Router {
             "/threads/:thread_id/messages/:message_id",
             delete(delete_message_handler),
         )
-        .route(
-            "/threads/:thread_id/messages",
-            get(list_messages_handler),
-        )
+        .route("/threads/:thread_id/messages", get(list_messages_handler))
         // https://platform.openai.com/docs/api-reference/runs
-        .route("/threads/:thread_id/runs", post(run_assistant_handler))
+        .route("/threads/:thread_id/runs", post(create_run_handler))
+        .route("/threads/:thread_id/runs/:run_id", get(get_run_handler))
+        .route("/threads/:thread_id/runs/:run_id", post(update_run_handler))
         .route(
             "/threads/:thread_id/runs/:run_id",
-            get(check_run_status_handler),
+            delete(delete_run_handler),
         )
+        .route("/threads/:thread_id/runs", get(list_runs_handler))
+        // .route("/threads/:thread_id/runs/:run_id/submit_tool_outputs", post(submit_tool_outputs_handler))
+        // .route("/threads/:thread_id/runs/:run_id/cancel", post(cancel_run_handler))
+        // .route("/threads/runs", post(create_thread_and_run_handler))
+        // .route("/threads/:thread_id/runs/:run_id/steps/:step_id", get(get_run_step_handler))
+        // .route("/threads/:thread_id/runs/:run_id/steps", get(list_run_steps_handler))
+
         // https://platform.openai.com/docs/api-reference/files
         .route("/files", post(upload_file_handler))
         .route("/health", get(health_handler)) // new health check route
@@ -193,41 +201,7 @@ struct RunInput {
     instructions: String,
 }
 
-async fn run_assistant_handler(
-    Path((thread_id,)): Path<(i32,)>,
-    State(app_state): State<AppState>,
-    Json(run_input): Json<CreateRun>,
-) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    // You can now access the assistant_id and instructions from run_input
-    // For example: let assistant_id = &run_input.assistant_id;
-    // TODO: Use the assistant_id and instructions as needed
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-    let client = redis::Client::open(redis_url).unwrap();
-    let con = client.get_async_connection().await.unwrap();
-    let run = run_assistant(
-        &app_state.pool,
-        thread_id,
-        run_input.assistant_id,
-        &run_input.instructions.unwrap_or_default(),
-        con,
-    )
-    .await;
-    match run {
-        Ok(run) => Ok(JsonResponse(run)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-    }
-}
 
-async fn check_run_status_handler(
-    Path((thread_id, run_id)): Path<(i32, i32)>,
-    State(app_state): State<AppState>,
-) -> Result<JsonResponse<Run>, (StatusCode, String)> {
-    let run = get_run_from_db(&app_state.pool, thread_id, run_id).await;
-    match run {
-        Ok(run) => Ok(JsonResponse(run)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-    }
-}
 
 async fn upload_file_handler(
     State(app_state): State<AppState>,

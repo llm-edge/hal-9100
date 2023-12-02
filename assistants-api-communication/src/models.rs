@@ -131,3 +131,11 @@ pub struct CreateRun {
     #[serde(rename = "metadata", skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
+
+
+#[derive(Serialize, Deserialize, Validate)]
+pub struct UpdateRun {
+    #[serde(rename = "metadata", skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, String>>,
+}
+

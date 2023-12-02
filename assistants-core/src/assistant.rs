@@ -343,7 +343,7 @@ pub async fn queue_consumer(
     let mut run = get_run_from_db(pool, thread_id, run_id).await?;
 
     // Retrieve the assistant associated with the run
-    let assistant = get_assistant(pool, run.assistant_id).await?;
+    let assistant = get_assistant(pool, run.assistant_id, &run.user_id).await?;
 
     let model = assistant.model.clone();
 
