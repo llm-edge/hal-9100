@@ -17,7 +17,7 @@ use assistants_api_communication::threads::{
     create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
     update_thread_handler,
 };
-use assistants_core::assistant::{get_run_from_db, queue_consumer, run_assistant};
+use assistants_core::assistant::queue_consumer;
 use assistants_core::file_storage::FileStorage;
 use assistants_core::models::{Assistant, Content, Message, Run, Text, Thread};
 use axum::{
@@ -178,7 +178,6 @@ fn app(app_state: AppState) -> Router {
         // .route("/threads/runs", post(create_thread_and_run_handler))
         // .route("/threads/:thread_id/runs/:run_id/steps/:step_id", get(get_run_step_handler))
         // .route("/threads/:thread_id/runs/:run_id/steps", get(list_run_steps_handler))
-
         // https://platform.openai.com/docs/api-reference/files
         .route("/files", post(upload_file_handler))
         .route("/health", get(health_handler)) // new health check route
@@ -200,8 +199,6 @@ struct RunInput {
     assistant_id: i32,
     instructions: String,
 }
-
-
 
 async fn upload_file_handler(
     State(app_state): State<AppState>,
@@ -1231,9 +1228,6 @@ mod tests {
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let run: Run = serde_json::from_slice(&body).unwrap();
         println!("Run: {:?}", run);
-
-        // wait 7 seconds - kinda fked up when parallel testing, should do some polling retry thing
-        // tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
 
         // 6. Run the queue consumer
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");

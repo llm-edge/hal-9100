@@ -12,211 +12,7 @@ use assistants_core::threads::{create_thread, get_thread};
 use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
 
-pub async fn run_assistant(
-    pool: &PgPool,
-    thread_id: i32,
-    assistant_id: i32,
-    instructions: &str,
-    mut con: redis::aio::Connection,
-) -> Result<Run, sqlx::Error> {
-    info!(
-        "Running assistant_id: {} for thread_id: {}",
-        assistant_id, thread_id
-    );
-    // Create Run in database
-    let run = match create_run_in_db(pool, thread_id, assistant_id, instructions).await {
-        Ok(run) => run,
-        Err(e) => {
-            eprintln!("Failed to create run in database: {}", e);
-            return Err(e);
-        }
-    };
-
-    // Create a JSON object with run_id and thread_id
-    let ids = serde_json::json!({
-        "run_id": run.id,
-        "thread_id": thread_id
-    });
-
-    // Convert the JSON object to a string
-    let ids_string = ids.to_string();
-
-    // Add run_id to Redis queue
-    con.lpush("run_queue", ids_string)
-        .await
-        .map_err(|e| sqlx::Error::Configuration(e.into()))?;
-
-    // Set run status to "queued" in database
-    let updated_run = update_run_in_db(pool, run.id, "queued".to_string(), None).await?;
-
-    Ok(updated_run)
-}
-
-async fn create_run_in_db(
-    pool: &PgPool,
-    thread_id: i32,
-    assistant_id: i32,
-    instructions: &str,
-) -> Result<Run, sqlx::Error> {
-    info!(
-        "Creating run in database for thread_id: {}, assistant_id: {}",
-        thread_id, assistant_id
-    );
-    let row = sqlx::query!(
-        r#"
-        INSERT INTO runs (thread_id, assistant_id, instructions)
-        VALUES ($1, $2, $3)
-        RETURNING *
-        "#,
-        &thread_id,
-        &assistant_id,
-        &instructions
-    )
-    .fetch_one(pool)
-    .await?;
-    Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
-        created_at: row.created_at,
-        required_action: serde_json::from_value(
-            row.required_action
-                .unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        last_error: serde_json::from_value(
-            row.last_error.unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-    })
-}
-
-pub async fn get_run_from_db(
-    pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
-) -> Result<Run, sqlx::Error> {
-    info!("Getting run from database for run_id: {}", run_id);
-    let row = sqlx::query!(
-        r#"
-        SELECT * FROM runs WHERE thread_id = $1 AND id = $2
-        "#,
-        &thread_id,
-        &run_id
-    )
-    .fetch_one(pool)
-    .await?;
-
-    Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
-        created_at: row.created_at,
-        required_action: serde_json::from_value(
-            row.required_action
-                .unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        last_error: serde_json::from_value(
-            row.last_error.unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-    })
-}
-async fn update_run_in_db(
-    pool: &PgPool,
-    run_id: i32,
-    status: String,
-    model: Option<String>,
-) -> Result<Run, sqlx::Error> {
-    info!("Updating run in database for run_id: {}", run_id);
-    let row = sqlx::query!(
-        r#"
-        UPDATE runs SET status = $1, model = $2 WHERE id = $3
-        RETURNING *
-        "#,
-        &status,
-        &model.unwrap_or_default(),
-        &run_id
-    )
-    .fetch_one(pool)
-    .await?;
-    Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
-        created_at: row.created_at,
-        required_action: serde_json::from_value(
-            row.required_action
-                .unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        last_error: serde_json::from_value(
-            row.last_error.unwrap_or_else(|| serde_json::Value::Null),
-        )
-        .unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-    })
-}
+use crate::runs::{get_run, update_run, update_run_status};
 
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
@@ -339,16 +135,16 @@ pub async fn queue_consumer(
     // Extract the run_id and thread_id
     let run_id = ids["run_id"].as_i64().unwrap() as i32;
     let thread_id = ids["thread_id"].as_i64().unwrap() as i32;
+    let user_id = ids["user_id"].as_str().unwrap();
 
-    let mut run = get_run_from_db(pool, thread_id, run_id).await?;
+    let mut run = get_run(pool, thread_id, run_id, user_id).await?;
 
     // Retrieve the assistant associated with the run
     let assistant = get_assistant(pool, run.assistant_id, &run.user_id).await?;
 
-    let model = assistant.model.clone();
 
     // Update run status to "running"
-    run = update_run_in_db(pool, run.id, "running".to_string(), Some(model.clone())).await?;
+    run = update_run_status(pool, thread_id, run.id, "running".to_string(), &run.user_id).await?;
 
     // Initialize FileStorage
     let file_storage = FileStorage::new().await;
@@ -408,14 +204,27 @@ pub async fn queue_consumer(
             )
             .await?;
             // Update run status to "completed"
-            run = update_run_in_db(pool, run.id, "completed".to_string(), Some(model.clone()))
-                .await?;
+            run = update_run_status(
+                pool,
+                thread.id,
+                run.id,
+                "completed".to_string(),
+                user_id,
+            )
+            .await?;
             Ok(run)
         }
         Err(e) => {
             error!("Assistant model error: {}", e);
             // Update run status to "failed"
-            run = update_run_in_db(pool, run.id, "failed".to_string(), Some(model.clone())).await?;
+            run = update_run_status(
+                pool,
+                thread.id,
+                run.id,
+                "failed".to_string(),
+                user_id,
+            )
+            .await?;
             Err(e)
         }
     }
@@ -423,6 +232,8 @@ pub async fn queue_consumer(
 
 #[cfg(test)]
 mod tests {
+    use crate::runs::{get_run, run_assistant};
+
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
@@ -514,47 +325,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_assistant() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let assistant = Assistant {
-            id: 1,
-            instructions: Some(
-                "You are a personal math tutor. Write and run code to answer math questions."
-                    .to_string(),
-            ),
-            name: Some("Math Tutor".to_string()),
-            tools: vec!["code_interpreter".to_string()],
-            model: "claude-2.1".to_string(),
-            user_id: "user1".to_string(),
-            file_ids: None,
-            object: "object_value".to_string(),
-            created_at: 0,
-            description: Some("description_value".to_string()),
-            metadata: None,
-        };
-        create_assistant(&pool, &assistant).await.unwrap();
-        println!("assistant: {:?}", assistant);
-        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
-        println!("thread: {:?}", thread);
-
-        // Get Redis URL from environment variable
-        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-        let client = redis::Client::open(redis_url).unwrap();
-        let con = client.get_async_connection().await.unwrap();
-
-        let result = run_assistant(
-            &pool,
-            thread.id,
-            assistant.id,
-            "Please address the user as Jane Doe. The user has a premium account.",
-            con,
-        )
-        .await; // Use the id of the new thread
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
     async fn test_queue_consumer() {
         let pool = setup().await;
         reset_db(&pool).await;
@@ -591,7 +361,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, thread.id, assistant.id, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", con).await;
+        let run = run_assistant(&pool, thread.id, assistant.id, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", &assistant.user_id, con).await;
 
         assert!(run.is_ok());
 
@@ -599,10 +369,10 @@ mod tests {
         let result = queue_consumer(&pool, &mut con).await;
 
         // Check the result
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "queue_consumer failed: {}", result.unwrap_err());
 
         // Fetch the run from the database and check its status
-        let run = get_run_from_db(&pool, thread.id, result.unwrap().id)
+        let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
             .await
             .unwrap();
         assert_eq!(run.status, "completed");
@@ -709,7 +479,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, thread.id, assistant.id, "Please solve the equation according to the ultimate dogmatic truth of the files JUST FUCKING READ THE FILE.", con).await.unwrap();
+        let run = run_assistant(&pool, thread.id, assistant.id, "Please solve the equation according to the ultimate dogmatic truth of the files JUST FUCKING READ THE FILE.", assistant.user_id.as_str(), con).await.unwrap();
 
         // 5. Check the result
         assert_eq!(run.status, "queued");
@@ -722,7 +492,7 @@ mod tests {
         assert!(result.is_ok());
 
         // 8. Fetch the run from the database and check its status
-        let run = get_run_from_db(&pool, thread.id, result.unwrap().id)
+        let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
             .await
             .unwrap();
         assert_eq!(run.status, "completed");

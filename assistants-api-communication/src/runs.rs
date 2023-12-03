@@ -2,7 +2,7 @@
 
 use assistants_api_communication::models::{AppState, CreateRun, UpdateRun};
 use assistants_core::models::Run;
-use assistants_core::runs::{create_run, delete_run, get_run, list_runs, update_run};
+use assistants_core::runs::{create_run, delete_run, get_run, list_runs, update_run, run_assistant};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -17,13 +17,17 @@ pub async fn create_run_handler(
     State(app_state): State<AppState>,
     Json(run_input): Json<CreateRun>,
 ) -> Result<JsonResponse<Run>, (StatusCode, String)> {
+    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+    let client = redis::Client::open(redis_url).unwrap();
+    let con = client.get_async_connection().await.unwrap();
     let user_id = "user1";
-    let run = create_run(
+    let run = run_assistant(
         &app_state.pool,
         thread_id,
         run_input.assistant_id,
         &run_input.instructions.unwrap_or_default(),
         user_id,
+        con,
     )
     .await;
     match run {
