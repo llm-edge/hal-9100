@@ -9,4 +9,4 @@ pub mod assistants;
 pub mod threads; 
 pub mod messages;
 pub mod runs;
-
+// pub mod function_calling; // TODO

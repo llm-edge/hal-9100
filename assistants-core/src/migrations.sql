@@ -68,3 +68,24 @@ CREATE TABLE runs (
     metadata JSONB,
     user_id TEXT
 );
+
+-- Create functions table
+CREATE TABLE functions (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT,
+    name TEXT UNIQUE, -- ! Is it correct? Meaning the user cannot register the same function name twice
+    description TEXT,
+    parameters JSONB, -- store as JSON object
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
+    updated_at BIGINT
+);
+
+-- Create function_results table
+CREATE TABLE function_results (
+    id SERIAL PRIMARY KEY,
+    function_name TEXT REFERENCES functions(name),
+    parameters JSONB, -- store as JSON object
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
+    updated_at BIGINT
+);
+
