@@ -1,10 +1,10 @@
+use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
+use reqwest::Error as ReqwestError;
 use serde::{Deserialize, Serialize};
+use serde_json::Error as SerdeError;
 use std::collections::HashMap;
 use std::fmt;
-use log::debug;
-use reqwest::Error as ReqwestError;
-use serde_json::Error as SerdeError;
 
 // ! Errors originating from API calls, parsing responses, and reading-or-writing to the file system.
 
@@ -21,7 +21,6 @@ pub struct ApiErrorDetail {
 pub struct ApiErrorResponse {
     pub error: ApiErrorDetail,
 }
-
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Message {
@@ -81,9 +80,7 @@ impl From<reqwest::Error> for OpenAIApiError {
     }
 }
 
-impl std::error::Error for OpenAIApiError {
-    
-}
+impl std::error::Error for OpenAIApiError {}
 
 impl std::fmt::Display for OpenAIApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -132,23 +129,32 @@ pub async fn call_openai_api(
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
         Ok(v) => v,
-        Err(_) => return Err(OpenAIApiError::InvalidArgument("Invalid API Key".to_string())),
+        Err(_) => {
+            return Err(OpenAIApiError::InvalidArgument(
+                "Invalid API Key".to_string(),
+            ))
+        }
     };
     headers.insert("Authorization", auth_value);
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
     body.insert("model", serde_json::json!(model));
-    body.insert("messages", serde_json::json!(vec![Message { role: "user".to_string(), content: prompt }]));
+    body.insert(
+        "messages",
+        serde_json::json!(vec![Message {
+            role: "user".to_string(),
+            content: prompt
+        }]),
+    );
     body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
     body.insert("stream", serde_json::json!(false));
-    
+
     if let Some(stop_sequences) = stop_sequences {
         body.insert("stop", serde_json::json!(stop_sequences));
     }
     if let Some(top_p) = top_p {
         body.insert("top_p", serde_json::json!(top_p));
     }
-
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
@@ -178,25 +184,34 @@ pub async fn call_open_source_openai_api(
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
         Ok(v) => v,
-        Err(_) => return Err(OpenAIApiError::InvalidArgument("Invalid API Key".to_string())),
+        Err(_) => {
+            return Err(OpenAIApiError::InvalidArgument(
+                "Invalid API Key".to_string(),
+            ))
+        }
     };
     headers.insert("Authorization", auth_value);
 
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
     body.insert("model", serde_json::json!(model));
     // TODO: prompt template https://huggingface.co/Open-Orca/Mistral-7B-OpenOrca#prompt-template
-    body.insert("messages", serde_json::json!(vec![Message { role: "user".to_string(), content: prompt }]));
+    body.insert(
+        "messages",
+        serde_json::json!(vec![Message {
+            role: "user".to_string(),
+            content: prompt
+        }]),
+    );
     body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
     body.insert("stream", serde_json::json!(false));
-    
+
     if let Some(stop_sequences) = stop_sequences {
         body.insert("stop", serde_json::json!(stop_sequences));
     }
     if let Some(top_p) = top_p {
         body.insert("top_p", serde_json::json!(top_p));
     }
-
 
     let client = reqwest::Client::new();
     let res = client.post(url).headers(headers).json(&body).send().await?;
@@ -206,7 +221,122 @@ pub async fn call_open_source_openai_api(
     if !status.is_success() {
         return Err(OpenAIApiError::ApiError(ApiErrorResponse {
             error: ApiErrorDetail {
-                message: format!("API request failed with status: {}. Response body: {}", status, raw_res),
+                message: format!(
+                    "API request failed with status: {}. Response body: {}",
+                    status, raw_res
+                ),
+                r#type: "API Request Error".to_string(),
+                param: None,
+                code: None,
+            },
+        }));
+    }
+
+    let api_res: Result<ChatCompletion, _> = serde_json::from_str(&raw_res);
+
+    match api_res {
+        Ok(res_body) => Ok(res_body),
+        Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
+    }
+}
+
+pub async fn call_openai_api_with_messages(
+    messages: Vec<Message>,
+    max_tokens_to_sample: i32,
+    model: Option<String>,
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+) -> Result<ChatCompletion, OpenAIApiError> {
+    let url = "https://api.openai.com/v1/chat/completions";
+    let default_model = "gpt-3.5-turbo".to_string();
+    let model = model.unwrap_or_else(|| default_model.clone());
+
+    let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(OpenAIApiError::InvalidArgument(
+                "Invalid API Key".to_string(),
+            ))
+        }
+    };
+    headers.insert("Authorization", auth_value);
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model));
+    body.insert("messages", serde_json::json!(messages));
+    body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(false));
+
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    let raw_res = res.text().await?;
+    let api_res: Result<ChatCompletion, _> = serde_json::from_str(&raw_res);
+
+    match api_res {
+        Ok(res_body) => Ok(res_body),
+        Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
+    }
+}
+
+pub async fn call_open_source_openai_api_with_messages(
+    messages: Vec<Message>,
+    max_tokens_to_sample: i32,
+    model: String, // model is required for open-source API
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    url: String, // url is required for open-source API
+) -> Result<ChatCompletion, OpenAIApiError> {
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+    // If the deployed LLM need API key, you can add it here.
+    let api_key = std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string());
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(OpenAIApiError::InvalidArgument(
+                "Invalid API Key".to_string(),
+            ))
+        }
+    };
+    headers.insert("Authorization", auth_value);
+
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model));
+    body.insert("messages", serde_json::json!(messages));
+    body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(false));
+
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    let status = res.status();
+    let raw_res = res.text().await?;
+
+    if !status.is_success() {
+        return Err(OpenAIApiError::ApiError(ApiErrorResponse {
+            error: ApiErrorDetail {
+                message: format!("API request failed with status {}: {}", status, raw_res),
                 r#type: "API Request Error".to_string(),
                 param: None,
                 code: None,
@@ -238,7 +368,15 @@ mod tests {
         let stop_sequences = None;
         let top_p = Some(1.0);
 
-        let result = call_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p).await;
+        let result = call_openai_api(
+            prompt.to_string(),
+            max_tokens_to_sample,
+            model,
+            temperature,
+            stop_sequences,
+            top_p,
+        )
+        .await;
 
         match result {
             Ok(response) => {
@@ -265,12 +403,24 @@ mod tests {
         let stop_sequences = None;
         let top_p = Some(1.0);
 
-        let result = call_open_source_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, url).await;
+        let result = call_open_source_openai_api(
+            prompt.to_string(),
+            max_tokens_to_sample,
+            model,
+            temperature,
+            stop_sequences,
+            top_p,
+            url,
+        )
+        .await;
 
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(response.model.contains("open-orca/mistral-7b-openorca"), true);
+                assert_eq!(
+                    response.model.contains("open-orca/mistral-7b-openorca"),
+                    true
+                );
                 assert_eq!(response.choices.len(), 1);
                 assert_eq!(response.choices[0].finish_reason, "stop");
                 assert_eq!(response.choices[0].message.role, "assistant");
@@ -301,7 +451,16 @@ mod tests {
         let url = server.url("/v1/chat/completions");
 
         // Act
-        let result = call_open_source_openai_api(prompt.to_string(), max_tokens_to_sample, model, temperature, stop_sequences, top_p, url).await;
+        let result = call_open_source_openai_api(
+            prompt.to_string(),
+            max_tokens_to_sample,
+            model,
+            temperature,
+            stop_sequences,
+            top_p,
+            url,
+        )
+        .await;
 
         // Assert
         mock.assert();
@@ -309,14 +468,13 @@ mod tests {
     }
 }
 
-/* 
+/*
 
 source $HOME/Documents/FastChat/env/bin/activate
 python3 -m fastchat.serve.controller
 python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit
 python3 -m fastchat.serve.openai_api_server --host localhost --port 8000
-curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{"model": "mistral-7b-openorca","messages": [{"role": "user", "content": "Hello! What is your name?"}]}' 
+curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/json"   -d '{"model": "mistral-7b-openorca","messages": [{"role": "user", "content": "Hello! What is your name?"}]}'
 {"id":"chatcmpl-3Aq4UGShsQyUNDTNY9FrDE","object":"chat.completion","created":1701218657,"model":"mistral-7b-openorca","choices":[{"index":0,"message":{"role":"assistant","content":"Hello! I am MistralOrca, a large language model trained by Alignment Lab AI."},"finish_reason":"stop"}],"usage":{"prompt_tokens":55,"total_tokens":76,"completion_tokens":21}}
 
 */
-
