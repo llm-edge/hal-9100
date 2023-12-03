@@ -64,7 +64,8 @@ The Open Source Assistants API enables building AI assistants within application
 - Will follow OpenAI Assistants evolutions
 
 ## Goals 
-- **Highly reliable**: The API is designed to be highly reliable, tested, and used in production even in extreme environments with human lives at stake.
+- **Highly reliable**: The API is designed to be highly reliable, tested, and used in production.
+- **Edge compatible**: Can be used without internet access (on servers, not on consumer hardware)
 - **Compatible with OpenAI Assistants API**: The API is designed to be compatible with OpenAI Assistants API.
 - **Thin abstraction layer**: The API is designed as a thin, easy to understand, covering most valuable use cases, layer of abstraction on top of the best Open Source projects that have stood the test of time.
 - **Free**: The API is designed to be free and Open Source, with no hidden costs.
