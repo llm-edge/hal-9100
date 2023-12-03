@@ -42,6 +42,7 @@ jobs:
         S3_BUCKET_NAME: mybucket
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
       run: RUST_TEST_THREADS=1 cargo test --features ci
 
   docker-build:

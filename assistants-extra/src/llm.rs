@@ -58,7 +58,7 @@ pub async fn llm(
         .await
         .map(|res| res.choices[0].message.content.clone())
         .map_err(|e| Box::new(e) as Box<dyn Error>)
-    } else if model_name.contains("/") {
+    } else if model_name.contains("/") { // ! super hacky
         let model_name = model_name.split('/').last().unwrap_or_default();
         let url = model_url.unwrap_or_else(|| {
             std::env::var("MODEL_URL")
@@ -66,7 +66,7 @@ pub async fn llm(
         });
         call_open_source_openai_api_with_messages(
             messages,
-            500,
+            max_tokens_to_sample,
             model_name.to_string(),
             temperature,
             stop_sequences,
@@ -98,7 +98,7 @@ mod tests {
             "gpt-3.5-turbo",
             None,
             "You help the user discover deep truths about themselves and the world.",
-            "What is the meaning of life, the universe, and everything?",
+            "According to the Hitchhiker guide to the galaxy, what is the meaning of life, the universe, and everything?",
             Some(0.5),
             60,
             None,
@@ -118,7 +118,7 @@ mod tests {
             "claude-2.1",
             None,
             "You help the user discover deep truths about themselves and the world.",
-            "What is the meaning of life, the universe, and everything?",
+            "According to the Hitchhiker guide to the galaxy, what is the meaning of life, the universe, and everything?",
             Some(0.5),
             60,
             None,
@@ -138,7 +138,7 @@ mod tests {
             "open-source/mistral-7b-instruct",
             Some("https://api.perplexity.ai/chat/completions".to_string()),
             "You help the user discover deep truths about themselves and the world.",
-            "What is the meaning of life, the universe, and everything?",
+            "According to the Hitchhiker guide to the galaxy, what is the meaning of life, the universe, and everything?",
             Some(0.5),
             60,
             None,
@@ -148,5 +148,8 @@ mod tests {
         )
         .await;
         assert!(result.is_ok(), "{:?}", result);
+        let result = result.unwrap();
+        assert!(result.contains("42"));
+        println!("{:?}", result);
     }
 }
