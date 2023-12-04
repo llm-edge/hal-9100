@@ -538,6 +538,9 @@ mod tests {
         // Check the content
         assert!(content.contains("A Simple PDF File"));
         assert!(content.contains("This is a small demonstration .pdf file"));
+
+        // Delete the file locally
+        std::fs::remove_file("sample.pdf").unwrap();
     }
 
     #[tokio::test]
@@ -579,6 +582,10 @@ mod tests {
             "The PDF content should contain the word 'Abstract'. Instead, it contains: {}",
             file_contents[0]
         );
+
+        // Delete the file locally
+        std::fs::remove_file("2311.10122.pdf").unwrap();
+
     }
 
     #[tokio::test]
