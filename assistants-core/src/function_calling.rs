@@ -103,6 +103,7 @@ Rules:
 - The parameters must be in the correct format (e.g. string, integer, etc.).
 - The parameters must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
 - The parameters must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
+- **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
 
 Examples:
 
@@ -128,6 +129,14 @@ Incorrect Answer:
 { \"name\": \"weather\", \"parameters\": { \"city\": \"Toronto, Canada\" } }
 
 In this case, the function weather expects a city parameter, but the llm provided a city and country (\"Toronto, Canada\") instead of just the city (\"Toronto\"). This would cause the function call to fail because the weather function does not know how to handle a city and country as input.
+
+
+Prompt:
+{\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
+Incorrect Answer:
+{\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
+
+In this case, the LLM simply returned the exact same input as output, which is not a valid function call.
 
 Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.";
 
@@ -204,7 +213,7 @@ pub async fn create_function_call(
     Ok(results)
 }
 
-// ! TODO next: fix mistral 7b, then create list of tests to run for all cases (multiple functions, multiple parameters, different topics, etc.)
+// ! TODO next: fix mistral 7b (prompt is not good enough, stupid LLM returns exactly the prompt he was given), then create list of tests to run for all cases (multiple functions, multiple parameters, different topics, etc.)
 
 #[cfg(test)]
 mod tests {
@@ -376,10 +385,8 @@ mod tests {
         }
     }
 
-    // TODO this macro does not work
-    #[ignore] // ! TODO: prompt is not good enough for mistral 7b :( - stupid LLM returns exactly the prompt he was given lol
     #[tokio::test]
-    async fn test_create_function_call_with_mistral_7b() {
+    async fn test_create_function_call_with_llama_2_70b_chat() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         let pool = PgPoolOptions::new()
@@ -423,10 +430,11 @@ mod tests {
 
         let user_id = "test_user";
         let model_config = ModelConfig {
-            model_name: String::from("open-source/mistral-7b-instruct"),
+            // model_name: String::from("open-source/mistral-7b-instruct"),
+            model_name: String::from("open-source/llama-2-70b-chat"),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: String::from("Give me a weather report for Toronto, Canada."),
-            temperature: Some(0.5),
+            temperature: Some(0.0),
             max_tokens_to_sample: 200,
             stop_sequences: None,
             top_p: Some(1.0),
