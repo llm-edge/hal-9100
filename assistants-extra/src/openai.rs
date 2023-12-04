@@ -391,9 +391,9 @@ mod tests {
         }
     }
 
-    #[cfg(not(feature = "ci"))]
+    #[ignore]
     #[tokio::test]
-    async fn test_call_openai_api_with_llm() {
+    async fn test_call_openai_api_with_llm() { // TODO: just use perplexity ai api for this test?
         dotenv::dotenv().ok();
         let prompt = "What is the ultimate solution to the universe according to the Hitchhiker's Guide to the Galaxy (answer very concisely, max one sentence)?";
         let max_tokens_to_sample = 60;

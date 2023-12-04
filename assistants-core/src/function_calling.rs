@@ -377,8 +377,8 @@ mod tests {
     }
 
     // TODO this macro does not work
-    #[cfg(not(feature = "ci"))] // ! TODO: prompt is not good enough for mistral 7b :( - stupid LLM returns exactly the prompt he was given lol
-    // #[tokio::test]
+    #[ignore] // ! TODO: prompt is not good enough for mistral 7b :( - stupid LLM returns exactly the prompt he was given lol
+    #[tokio::test]
     async fn test_create_function_call_with_mistral_7b() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
