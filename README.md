@@ -44,15 +44,12 @@ The Open Source Assistants API enables building AI assistants within application
 - [ ] **Code Interpreter**: Runs Python code in a sandboxed environment.
   - [ ] Anthropic
   - [ ] Open source LLMs
-  - [ ] OpenAI
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
   - [x] Anthropic
   - [x] Open source LLMs
-  - [x] OpenAI
 - [x] **Function Calling**: Defines and executes custom functions.
   - [x] Anthropic
-  - [ ] Open source LLMs (WIP)
-  - [x] OpenAI
+  - [x] Open source LLMs
 - [x] **File Handling**: Supports a range of file formats.
   - [x] pdf
   - [x] text files
