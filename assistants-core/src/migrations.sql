@@ -15,7 +15,7 @@ CREATE TABLE assistants (
     description TEXT,
     model TEXT,
     instructions TEXT,
-    tools TEXT[],
+    tools JSONB[],
     file_ids TEXT[],
     metadata JSONB,
     user_id TEXT
@@ -63,7 +63,7 @@ CREATE TABLE runs (
     completed_at BIGINT,
     model TEXT,
     instructions TEXT,
-    tools TEXT[],
+    tools JSONB[],
     file_ids TEXT[],
     metadata JSONB,
     user_id TEXT

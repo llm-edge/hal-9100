@@ -7,35 +7,34 @@ use serde_json::Value as JsonValue;
 use sqlx::PgPool;
 use std::{collections::HashMap, error::Error, pin::Pin};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Property {
     #[serde(rename = "type")]
-    type_: String,
-    description: String,
-    enum_: Option<Vec<String>>,
+    pub r#type: String,
+    pub description: String,
+    pub r#enum: Option<Vec<String>>,
 }
-
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Parameter {
     #[serde(rename = "type")]
-    type_: String,
+    pub r#type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<HashMap<String, Property>>,
-    required: Vec<String>,
+    pub properties: Option<HashMap<String, Property>>,
+    pub required: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Function {
-    user_id: String,
-    name: String,
-    description: String,
-    parameters: HashMap<String, Parameter>,
+    pub user_id: String,
+    pub name: String,
+    pub description: String,
+    pub parameters: HashMap<String, Parameter>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionResult {
-    name: String,
-    parameters: HashMap<String, String>,
+    pub name: String,
+    pub parameters: HashMap<String, String>,
 }
 
 pub struct ModelConfig {
@@ -260,7 +259,7 @@ mod tests {
                 map.insert(
                     String::from("city"),
                     Parameter {
-                        type_: String::from("string"),
+                        r#type: String::from("string"),
                         properties: Some(HashMap::new()),
                         required: vec![String::from("city")],
                     },
@@ -339,7 +338,7 @@ mod tests {
                 map.insert(
                     String::from("city"),
                     Parameter {
-                        type_: String::from("string"),
+                        r#type: String::from("string"),
                         properties: Some(HashMap::new()),
                         required: vec![String::from("city")],
                     },
@@ -418,7 +417,7 @@ mod tests {
                 map.insert(
                     String::from("city"),
                     Parameter {
-                        type_: String::from("string"),
+                        r#type: String::from("string"),
                         properties: Some(HashMap::new()),
                         required: vec![String::from("city")],
                     },

@@ -30,7 +30,7 @@ curl -X POST http://localhost:3000/assistants \
 -d '{
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
-    "tools": ["retrieval"],
+    "tools": [{"type": "retrieval"}],
     "model": "claude-2.1"
 }'
 ```
@@ -73,7 +73,7 @@ curl -X POST http://localhost:3000/threads/1/messages \
     "role": "user",
     "content": [
         {
-            "type_": "user",
+            "r#type": "user",
             "text": {
                 "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                 "annotations": []
@@ -171,7 +171,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "user",
         "content": [
             {
-                "type_": "user",
+                "type": "user",
                 "text": {
                     "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                     "annotations": []
@@ -192,7 +192,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "assistant",
         "content": [
             {
-                "type_": "text",
+                "r#type": "text",
                 "text": {
                     "value": " Unfortunately I do not have enough context to solve the equation. Please provide the full equation you would like me to solve, and I will do my best to assist you in solving it. Some examples of helpful context that would allow me to solve an equation are:\n\n- Specifying the full equation, including all variables, numbers, and mathematical operators (+, - , /, , =, etc)\n- Providing any constraints or requirements on the variables\n- Specifying the desired form of the solution",
                     "annotations": []

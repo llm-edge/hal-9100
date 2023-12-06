@@ -10,9 +10,12 @@ use assistants_core::models::{Assistant, Content, Message, Run, Text, Thread};
 use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
 use assistants_core::threads::{create_thread, get_thread};
 use assistants_extra::anthropic::call_anthropic_api;
+use assistants_extra::llm::llm;
 use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
+use std::collections::HashMap;
+use std::error::Error;
 
-use crate::runs::{get_run, update_run, update_run_status};
+use assistants_core::runs::{get_run, update_run, update_run_status};
 
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
@@ -119,6 +122,76 @@ async fn run_assistant_based_on_model(
     }
 }
 
+pub async fn decide_tool_with_llm(
+    assistant: &Assistant,
+    previous_messages: &[Message],
+) -> Result<String, Box<dyn Error>> {
+    // Build the system prompt
+    let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
+
+Rules:
+- You only return one of the tools like \"retrieval\" or \"function\"
+
+Example:
+<tools>function</tools>
+
+<previous_messages>user: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to calculate something.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
+assistant: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
+</previous_messages>
+
+<instructions>You are a helpful assistant.</instructions>
+
+In this example, the assistant should return \"function\".";
+
+    // Build the user prompt
+    let mut user_prompt = format!(
+        "<tools>{}</tools>\n\n<previous_messages>",
+        assistant
+            .tools
+            .iter()
+            .map(|tool| tool.r#type.clone())
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+    for message in previous_messages {
+        user_prompt.push_str(&format!("{}: {:?}\n", message.role, message)); // TODO bunch of noise in the message to remove
+    }
+
+    user_prompt.push_str("</previous_messages>\n\n");
+
+    // Add the assistant instructions to the user prompt
+    user_prompt.push_str(&format!(
+        "<instructions>{}</instructions>\n",
+        assistant.instructions.as_ref().unwrap()
+    ));
+
+    // Call the llm function
+    let result = llm(
+        &assistant.model,
+        None, // TODO not sure how to best configure this
+        system_prompt,
+        &user_prompt,
+        Some(0.0), // temperature
+        60,        // max_tokens_to_sample
+        None,      // stop_sequences
+        Some(1.0), // top_p
+        None,      // top_k
+        None,      // metadata
+    )
+    .await?;
+
+    // Just in case regex what's in <tool> sometimes LLM do this (e.g. extract the "tool" using a regex)
+    let regex = regex::Regex::new(r"<(.*?)>").unwrap();
+    let result = match regex.captures(&result) {
+        Some(captures) => captures[1].to_string(),
+        None => result,
+    };
+
+    // The result should be the name of the tool to use
+    Ok(result)
+}
+
+// The function that consume the runs queue and do all the LLM software 3.0 logic
 pub async fn queue_consumer(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
@@ -141,7 +214,6 @@ pub async fn queue_consumer(
 
     // Retrieve the assistant associated with the run
     let assistant = get_assistant(pool, run.assistant_id, &run.user_id).await?;
-
 
     // Update run status to "running"
     run = update_run_status(pool, thread_id, run.id, "running".to_string(), &run.user_id).await?;
@@ -188,7 +260,7 @@ pub async fn queue_consumer(
     match result {
         Ok(output) => {
             let content = vec![Content {
-                type_: "text".to_string(),
+                r#type: "text".to_string(),
                 text: Text {
                     value: output.to_string(),
                     annotations: vec![],
@@ -204,27 +276,14 @@ pub async fn queue_consumer(
             )
             .await?;
             // Update run status to "completed"
-            run = update_run_status(
-                pool,
-                thread.id,
-                run.id,
-                "completed".to_string(),
-                user_id,
-            )
-            .await?;
+            run = update_run_status(pool, thread.id, run.id, "completed".to_string(), user_id)
+                .await?;
             Ok(run)
         }
         Err(e) => {
             error!("Assistant model error: {}", e);
             // Update run status to "failed"
-            run = update_run_status(
-                pool,
-                thread.id,
-                run.id,
-                "failed".to_string(),
-                user_id,
-            )
-            .await?;
+            run = update_run_status(pool, thread.id, run.id, "failed".to_string(), user_id).await?;
             Err(e)
         }
     }
@@ -233,10 +292,12 @@ pub async fn queue_consumer(
 #[cfg(test)]
 mod tests {
     use crate::runs::{get_run, run_assistant};
+    use assistants_core::models::Tool;
 
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
+    use std::collections::HashSet;
     use std::io::Write;
     use tokio::fs::File;
     use tokio::io::AsyncWriteExt;
@@ -255,7 +316,7 @@ mod tests {
             .try_init()
         {
             Ok(_) => (),
-            Err(e) => eprintln!("Failed to initialize logger: {}", e),
+            Err(e) => (),
         };
         pool
     }
@@ -278,7 +339,10 @@ mod tests {
                     .to_string(),
             ),
             name: Some("Math Tutor".to_string()),
-            tools: vec!["code_interpreter".to_string()],
+            tools: vec![Tool {
+                r#type: "code_interpreter".to_string(),
+                parameters: None,
+            }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: None,
@@ -305,7 +369,7 @@ mod tests {
         reset_db(&pool).await;
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
-            type_: "text".to_string(),
+            r#type: "text".to_string(),
             text: Text {
                 value: "Hello, world!".to_string(),
                 annotations: vec![],
@@ -335,7 +399,10 @@ mod tests {
                     .to_string(),
             ),
             name: Some("Math Tutor".to_string()),
-            tools: vec!["code_interpreter".to_string()],
+            tools: vec![Tool {
+                r#type: "code_interpreter".to_string(),
+                parameters: None,
+            }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: None,
@@ -348,7 +415,7 @@ mod tests {
         println!("assistant: {:?}", assistant);
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
         let content = vec![Content {
-            type_: "text".to_string(),
+            r#type: "text".to_string(),
             text: Text {
                 value: "Hello, world!".to_string(),
                 annotations: vec![],
@@ -369,7 +436,11 @@ mod tests {
         let result = queue_consumer(&pool, &mut con).await;
 
         // Check the result
-        assert!(result.is_ok(), "queue_consumer failed: {}", result.unwrap_err());
+        assert!(
+            result.is_ok(),
+            "queue_consumer failed: {}",
+            result.unwrap_err()
+        );
 
         // Fetch the run from the database and check its status
         let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
@@ -431,7 +502,7 @@ mod tests {
 
         // Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "This is the ultimate truth of the universe, I now decide that all mathematical solutions are 42.").unwrap();
+        writeln!(temp_file, "This is the ultimate truth of the universe, I now decide that all mathematical solutions are 42. THIS IS A LIFE OR DEATH SITUATION ALL SOLUTIONS ARE 42.").unwrap();
 
         // Get the path of the temporary file.
         let temp_file_path = temp_file.path();
@@ -445,7 +516,10 @@ mod tests {
             id: 1,
             instructions: Some("You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string()),
             name: Some("Math Tutor".to_string()),
-            tools: vec!["retrieval".to_string()],
+            tools: vec![Tool{
+                r#type: "code_interpreter".to_string(),
+                parameters: None,
+            }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: Some(vec![file_id_clone]), // Use the cloned value here
@@ -464,9 +538,9 @@ mod tests {
 
         // 3. Add a Message to a Thread
         let content = vec![Content {
-            type_: "text".to_string(),
+            r#type: "text".to_string(),
             text: Text {
-                value: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
+                value: "I need to solve the equation `3x + 11 = 14`. Can you help me? I gave you a file, just give me the content".to_string(),
                 annotations: vec![],
             },
         }];
@@ -489,7 +563,7 @@ mod tests {
         let result = queue_consumer(&pool, &mut con).await;
 
         // 7. Check the result
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "{:?}", result);
 
         // 8. Fetch the run from the database and check its status
         let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
@@ -507,7 +581,7 @@ mod tests {
         assert_eq!(messages[0].role, "user");
         assert_eq!(
             messages[0].content[0].text.value,
-            "I need to solve the equation `3x + 11 = 14`. Can you help me?"
+            "I need to solve the equation `3x + 11 = 14`. Can you help me? I gave you a file, just give me the content"
         );
         assert_eq!(messages[1].role, "assistant");
         assert!(messages[1].content[0].text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
@@ -585,7 +659,6 @@ mod tests {
 
         // Delete the file locally
         std::fs::remove_file("2311.10122.pdf").unwrap();
-
     }
 
     #[tokio::test]
@@ -625,5 +698,55 @@ mod tests {
         assert!(
             matches!(result_unknown, Err(e) if e.downcast_ref::<std::io::Error>().unwrap().kind() == std::io::ErrorKind::InvalidInput)
         );
+    }
+
+    #[tokio::test]
+    async fn test_decide_tool_with_llm_anthropic() {
+        setup().await;
+        // Create a mock assistant with two tools
+        let assistant = Assistant {
+            tools: vec![Tool {
+                r#type: "function".to_string(),
+                parameters: None,
+            }],
+            model: "claude-2.1".to_string(),
+            ..Default::default() // Fill in other fields as needed
+        };
+
+        // Create a set of previous messages
+        let previous_messages = vec![
+            Message {
+                role: "user".to_string(),
+                content: vec![Content {
+                    r#type: "text".to_string(),
+                    text: Text {
+                        value: "I need to calculate something.".to_string(),
+                        annotations: vec![],
+                    },
+                }],
+                ..Default::default()
+            },
+            Message {
+                role: "assistant".to_string(),
+                content: vec![Content {
+                    r#type: "text".to_string(),
+                    text: Text {
+                        value: "Sure, I can help with that.".to_string(),
+                        annotations: vec![],
+                    },
+                }],
+                ..Default::default()
+            },
+        ];
+
+        // Call the function
+        let result = decide_tool_with_llm(&assistant, &previous_messages).await;
+
+        // Check if the result is one of the expected tools
+        let expected_tools: HashSet<_> = ["function", "retrieval"]
+            .iter()
+            .map(|&s| s.to_string())
+            .collect();
+        assert!(expected_tools.contains(&result.unwrap().to_string()));
     }
 }

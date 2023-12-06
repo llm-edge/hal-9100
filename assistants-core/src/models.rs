@@ -1,9 +1,12 @@
-use serde::{self, Serialize, Deserialize};
+use assistants_extra::anthropic;
+use redis::RedisError;
+use serde::{self, Deserialize, Serialize};
+use sqlx::Error as SqlxError;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use sqlx::Error as SqlxError;
-use redis::RedisError;
-use assistants_extra::anthropic;
+
+use assistants_core::function_calling::Parameter;
 
 #[derive(Debug)]
 pub enum MyError {
@@ -34,9 +37,36 @@ impl From<RedisError> for MyError {
     }
 }
 
+impl Tool {
+    pub fn empty() -> Vec<Self> {
+        Vec::new()
+    }
+
+    pub fn from_value(tools: Option<Vec<serde_json::Value>>) -> Vec<Self> {
+        match tools {
+            Some(tools) => tools
+                .into_iter()
+                .map(|tool| serde_json::from_value(tool).unwrap())
+                .collect(),
+            None => Tool::empty(),
+        }
+    }
+}
+
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+pub struct Tool {
+    pub r#type: String,
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub name: Option<String>,
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<HashMap<String, Parameter>>,
+}
+
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Content {
-    pub type_: String,
+    pub r#type: String,
     pub text: Text,
 }
 
@@ -48,7 +78,7 @@ pub struct Text {
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Message {
-    pub id: i32, // Changed from i32 to String
+    pub id: i32,        // Changed from i32 to String
     pub object: String, // New field
     pub created_at: i64,
     pub thread_id: i32, // Changed from i32 to String
@@ -59,6 +89,24 @@ pub struct Message {
     pub file_ids: Option<Vec<String>>,
     pub metadata: Option<std::collections::HashMap<String, String>>, // Changed from serde_json::Value to HashMap
     pub user_id: String,
+}
+
+impl Default for Message {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            object: String::new(),
+            created_at: 0,
+            thread_id: 0,
+            role: String::new(),
+            content: Vec::new(),
+            assistant_id: None,
+            run_id: None,
+            file_ids: None,
+            metadata: None,
+            user_id: String::new(),
+        }
+    }
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
@@ -78,7 +126,7 @@ pub struct Run {
     pub completed_at: Option<i64>,
     pub model: String,
     pub instructions: String,
-    pub tools: Vec<String>,
+    pub tools: Vec<Tool>,
     pub file_ids: Vec<String>,
     pub metadata: Option<std::collections::HashMap<String, String>>,
     pub user_id: String,
@@ -90,9 +138,23 @@ pub struct RequiredAction {
     pub submit_tool_outputs: Option<SubmitToolOutputs>,
 }
 
+// https://platform.openai.com/docs/assistants/tools/function-calling?lang=curl
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitToolOutputs {
-    pub tool_calls: Vec<String>,
+    pub tool_calls: Vec<ToolCall>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ToolCall {
+    pub id: String,
+    pub r#type: String,
+    pub function: Function,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Function {
+    pub name: String,
+    pub arguments: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,22 +167,22 @@ pub struct LastError {
 pub struct Thread {
     pub id: i32,
     pub user_id: String,
-    pub file_ids: Option<Vec<String>>, // TODO move to run 
-    pub object: String, // New field
-    pub created_at: i64, // New field
+    pub file_ids: Option<Vec<String>>, // TODO move to run
+    pub object: String,                // New field
+    pub created_at: i64,               // New field
     pub metadata: Option<std::collections::HashMap<String, String>>, // New field
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Assistant {
-    pub id: i32, // Changed from i32 to String
-    pub object: String, // New field
-    pub created_at: i64, // New field
-    pub name: Option<String>, // Changed from String to Option<String>
+    pub id: i32,                     // Changed from i32 to String
+    pub object: String,              // New field
+    pub created_at: i64,             // New field
+    pub name: Option<String>,        // Changed from String to Option<String>
     pub description: Option<String>, // New field
     pub model: String,
     pub instructions: Option<String>, // Changed from String to Option<String>
-    pub tools: Vec<String>, // Enum not supported by sqlx?
+    pub tools: Vec<Tool>,             // Enum not supported by sqlx?
     pub file_ids: Option<Vec<String>>,
     pub metadata: Option<std::collections::HashMap<String, String>>, // New field
     pub user_id: String,
@@ -134,8 +196,8 @@ impl Default for Assistant {
             created_at: 0,
             name: None,
             description: None,
-            model: String::new(),
-            instructions: None,
+            model: "claude-2.1".to_string(), // TODO everything should default to open source llm in the future when the repo is more stable
+            instructions: Some("You are a helpful assistant.".to_string()),
             tools: Vec::new(),
             file_ids: None,
             metadata: None,
@@ -163,6 +225,3 @@ impl AnthropicApiError {
     }
 }
 impl Error for AnthropicApiError {}
-
-
-

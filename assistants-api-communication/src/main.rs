@@ -259,6 +259,7 @@ async fn upload_file_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assistants_api_communication::models::ApiTool;
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
@@ -298,7 +299,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("test".to_string()),
             name: Some("test".to_string()),
-            tools: Some(vec!["test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "test".to_string(),
+                parameters: None,
+            }]),
             model: "test".to_string(),
             file_ids: None,
             description: None,
@@ -323,14 +327,14 @@ mod tests {
         let body: Assistant = serde_json::from_slice(&body).unwrap();
         assert_eq!(body.instructions, Some("test".to_string()));
         assert_eq!(body.name, Some("test".to_string()));
-        assert_eq!(body.tools, vec!["test".to_string()]);
+        assert_eq!(body.tools[0].r#type, "test".to_string());
         assert_eq!(body.model, "test");
         assert_eq!(body.user_id, "user1");
         assert_eq!(body.file_ids, None);
     }
 
     #[tokio::test]
-    async fn get_assistant() {
+    async fn test_get_assistant() {
         let app_state = setup().await;
         let app = app(app_state);
 
@@ -338,7 +342,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("test".to_string()),
             name: Some("test".to_string()),
-            tools: Some(vec!["test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "test".to_string(),
+                parameters: None,
+            }]),
             model: "test".to_string(),
             file_ids: None,
             description: None,
@@ -383,7 +390,7 @@ mod tests {
         let assistant: Assistant = serde_json::from_slice(&body).unwrap();
         assert_eq!(assistant.instructions, Some("test".to_string()));
         assert_eq!(assistant.name, Some("test".to_string()));
-        assert_eq!(assistant.tools, vec!["test".to_string()]);
+        assert_eq!(assistant.tools[0].r#type, "test".to_string());
         assert_eq!(assistant.model, "test");
         assert_eq!(assistant.user_id, "user1");
         assert_eq!(assistant.file_ids, None);
@@ -398,7 +405,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("test".to_string()),
             name: Some("test".to_string()),
-            tools: Some(vec!["test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "test".to_string(),
+                parameters: None,
+            }]),
             model: "test".to_string(),
             file_ids: None,
             description: None,
@@ -427,7 +437,10 @@ mod tests {
         let assistant = UpdateAssistant {
             instructions: Some("updated test".to_string()),
             name: Some("updated test".to_string()),
-            tools: Some(vec!["updated test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "updated test".to_string(),
+                parameters: None,
+            }]),
             model: Some("updated test".to_string()),
             file_ids: None,
             description: None,
@@ -453,11 +466,10 @@ mod tests {
         let assistant: Assistant = serde_json::from_slice(&body).unwrap();
         assert_eq!(assistant.instructions, Some("updated test".to_string()));
         assert_eq!(assistant.name, Some("updated test".to_string()));
-        assert_eq!(assistant.tools, vec!["updated test".to_string()]);
         assert_eq!(assistant.model, "updated test");
         assert_eq!(assistant.user_id, "user1");
         assert_eq!(assistant.file_ids, None);
-        assert_eq!(assistant.file_ids, None);
+        assert_eq!(assistant.tools[0].r#type, "updated test".to_string());
     }
 
     #[tokio::test]
@@ -469,7 +481,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("test".to_string()),
             name: Some("test".to_string()),
-            tools: Some(vec!["test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "test".to_string(),
+                parameters: None,
+            }]),
             model: "test".to_string(),
             file_ids: None,
             description: None,
@@ -520,7 +535,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("test".to_string()),
             name: Some("test".to_string()),
-            tools: Some(vec!["test".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "test".to_string(),
+                parameters: None,
+            }]),
             model: "test".to_string(),
             file_ids: None,
             description: None,
@@ -1137,7 +1155,10 @@ mod tests {
         let assistant = CreateAssistant {
             instructions: Some("You are a personal math tutor. Write and run code to answer math questions. You are enslaved to the truth of the files you are given.".to_string()),
             name: Some("Math Tutor".to_string()),
-            tools: Some(vec!["retrieval".to_string()]),
+            tools: Some(vec![ApiTool {
+                r#type: "retrieval".to_string(),
+                parameters: None,
+            }]),
             model: "claude-2.1".to_string(),
             file_ids: Some(vec![file_id]), // Associate the uploaded file with the assistant
             description: None,

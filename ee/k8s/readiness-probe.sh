@@ -10,7 +10,7 @@ curl -X POST $URL/assistants \
 -d '{
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
-    "tools": ["retrieval"],
+    "tools": [{"type": "retrieval"}],
     "model": "claude-2.1"
 }'
 

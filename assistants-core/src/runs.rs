@@ -8,6 +8,8 @@ use redis::AsyncCommands;
 use std::collections::HashMap;
 use std::error::Error;
 
+use assistants_core::models::Tool;
+
 pub async fn run_assistant(
     pool: &PgPool,
     thread_id: i32,
@@ -91,7 +93,7 @@ pub async fn create_run(
         failed_at: row.failed_at,
         completed_at: row.completed_at,
         model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
+        tools: Tool::from_value(row.tools),
         file_ids: row.file_ids.unwrap_or_default(),
         metadata: Some(
             serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
@@ -137,7 +139,7 @@ pub async fn get_run(
         failed_at: row.failed_at,
         completed_at: row.completed_at,
         model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
+        tools: Tool::from_value(row.tools),
         file_ids: row.file_ids.unwrap_or_default(),
         metadata: Some(
             serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
@@ -188,7 +190,7 @@ pub async fn update_run(
         failed_at: row.failed_at,
         completed_at: row.completed_at,
         model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
+        tools: Tool::from_value(row.tools),
         file_ids: row.file_ids.unwrap_or_default(),
         metadata: Some(
             serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
@@ -239,7 +241,7 @@ pub async fn update_run_status(
         failed_at: row.failed_at,
         completed_at: row.completed_at,
         model: row.model.unwrap_or_default(),
-        tools: row.tools.unwrap_or_default(),
+        tools: Tool::from_value(row.tools),
         file_ids: row.file_ids.unwrap_or_default(),
         metadata: Some(
             serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
@@ -312,7 +314,7 @@ pub async fn list_runs(
             failed_at: row.failed_at,
             completed_at: row.completed_at,
             model: row.model.unwrap_or_default(),
-            tools: row.tools.unwrap_or_default(),
+            tools: Tool::from_value(row.tools),
             file_ids: row.file_ids.unwrap_or_default(),
             metadata: Some(
                 serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
@@ -324,8 +326,6 @@ pub async fn list_runs(
 
     Ok(runs)
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -354,7 +354,7 @@ mod tests {
             .try_init()
         {
             Ok(_) => (),
-            Err(e) => eprintln!("Failed to initialize logger: {}", e),
+            Err(_) => (),
         };
         pool
     }
@@ -377,7 +377,10 @@ mod tests {
                     .to_string(),
             ),
             name: Some("Math Tutor".to_string()),
-            tools: vec!["code_interpreter".to_string()],
+            tools: vec![Tool {
+                r#type: "yo".to_string(),
+                parameters: None,
+            }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
             file_ids: None,
@@ -407,8 +410,4 @@ mod tests {
         .await; // Use the id of the new thread
         assert!(result.is_ok());
     }
-
-
-
-
 }

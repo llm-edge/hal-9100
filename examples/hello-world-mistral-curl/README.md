@@ -56,7 +56,7 @@ curl -X POST http://localhost:3000/assistants \
 -d '{
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
-    "tools": ["retrieval"],
+    "tools": [{"type": "retrieval"}],
     "model": "open-orca/mistral-7b-openorca"
 }'
 ```
@@ -69,7 +69,7 @@ curl -X POST http://localhost:3000/assistants \
     "description": null,
     "model": "open-orca/mistral-7b-openorca",
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
-    "tools": ["retrieval"],
+    "tools": [{"type": "retrieval"}],
     "file_ids": null,
     "metadata": null,
     "user_id": "user1"
@@ -113,7 +113,7 @@ curl -X POST http://localhost:3000/threads/1/messages \
     "role": "user",
     "content": [
         {
-            "type_": "user",
+            "r#type": "user",
             "text": {
                 "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                 "annotations": []
@@ -212,7 +212,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "user",
         "content": [
             {
-                "type_": "user",
+                "r#type": "user",
                 "text": {
                     "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                     "annotations": []
@@ -233,7 +233,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "assistant",
         "content": [
             {
-                "type_": "text",
+                "type": "text",
                 "text": {
                     "value": "To solve the equation 3x + 11 = 14, we need to isolate the variable x. Here's the step-by-step reasoning:\n\n1. Our goal is to find the value of x that makes the equation true.\n2. First, let's subtract 11 from both sides of the equation to isolate the term with the variable (3x) on one side:\n   3x + 11 - 11 = 14 - 11\n   \n   This simplifies to:\n   3x = 3\n\n3. Now, divide both sides of the equation by 3 to get the value of x:\n   (3x) / 3 = 3 / 3\n\n   This simplifies to:\n   x = 1\n\nSo the solution to the equation is x = 1.",
                     "annotations": []

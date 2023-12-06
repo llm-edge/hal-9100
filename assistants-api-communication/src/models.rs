@@ -1,10 +1,11 @@
-use axum::extract::FromRef;
-use assistants_core::file_storage::FileStorage;
+use assistants_core::function_calling::{Parameter, Property};
 use assistants_core::models::Message;
+use assistants_core::{file_storage::FileStorage, models::Tool};
+use axum::extract::FromRef;
 use sqlx::postgres::PgPool;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use serde::{self, Serialize, Deserialize};
+use serde::{self, Deserialize, Serialize};
 use validator::Validate;
 
 #[derive(Clone)]
@@ -25,6 +26,84 @@ impl FromRef<AppState> for Arc<FileStorage> {
     }
 }
 
+impl ApiTool {
+    pub fn empty() -> Vec<Self> {
+        Vec::new()
+    }
+
+    pub fn from_value(tools: Option<Vec<serde_json::Value>>) -> Vec<Self> {
+        match tools {
+            Some(tools) => tools
+                .into_iter()
+                .map(|tool| serde_json::from_value(tool).unwrap())
+                .collect(),
+            None => ApiTool::empty(),
+        }
+    }
+}
+
+impl From<ApiTool> for Tool {
+    fn from(api_tool: ApiTool) -> Self {
+        Tool {
+            r#type: api_tool.r#type,
+            parameters: api_tool.parameters.map(|params| params.into_iter().map(|(k, v)| (k, v.into())).collect()),
+        }
+    }
+}
+
+impl From<ApiProperty> for Property {
+    fn from(api_property: ApiProperty) -> Self {
+        Property {
+            r#type: api_property.r#type,
+            description: api_property.description,
+            r#enum: api_property.r#enum,
+        }
+    }
+}
+
+impl From<ApiParameter> for Parameter {
+    fn from(api_parameter: ApiParameter) -> Self {
+        Parameter {
+            r#type: api_parameter.r#type,
+            properties: api_parameter
+                .properties
+                .map(|props| props.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            required: api_parameter.required,
+        }
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiTool {
+    pub r#type: String, // TODO validation retrieval or function
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<HashMap<String, ApiParameter>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ApiFunction {
+    name: String,
+    description: String,
+    parameters: HashMap<String, ApiParameter>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiProperty {
+    #[serde(rename = "type")]
+    r#type: String,
+    description: String,
+    r#enum: Option<Vec<String>>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiParameter {
+    #[serde(rename = "type")]
+    r#type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    properties: Option<HashMap<String, ApiProperty>>,
+    required: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct CreateAssistant {
     #[serde(rename = "model")]
@@ -40,7 +119,7 @@ pub struct CreateAssistant {
     pub instructions: Option<String>,
 
     #[serde(rename = "tools", skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<String>>,
+    pub tools: Option<Vec<ApiTool>>,
 
     #[serde(rename = "file_ids", skip_serializing_if = "Option::is_none")]
     pub file_ids: Option<Vec<String>>,
@@ -64,7 +143,7 @@ pub struct UpdateAssistant {
     pub instructions: Option<String>,
 
     #[serde(rename = "tools", skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<String>>,
+    pub tools: Option<Vec<ApiTool>>,
 
     #[serde(rename = "file_ids", skip_serializing_if = "Option::is_none")]
     pub file_ids: Option<Vec<String>>,
@@ -84,20 +163,16 @@ pub struct CreateThread {
 // https://platform.openai.com/docs/api-reference/threads/modifyThread
 #[derive(Serialize, Deserialize, Validate)]
 pub struct UpdateThread {
-    
     #[serde(rename = "metadata")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateMessage {
     pub role: String,
     pub content: String, // weird
-    // pub content: Content,
+                         // pub content: Content,
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct ListMessage {
@@ -110,7 +185,6 @@ pub struct ListMessage {
 // https://platform.openai.com/docs/api-reference/messages/modifyMessage
 #[derive(Serialize, Deserialize, Validate)]
 pub struct UpdateMessage {
-    
     #[serde(rename = "metadata")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
@@ -126,16 +200,14 @@ pub struct CreateRun {
     pub instructions: Option<String>,
 
     #[serde(rename = "tools", skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<String>>,
+    pub tools: Option<Vec<ApiTool>>,
 
     #[serde(rename = "metadata", skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
-
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct UpdateRun {
     #[serde(rename = "metadata", skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
-
