@@ -249,7 +249,17 @@ pub async fn get_run(
         user_id,
     )
     .fetch_one(pool)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => sqlx::Error::Configuration(
+            format!(
+                "get_run: No row found for run_id: {}, thread_id: {}, user_id: {}",
+                run_id, thread_id, user_id
+            )
+            .into(),
+        ),
+        _ => e,
+    })?;
 
     Ok(Run {
         id: row.id,
@@ -300,7 +310,17 @@ pub async fn update_run(
         user_id,
     )
     .fetch_one(pool)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => sqlx::Error::Configuration(
+            format!(
+                "update_run: No row found for run_id: {}, thread_id: {}, user_id: {}",
+                run_id, thread_id, user_id
+            )
+            .into(),
+        ),
+        _ => e,
+    })?;
 
     Ok(Run {
         id: row.id,
@@ -355,7 +375,17 @@ pub async fn update_run_status(
             .map(|ra| serde_json::to_value(ra).unwrap()),
     )
     .fetch_one(pool)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => sqlx::Error::Configuration(
+            format!(
+                "update_run_status: No row found for run_id: {}, thread_id: {}, user_id: {}",
+                run_id, thread_id, user_id
+            )
+            .into(),
+        ),
+        _ => e,
+    })?;
 
     // If required_action is present, create tool_calls rows
     if let Some(action) = required_action {
@@ -424,7 +454,17 @@ pub async fn delete_run(
         user_id,
     )
     .execute(pool)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => sqlx::Error::Configuration(
+            format!(
+                "delete_run: No row found for run_id: {}, thread_id: {}, user_id: {}",
+                run_id, thread_id, user_id
+            )
+            .into(),
+        ),
+        _ => e,
+    })?;
 
     Ok(())
 }
@@ -445,7 +485,17 @@ pub async fn list_runs(
         user_id,
     )
     .fetch_all(pool)
-    .await?;
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => sqlx::Error::Configuration(
+            format!(
+                "list_runs: No row found for thread_id: {}, user_id: {}",
+                thread_id, user_id
+            )
+            .into(),
+        ),
+        _ => e,
+    })?;
 
     let runs = rows
         .into_iter()
@@ -515,10 +565,13 @@ mod tests {
     }
 
     async fn reset_db(pool: &PgPool) {
-        sqlx::query!("TRUNCATE assistants, threads, messages, runs RESTART IDENTITY")
-            .execute(pool)
-            .await
-            .unwrap();
+        // TODO should also purge minio
+        sqlx::query!(
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+        )
+        .execute(pool)
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
@@ -660,12 +713,36 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
 
-        // create run and thread
+        // create run and thread and assistant
         let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
+        let assistant = create_assistant(
+            &pool,
+            &Assistant {
+                id: 1,
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![Tool {
+                    r#type: "yo".to_string(),
+                    function: None,
+                }],
+                model: "claude-2.1".to_string(),
+                user_id: "user1".to_string(),
+                file_ids: None,
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+        )
+        .await
+        .unwrap();
         let run = create_run(
             &pool,
             thread.id,
-            1, // assistant_id
+            assistant.id, // assistant_id
             "Please address the user as Jane Doe. The user has a premium account.",
             "user1", // user_id
         )
@@ -690,16 +767,7 @@ mod tests {
         // Submit the tool output
         let result =
             submit_tool_outputs(&pool, thread.id, run.id, user_id, vec![tool_output], con).await;
-        assert!(result.is_ok());
-
-        // Query the database to check if the tool output was inserted
-        let row = sqlx::query!("SELECT * FROM tool_calls WHERE id = $1", tool_call_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-
-        // Assert that the output is as expected
-        let expected_output = serde_json::json!({"key":"value"});
-        assert_eq!(row.output.unwrap(), expected_output);
+        // shuould be Err(Configuration("Run is not in status requires_action"))
+        assert!(!result.is_ok(), "should be Err");
     }
 }

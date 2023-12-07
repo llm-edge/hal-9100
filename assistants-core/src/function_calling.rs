@@ -245,10 +245,13 @@ mod tests {
     use std::env;
 
     async fn reset_db(pool: &PgPool) {
-        sqlx::query!("TRUNCATE assistants, threads, messages, runs, functions, function_results RESTART IDENTITY")
-            .execute(pool)
-            .await
-            .unwrap();
+        // TODO should also purge minio
+        sqlx::query!(
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+        )
+        .execute(pool)
+        .await
+        .unwrap();
     }
     #[tokio::test]
     async fn test_create_function_call_with_openai() {

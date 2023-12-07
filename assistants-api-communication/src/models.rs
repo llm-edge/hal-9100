@@ -98,10 +98,10 @@ pub struct ApiTool {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ApiFunction {
-    user_id: String,
-    name: String,
-    description: String,
-    parameters: HashMap<String, ApiParameter>,
+    pub user_id: String,
+    pub name: String,
+    pub description: String,
+    pub parameters: HashMap<String, ApiParameter>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
