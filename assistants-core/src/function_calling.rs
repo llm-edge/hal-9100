@@ -7,14 +7,14 @@ use serde_json::Value as JsonValue;
 use sqlx::PgPool;
 use std::{collections::HashMap, error::Error, pin::Pin};
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Property {
     #[serde(rename = "type")]
     pub r#type: String,
     pub description: String,
     pub r#enum: Option<Vec<String>>,
 }
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Parameter {
     #[serde(rename = "type")]
     pub r#type: String,
@@ -23,7 +23,7 @@ pub struct Parameter {
     pub required: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Function {
     pub user_id: String,
     pub name: String,
@@ -37,16 +37,43 @@ pub struct FunctionResult {
     pub parameters: HashMap<String, String>,
 }
 
+#[derive(Clone)]
 pub struct ModelConfig {
-    model_name: String,
-    model_url: Option<String>,
-    user_prompt: String,
-    temperature: Option<f32>,
-    max_tokens_to_sample: i32,
-    stop_sequences: Option<Vec<String>>,
-    top_p: Option<f32>,
-    top_k: Option<i32>,
-    metadata: Option<HashMap<String, String>>,
+    pub model_name: String,
+    pub model_url: Option<String>,
+    pub user_prompt: String,
+    pub temperature: Option<f32>,
+    pub max_tokens_to_sample: i32,
+    pub stop_sequences: Option<Vec<String>>,
+    pub top_p: Option<f32>,
+    pub top_k: Option<i32>,
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+impl ModelConfig {
+    pub fn new(
+        model_name: String,
+        model_url: Option<String>,
+        user_prompt: String,
+        temperature: Option<f32>,
+        max_tokens_to_sample: i32,
+        stop_sequences: Option<Vec<String>>,
+        top_p: Option<f32>,
+        top_k: Option<i32>,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Self {
+        Self {
+            model_name,
+            model_url,
+            user_prompt,
+            temperature,
+            max_tokens_to_sample,
+            stop_sequences,
+            top_p,
+            top_k,
+            metadata,
+        }
+    }
 }
 
 pub async fn register_function(pool: &PgPool, function: Function) -> Result<i32, sqlx::Error> {
@@ -70,28 +97,6 @@ pub async fn register_function(pool: &PgPool, function: Function) -> Result<i32,
     Ok(row.id)
 }
 
-pub async fn save_function_result(
-    pool: &PgPool,
-    result: FunctionResult,
-) -> Result<i32, sqlx::Error> {
-    let parameters_json =
-        to_value(&result.parameters).map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
-
-    let row = sqlx::query!(
-        r#"
-        INSERT INTO function_results (function_name, parameters)
-        VALUES ($1, $2)
-        RETURNING id
-        "#,
-        result.name,
-        &parameters_json,
-    )
-    .fetch_one(pool)
-    .await?;
-
-    Ok(row.id)
-}
-
 const CREATE_FUNCTION_CALL_SYSTEM: &str = "Given the user's problem, we have a set of functions available that could potentially help solve this problem. Please review the functions and their descriptions, and select the most appropriate function to use. Also, determine the best parameters to use for this function based on the user's context. 
 
 Please provide the name of the function you want to use and the parameters in the following format: { 'name': 'function_name', 'parameters': { 'parameter_name1': 'parameter_value', 'parameter_name2': 'parameter_value' ... } }.
@@ -103,6 +108,9 @@ Rules:
 - The parameters must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
 - The parameters must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
 - **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
+- If the function has no parameters, then you can simply provide the function name (e.g. { 'name': 'function_name' }). It can still be a valid function call that provide useful information.
+- CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELSE
+- IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
 
 Examples:
 
@@ -138,6 +146,12 @@ Incorrect Answer:
 In this case, the LLM simply returned the exact same input as output, which is not a valid function call.
 
 Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.";
+
+use regex::Regex;
+fn extract_first_json(string: &str) -> Option<&str> {
+    let re = Regex::new(r"\{.*?\}").unwrap();
+    re.find(string).map(|m| m.as_str())
+}
 
 pub async fn create_function_call(
     pool: &PgPool,
@@ -195,6 +209,15 @@ pub async fn create_function_call(
                 return Err(err.into());
             }
         };
+
+        // just an additional hack to extract the first JSON from the result
+        // let result = match extract_first_json(&result) {
+        //     Some(result) => result,
+        //     None => {
+        //         error!("Failed to extract JSON from result: {}", result);
+        //         return Err("Failed to extract JSON from result".into());
+        //     }
+        // };
 
         // parse the result
         let result: Result<FunctionResult, serde_json::Error> = serde_json::from_str(&result);

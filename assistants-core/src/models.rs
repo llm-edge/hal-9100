@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
-use assistants_core::function_calling::Parameter;
+use assistants_core::function_calling::Function;
 
 #[derive(Debug)]
 pub enum MyError {
@@ -53,7 +53,7 @@ impl Tool {
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Tool {
     pub r#type: String,
     // #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,7 +61,7 @@ pub struct Tool {
     // #[serde(skip_serializing_if = "Option::is_none")]
     // pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parameters: Option<HashMap<String, Parameter>>,
+    pub function: Option<HashMap<String, Function>>,
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
@@ -132,27 +132,26 @@ pub struct Run {
     pub user_id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequiredAction {
-    pub action_type: String,
+    pub r#type: String,
     pub submit_tool_outputs: Option<SubmitToolOutputs>,
 }
 
 // https://platform.openai.com/docs/assistants/tools/function-calling?lang=curl
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubmitToolOutputs {
     pub tool_calls: Vec<ToolCall>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ToolCall {
     pub id: String,
     pub r#type: String,
-    pub function: Function,
+    pub function: ToolCallFunction, // https://platform.openai.com/docs/assistants/tools/reading-the-functions-called-by-the-assistant
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Function {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ToolCallFunction {
     pub name: String,
     pub arguments: HashMap<String, String>,
 }

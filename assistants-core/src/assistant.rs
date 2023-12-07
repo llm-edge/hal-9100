@@ -17,6 +17,13 @@ use std::error::Error;
 
 use assistants_core::runs::{get_run, update_run, update_run_status};
 
+use assistants_core::function_calling::ModelConfig;
+
+use assistants_core::function_calling::create_function_call;
+
+use assistants_core::models::{RequiredAction, SubmitToolOutputs, ToolCall, ToolCallFunction};
+use assistants_core::runs::get_tool_calls;
+
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
 async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage) -> Vec<String> {
@@ -74,8 +81,9 @@ fn build_instructions(
     original_instructions: &str,
     file_contents: &Vec<String>,
     previous_messages: &str,
+    tools: &str,
 ) -> String {
-    format!("<instructions>\n{}\n</instructions>\n<file>\n{:?}\n</file>\n<previous_messages>\n{}\n</previous_messages>", original_instructions, file_contents, previous_messages)
+    format!("<instructions>\n{}\n</instructions>\n<tools>\n{}\n</tools>\n<file>\n{:?}\n</file>\n<previous_messages>\n{}\n</previous_messages>", original_instructions, tools, file_contents, previous_messages)
 }
 
 async fn run_assistant_based_on_model(
@@ -125,12 +133,15 @@ async fn run_assistant_based_on_model(
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
     previous_messages: &[Message],
-) -> Result<String, Box<dyn Error>> {
+) -> Result<Vec<String>, Box<dyn Error>> {
     // Build the system prompt
     let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
 
 Rules:
-- You only return one of the tools like \"retrieval\" or \"function\"
+- You only return one of the tools like \"<retrieval>\" or \"<function>\" or both.
+- Do not return \"tools\"
+- The tool names must be one of the tools available.
+- Your answer must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.
 
 Example:
 <tools>function</tools>
@@ -141,18 +152,23 @@ assistant: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"a
 
 <instructions>You are a helpful assistant.</instructions>
 
-In this example, the assistant should return \"function\".";
+In this example, the assistant should return \"<function>\".
+
+<tools>function, retrieval</tools>
+
+<previous_messages>user: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to send personalized sales emails to our customers. I have a file with customer information. Can you also search Twitter for recent tweets from these customers to personalize the emails further?\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: [\"customer_info.csv\"], metadata: None, user_id: \"\" }
+assistant: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that. Let's start by looking at the customer information file and then I'll search Twitter for recent tweets.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
+</previous_messages>
+
+<instructions>You are a helpful assistant.</instructions>
+
+In this example, the assistant should return \"<function>,<retrieval>\".
+
+Your answer will be used to use the tool so it must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.";
 
     // Build the user prompt
-    let mut user_prompt = format!(
-        "<tools>{}</tools>\n\n<previous_messages>",
-        assistant
-            .tools
-            .iter()
-            .map(|tool| tool.r#type.clone())
-            .collect::<Vec<String>>()
-            .join(", ")
-    );
+    let tools_as_string = serde_json::to_string(&assistant.tools).unwrap();
+    let mut user_prompt = format!("<tools>{}</tools>\n\n<previous_messages>", tools_as_string);
     for message in previous_messages {
         user_prompt.push_str(&format!("{}: {:?}\n", message.role, message)); // TODO bunch of noise in the message to remove
     }
@@ -182,17 +198,22 @@ In this example, the assistant should return \"function\".";
 
     // Just in case regex what's in <tool> sometimes LLM do this (e.g. extract the "tool" using a regex)
     let regex = regex::Regex::new(r"<(.*?)>").unwrap();
-    let result = match regex.captures(&result) {
-        Some(captures) => captures[1].to_string(),
-        None => result,
-    };
+    let mut results = Vec::new();
+    for captures in regex.captures_iter(&result) {
+        results.push(captures[1].to_string());
+    }
+    // if there is a , in the <> just split it, remove spaces
+    results = results
+        .iter()
+        .flat_map(|r| r.split(',').map(|s| s.trim().to_string()))
+        .collect::<Vec<String>>();
 
-    // The result should be the name of the tool to use
-    Ok(result)
+    Ok(results)
 }
 
 // The function that consume the runs queue and do all the LLM software 3.0 logic
 pub async fn queue_consumer(
+    // TODO: split in smaller functions if possible
     pool: &PgPool,
     con: &mut redis::aio::Connection,
 ) -> Result<Run, Box<dyn std::error::Error>> {
@@ -216,7 +237,15 @@ pub async fn queue_consumer(
     let assistant = get_assistant(pool, run.assistant_id, &run.user_id).await?;
 
     // Update run status to "running"
-    run = update_run_status(pool, thread_id, run.id, "running".to_string(), &run.user_id).await?;
+    run = update_run_status(
+        pool,
+        thread_id,
+        run.id,
+        "running".to_string(),
+        &run.user_id,
+        None,
+    )
+    .await?;
 
     // Initialize FileStorage
     let file_storage = FileStorage::new().await;
@@ -224,35 +253,155 @@ pub async fn queue_consumer(
     // Retrieve the thread associated with the run
     let thread = get_thread(pool, run.thread_id, &assistant.user_id).await?;
 
-    // Initialize an empty vector to hold all file IDs
-    let mut all_file_ids = Vec::new();
-
-    // If the thread has associated file IDs, add them to the list
-    if let Some(thread_file_ids) = &thread.file_ids {
-        all_file_ids.extend(thread_file_ids.iter().cloned());
-    }
-
-    // If the assistant has associated file IDs, add them to the list
-    if let Some(assistant_file_ids) = &assistant.file_ids {
-        all_file_ids.extend(assistant_file_ids.iter().cloned());
-    }
-
     // Fetch previous messages from the thread
     let messages = list_messages(pool, thread.id, &assistant.user_id).await?;
 
     // Format messages into a string
     let formatted_messages = format_messages(&messages);
 
-    let mut instructions = build_instructions(&run.instructions, &vec![], &formatted_messages);
+    let mut tools = String::new();
 
-    // Check if the all_file_ids includes any file IDs.
-    if !all_file_ids.is_empty() {
-        // Retrieve the contents of each file.
-        let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
+    // Check if the run has a required action
+    if let Some(required_action) = &run.required_action {
+        // If the required action type is "submit_tool_outputs", fetch the tool calls from the database
+        // if required_action.r#type == "submit_tool_outputs" { ! // dont care for now
+        if let Some(submit_tool_outputs) = &required_action.submit_tool_outputs {
+            // TODO: if user send just part of the function result and not all should error
+            let tool_calls_db = get_tool_calls(
+                pool,
+                submit_tool_outputs
+                    .tool_calls
+                    .iter()
+                    .map(|t| t.id.as_str())
+                    .collect(),
+            )
+            .await?;
 
-        // Include the file contents and previous messages in the instructions.
-        instructions = build_instructions(&run.instructions, &file_contents, &formatted_messages);
+            // Use the tool call data to build the prompt like Input "functions" Output ""..."" DUMB MODE
+            tools = submit_tool_outputs
+                .tool_calls
+                .iter()
+                .zip(&tool_calls_db)
+                .map(|(input, output)| {
+                    format!(
+                        "<input>{:?}</input>\n\n<output>{:?}</output>",
+                        input.function, output.output
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
+        }
+        // }
     }
+
+    // Decide which tool to use
+    let tools_decision = decide_tool_with_llm(&assistant, &messages).await?;
+
+    let mut instructions =
+        build_instructions(&run.instructions, &vec![], &formatted_messages, &tools);
+
+    let model = assistant.model.clone();
+    // Call create_function_call here
+    let model_config = ModelConfig {
+        model_name: model,
+        model_url: None,
+        user_prompt: formatted_messages.clone(), // TODO: assuming this is the user prompt. Should it be just last message? Or more custom?
+        temperature: Some(0.0),
+        max_tokens_to_sample: 200,
+        stop_sequences: None,
+        top_p: Some(1.0),
+        top_k: None,
+        metadata: None,
+    };
+
+    // for each tool
+    for tool_decision in tools_decision {
+        // TODO: can prob optimise thru parallelism
+        match tool_decision.as_str() {
+            "function" => {
+                // skip this if tools is not empty (e.g. if there are required_action (s))
+                if !run.required_action.is_none() {
+                    continue;
+                }
+                run = update_run_status(
+                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
+                    pool,
+                    thread_id,
+                    run.id,
+                    "pending".to_string(),
+                    &run.user_id,
+                    None,
+                )
+                .await?;
+
+                let function_results =
+                    create_function_call(&pool, user_id, model_config.clone()).await?;
+
+                // If function call requires user action, leave early waiting for more context
+                if !function_results.is_empty() {
+                    // Update run status to "requires_action"
+                    run = update_run_status(
+                        pool,
+                        thread_id,
+                        run.id,
+                        "requires_action".to_string(),
+                        &run.user_id,
+                        Some(RequiredAction {
+                            r#type: "submit_tool_outputs".to_string(),
+                            submit_tool_outputs: Some(SubmitToolOutputs {
+                                tool_calls: function_results
+                                    .iter()
+                                    .map(|f| ToolCall {
+                                        id: uuid::Uuid::new_v4().to_string(),
+                                        r#type: "function".to_string(), // TODO hardcodede
+                                        function: ToolCallFunction {
+                                            name: f.name.clone(),
+                                            arguments: f.parameters.clone(),
+                                        },
+                                    })
+                                    .collect::<Vec<ToolCall>>(),
+                            }),
+                        }),
+                    )
+                    .await?;
+                    return Ok(run);
+                }
+            }
+            "retrieval" => {
+                // Call file retrieval here
+                // Initialize an empty vector to hold all file IDs
+                let mut all_file_ids = Vec::new();
+
+                // If the thread has associated file IDs, add them to the list
+                if let Some(thread_file_ids) = &thread.file_ids {
+                    all_file_ids.extend(thread_file_ids.iter().cloned());
+                }
+
+                // If the assistant has associated file IDs, add them to the list
+                if let Some(assistant_file_ids) = &assistant.file_ids {
+                    all_file_ids.extend(assistant_file_ids.iter().cloned());
+                }
+
+                // Check if the all_file_ids includes any file IDs.
+                if !all_file_ids.is_empty() {
+                    // Retrieve the contents of each file.
+                    let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
+
+                    // Include the file contents and previous messages in the instructions.
+                    instructions = build_instructions(
+                        &run.instructions,
+                        &file_contents,
+                        &formatted_messages,
+                        &tools,
+                    );
+                }
+            }
+            _ => {
+                // Handle unknown tool
+            }
+        }
+    }
+
     info!("Calling LLM API with instructions: {}", instructions);
 
     let result = run_assistant_based_on_model(assistant, instructions).await;
@@ -276,14 +425,22 @@ pub async fn queue_consumer(
             )
             .await?;
             // Update run status to "completed"
-            run = update_run_status(pool, thread.id, run.id, "completed".to_string(), user_id)
-                .await?;
+            run = update_run_status(
+                pool,
+                thread.id,
+                run.id,
+                "completed".to_string(),
+                user_id,
+                None,
+            )
+            .await?;
             Ok(run)
         }
         Err(e) => {
             error!("Assistant model error: {}", e);
             // Update run status to "failed"
-            run = update_run_status(pool, thread.id, run.id, "failed".to_string(), user_id).await?;
+            run = update_run_status(pool, thread.id, run.id, "failed".to_string(), user_id, None)
+                .await?;
             Err(e)
         }
     }
@@ -291,8 +448,12 @@ pub async fn queue_consumer(
 
 #[cfg(test)]
 mod tests {
-    use crate::runs::{get_run, run_assistant};
+    use assistants_core::function_calling::Function;
     use assistants_core::models::Tool;
+    use assistants_core::runs::{get_run, run_assistant};
+
+    use crate::function_calling::Parameter;
+    use crate::runs::{submit_tool_outputs, SubmittedToolCall};
 
     use super::*;
     use dotenv::dotenv;
@@ -322,10 +483,12 @@ mod tests {
     }
 
     async fn reset_db(pool: &PgPool) {
-        sqlx::query!("TRUNCATE assistants, threads, messages, runs RESTART IDENTITY")
-            .execute(pool)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+        )
+        .execute(pool)
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
@@ -341,7 +504,7 @@ mod tests {
             name: Some("Math Tutor".to_string()),
             tools: vec![Tool {
                 r#type: "code_interpreter".to_string(),
-                parameters: None,
+                function: None,
             }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
@@ -400,8 +563,8 @@ mod tests {
             ),
             name: Some("Math Tutor".to_string()),
             tools: vec![Tool {
-                r#type: "code_interpreter".to_string(),
-                parameters: None,
+                r#type: "retrieval".to_string(),
+                function: None,
             }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
@@ -459,7 +622,7 @@ mod tests {
         let previous_messages =
             "<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n";
         let instructions =
-            build_instructions(original_instructions, &file_contents, previous_messages);
+            build_instructions(original_instructions, &file_contents, previous_messages, "");
         let expected_instructions = "<instructions>\nSolve the equation.\n</instructions>\n<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n\n</previous_messages>";
         assert_eq!(instructions, expected_instructions);
     }
@@ -518,7 +681,7 @@ mod tests {
             name: Some("Math Tutor".to_string()),
             tools: vec![Tool{
                 r#type: "code_interpreter".to_string(),
-                parameters: None,
+                function: None,
             }],
             model: "claude-2.1".to_string(),
             user_id: "user1".to_string(),
@@ -704,49 +867,334 @@ mod tests {
     async fn test_decide_tool_with_llm_anthropic() {
         setup().await;
         // Create a mock assistant with two tools
+        let mut functions = std::collections::HashMap::new();
+
+        functions.insert(
+            "calculator".to_string(),
+            Function {
+                user_id: "user1".to_string(),
+                description: "A calculator function".to_string(),
+                name: "calculator".to_string(),
+                parameters: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("a"),
+                        Parameter {
+                            r#type: String::from("number"),
+                            properties: Some(HashMap::new()),
+                            required: vec![String::from("a")],
+                        },
+                    );
+                    map.insert(
+                        String::from("b"),
+                        Parameter {
+                            r#type: String::from("number"),
+                            properties: Some(HashMap::new()),
+                            required: vec![String::from("b")],
+                        },
+                    );
+                    map
+                },
+            },
+        );
         let assistant = Assistant {
             tools: vec![Tool {
                 r#type: "function".to_string(),
-                parameters: None,
+                function: Some(functions),
             }],
             model: "claude-2.1".to_string(),
             ..Default::default() // Fill in other fields as needed
         };
 
         // Create a set of previous messages
-        let previous_messages = vec![
-            Message {
-                role: "user".to_string(),
-                content: vec![Content {
-                    r#type: "text".to_string(),
-                    text: Text {
-                        value: "I need to calculate something.".to_string(),
-                        annotations: vec![],
-                    },
-                }],
-                ..Default::default()
-            },
-            Message {
-                role: "assistant".to_string(),
-                content: vec![Content {
-                    r#type: "text".to_string(),
-                    text: Text {
-                        value: "Sure, I can help with that.".to_string(),
-                        annotations: vec![],
-                    },
-                }],
-                ..Default::default()
-            },
-        ];
+        let previous_messages = vec![Message {
+            role: "user".to_string(),
+            content: vec![Content {
+                r#type: "text".to_string(),
+                text: Text {
+                    value: "I need to calculate something.".to_string(),
+                    annotations: vec![],
+                },
+            }],
+            ..Default::default()
+        }];
 
         // Call the function
         let result = decide_tool_with_llm(&assistant, &previous_messages).await;
-
+        let mut result = result.unwrap();
         // Check if the result is one of the expected tools
-        let expected_tools: HashSet<_> = ["function", "retrieval"]
-            .iter()
-            .map(|&s| s.to_string())
-            .collect();
-        assert!(expected_tools.contains(&result.unwrap().to_string()));
+        let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
+        assert_eq!(result.sort(), expected_tools.sort());
+    }
+
+    #[tokio::test]
+    async fn test_decide_tool_with_llm_open_source() {
+        setup().await;
+        // Create a mock assistant with two tools
+        let mut functions = std::collections::HashMap::new();
+
+        functions.insert(
+            "calculator".to_string(),
+            Function {
+                user_id: "user1".to_string(),
+                description: "A calculator function".to_string(),
+                name: "calculator".to_string(),
+                parameters: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("a"),
+                        Parameter {
+                            r#type: String::from("number"),
+                            properties: Some(HashMap::new()),
+                            required: vec![String::from("a")],
+                        },
+                    );
+                    map.insert(
+                        String::from("b"),
+                        Parameter {
+                            r#type: String::from("number"),
+                            properties: Some(HashMap::new()),
+                            required: vec![String::from("b")],
+                        },
+                    );
+                    map
+                },
+            },
+        );
+        let assistant = Assistant {
+            tools: vec![
+                Tool {
+                    r#type: "function".to_string(),
+                    function: Some(functions),
+                },
+                Tool {
+                    r#type: "retrieval".to_string(),
+                    function: None,
+                },
+            ],
+            model: "open-source/mistral-7b-instruct".to_string(), // TODO: not sure how good mistral is for this - seems to work yet
+            // model: "open-source/llama-2-70b-chat".to_string(),
+            ..Default::default() // Fill in other fields as needed
+        };
+
+        // Mock previous messages
+        let previous_messages = vec![Message {
+            id: 0,
+            object: "".to_string(),
+            created_at: 0,
+            thread_id: 0,
+            role: "user".to_string(),
+            content: vec![Content {
+                r#type: "text".to_string(),
+                text: Text {
+                    value: "I need to calculate something.".to_string(),
+                    annotations: vec![],
+                },
+            }],
+            assistant_id: None,
+            run_id: None,
+            file_ids: None,
+            metadata: None,
+            user_id: "".to_string(),
+        }];
+        // ! HACK
+        std::env::set_var("MODEL_URL", "https://api.perplexity.ai/chat/completions");
+
+        // Call the decide_tool_with_llm function using the open-source LLM
+        let result = decide_tool_with_llm(&assistant, &previous_messages).await;
+
+        let mut result = result.unwrap();
+        // Check if the result is one of the expected tools
+        let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
+        assert_eq!(result.sort(), expected_tools.sort());
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_function_calling_plus_retrieval() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let file_storage = FileStorage::new().await;
+
+        // 1. Create a temporary file.
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        writeln!(temp_file, "The purpose of life is 43.").unwrap();
+
+        // 2. Get the path of the temporary file.
+        let temp_file_path = temp_file.path();
+
+        // 3. Upload the temporary file
+        let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
+
+        // 4. Create an Assistant with function calling tool
+        let file_id_clone = file_id.clone();
+        let assistant = Assistant {
+            tools: vec![
+                Tool {
+                    r#type: "function".to_string(),
+                    function: Some({
+                        let mut functions = HashMap::new();
+                        functions.insert(
+                        "test_function".to_string(),
+                        Function {
+                            user_id: "user1".to_string(),
+                            description: "A function that compute the purpose of life according to the fundamental laws of the universe.".to_string(),
+                            name: "compute_purpose_of_life".to_string(),
+                            parameters: HashMap::new(),
+                        },
+                    );
+                        functions
+                    }),
+                },
+                Tool {
+                    r#type: "retrieval".to_string(),
+                    function: None,
+                },
+            ],
+            file_ids: Some(vec![file_id_clone]),
+            model: "claude-2.1".to_string(),
+            user_id: "user1".to_string(),
+            ..Default::default()
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        // 5. Create a Thread
+        let thread = create_thread(&pool, "user1").await.unwrap();
+
+        // 6. Add a Message to a Thread
+        let content = vec![Content {
+            r#type: "text".to_string(),
+            text: Text {
+                value: "I need to know the purpose of life, you can give me two answers."
+                    .to_string(),
+                annotations: vec![],
+            },
+        }];
+        let message = add_message_to_thread(&pool, thread.id, "user", content, "user1", None)
+            .await
+            .unwrap();
+
+        // 7. Run the Assistant
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let run = run_assistant(
+            &pool,
+            thread.id,
+            assistant.id,
+            "You help me.",
+            assistant.user_id.as_str(),
+            con,
+        )
+        .await
+        .unwrap();
+
+        // 8. Check the result
+        assert_eq!(run.status, "queued");
+
+        // 9. Run the queue consumer
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool, &mut con).await;
+
+        // 10. Check the result
+        assert!(result.is_ok(), "{:?}", result);
+
+        // 11. Fetch the run from the database and check its status
+        let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
+            .await
+            .unwrap();
+        assert_eq!(run.status, "requires_action");
+
+        // 12. Submit tool outputs
+        let tool_outputs = vec![SubmittedToolCall {
+            id: run
+                .required_action
+                .unwrap()
+                .submit_tool_outputs
+                .unwrap()
+                .tool_calls[0]
+                .id
+                .clone(),
+            output: "The purpose of life is 42.".to_string(),
+            run_id: run.id,
+            created_at: 0,
+            user_id: assistant.user_id.clone(),
+        }];
+        submit_tool_outputs(
+            &pool,
+            thread.id,
+            run.id,
+            assistant.user_id.clone().as_str(),
+            tool_outputs,
+            con,
+        )
+        .await
+        .unwrap();
+
+        // 13. Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = queue_consumer(&pool, &mut con).await;
+
+        // 14. Check the result
+        assert!(result.is_ok(), "{:?}", result);
+
+        // 15. Fetch the run from the database and check its status
+        let run = get_run(&pool, thread.id, result.unwrap().id, &assistant.user_id)
+            .await
+            .unwrap();
+        assert_eq!(run.status, "completed");
+
+        // 16. Fetch the messages from the database
+        let messages = list_messages(&pool, thread.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // 17. Check the messages
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(
+            messages[0].content[0].text.value,
+            "I need to call a function."
+        );
+        // 🙂 Rough prompt the llm got:
+        // "<instructions>
+        // You help me.
+        // </instructions>
+        // <tools>
+        // <input>ToolCallFunction { name: "compute_purpose_of_life", arguments: {} }</input>
+
+        // <output>"The purpose of life is 42."</output>
+        // </tools>
+        // <file>
+        // ["The purpose of life is 43.\n"]
+        // </file>
+        // <previous_messages>
+        // <message>
+        // {"id":1,"object":"","created_at":1701975688417,"thread_id":1,"role":"user","content":[{"type":"text","text":{"value":"I need to know the purpose of life, you can give me two answers.","annotations":[]}}],"assistant_id":null,"run_id":null,"file_ids":null,"metadata":null,"user_id":"user1"}
+        // </message>
+
+        // </previous_messages>"
+        assert_eq!(messages[1].role, "assistant");
+        // Ensure the answers contains both 42 and 43
+        assert!(
+            messages[1].content[0].text.value.contains("42"),
+            "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}",
+            messages[1].content[0].text.value
+        );
+        assert!(
+            messages[1].content[0].text.value.contains("43"),
+            "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}",
+            messages[1].content[0].text.value
+        );
+
+        // 18. Check that the function was indeed used
+        let function_used = messages[2].content[0]
+            .text
+            .value
+            .contains("Function output");
+        assert!(
+            function_used,
+            "The function output was not used in the final message."
+        );
     }
 }

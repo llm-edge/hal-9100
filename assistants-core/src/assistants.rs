@@ -9,6 +9,9 @@ use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
 use assistants_core::threads::get_thread;
 use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
+use futures::future::join_all;
+
+use assistants_core::function_calling::register_function;
 
 pub async fn get_assistant(
     pool: &PgPool,
@@ -57,11 +60,30 @@ pub async fn create_assistant(
     assistant: &Assistant,
 ) -> Result<Assistant, sqlx::Error> {
     info!("Creating assistant: {:?}", assistant);
+
+    let mut futures = Vec::new();
+
     let tools_json: Vec<Value> = assistant
         .tools
         .iter()
-        .map(|tool| serde_json::to_value(tool).unwrap())
+        .map(|tool| {
+            let tool_json = serde_json::to_value(tool).unwrap();
+            if let Some(functions) = &tool.function {
+                for function in functions.values() {
+                    let future = async move {
+                        match register_function(pool, function.clone()).await {
+                            Ok(_) => info!("Function registered successfully"),
+                            Err(e) => error!("Failed to register function: {:?}", e),
+                        }
+                    };
+                    futures.push(future);
+                }
+            }
+            tool_json
+        })
         .collect();
+
+    join_all(futures).await;
     let file_ids: Option<Vec<String>> = match &assistant.file_ids {
         Some(file_ids) => Some(file_ids.iter().map(|s| s.to_string()).collect()),
         None => None,

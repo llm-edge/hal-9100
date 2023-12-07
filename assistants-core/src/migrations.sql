@@ -76,16 +76,16 @@ CREATE TABLE functions (
     name TEXT UNIQUE, -- ! Is it correct? Meaning the user cannot register the same function name twice
     description TEXT,
     parameters JSONB, -- store as JSON object
-    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
-    updated_at BIGINT
+    created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)
 );
 
--- Create function_results table
-CREATE TABLE function_results (
-    id SERIAL PRIMARY KEY,
-    function_name TEXT REFERENCES functions(name),
-    parameters JSONB, -- store as JSON object
+-- Create tool_calls table
+CREATE TABLE tool_calls (
+    id TEXT PRIMARY KEY,
+    output TEXT DEFAULT NULL,
+    run_id INTEGER REFERENCES runs(id),
     created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
-    updated_at BIGINT
+    user_id TEXT
 );
+
 

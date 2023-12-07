@@ -11,7 +11,8 @@ use assistants_api_communication::models::{
     UpdateMessage, UpdateThread,
 };
 use assistants_api_communication::runs::{
-    create_run_handler, delete_run_handler, get_run_handler, list_runs_handler, update_run_handler,
+    create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
+    submit_tool_outputs_handler, update_run_handler,
 };
 use assistants_api_communication::threads::{
     create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
@@ -173,7 +174,10 @@ fn app(app_state: AppState) -> Router {
             delete(delete_run_handler),
         )
         .route("/threads/:thread_id/runs", get(list_runs_handler))
-        // .route("/threads/:thread_id/runs/:run_id/submit_tool_outputs", post(submit_tool_outputs_handler))
+        .route(
+            "/threads/:thread_id/runs/:run_id/submit_tool_outputs",
+            post(submit_tool_outputs_handler),
+        )
         // .route("/threads/:thread_id/runs/:run_id/cancel", post(cancel_run_handler))
         // .route("/threads/runs", post(create_thread_and_run_handler))
         // .route("/threads/:thread_id/runs/:run_id/steps/:step_id", get(get_run_step_handler))
@@ -259,7 +263,10 @@ async fn upload_file_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assistants_api_communication::models::ApiTool;
+    use assistants_api_communication::{
+        models::ApiTool,
+        runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest},
+    };
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
@@ -285,7 +292,7 @@ mod tests {
         app_state
     }
     async fn reset_db(pool: &PgPool) {
-        sqlx::query!("TRUNCATE assistants, threads, messages, runs RESTART IDENTITY")
+        sqlx::query!("TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY")
             .execute(pool)
             .await
             .unwrap();
@@ -301,7 +308,7 @@ mod tests {
             name: Some("test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "test".to_string(),
             file_ids: None,
@@ -344,7 +351,7 @@ mod tests {
             name: Some("test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "test".to_string(),
             file_ids: None,
@@ -407,7 +414,7 @@ mod tests {
             name: Some("test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "test".to_string(),
             file_ids: None,
@@ -439,7 +446,7 @@ mod tests {
             name: Some("updated test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "updated test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: Some("updated test".to_string()),
             file_ids: None,
@@ -483,7 +490,7 @@ mod tests {
             name: Some("test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "test".to_string(),
             file_ids: None,
@@ -537,7 +544,7 @@ mod tests {
             name: Some("test".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "test".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "test".to_string(),
             file_ids: None,
@@ -1157,7 +1164,7 @@ mod tests {
             name: Some("Math Tutor".to_string()),
             tools: Some(vec![ApiTool {
                 r#type: "retrieval".to_string(),
-                parameters: None,
+                function: None,
             }]),
             model: "claude-2.1".to_string(),
             file_ids: Some(vec![file_id]), // Associate the uploaded file with the assistant
@@ -1341,12 +1348,51 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
+        // create a thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: Thread = serde_json::from_slice(&body).unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": 1,
+                            "instructions": "Test instructions"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: Run = serde_json::from_slice(&body).unwrap();
+
         let response = app
             .clone()
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
-                    .uri("/threads/1/runs/1")
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::empty())
                     .unwrap(),
@@ -1362,6 +1408,45 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
+        // create a thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: Thread = serde_json::from_slice(&body).unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": 1,
+                            "instructions": "Test instructions"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: Run = serde_json::from_slice(&body).unwrap();
+
         let mut metadata = HashMap::new();
         metadata.insert("key".to_string(), "updated metadata".to_string());
 
@@ -1374,7 +1459,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method(http::Method::POST)
-                    .uri("/threads/1/runs/1")
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::from(run_input.to_string()))
                     .unwrap(),
@@ -1382,7 +1467,12 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "Response: {:?}",
+            response
+        );
     }
 
     #[tokio::test]
@@ -1390,12 +1480,50 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
+        // create thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: Thread = serde_json::from_slice(&body).unwrap();
+
+        let run_input = RunInput {
+            assistant_id: 1,
+            instructions: "Test instructions".to_string(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&run_input).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: Run = serde_json::from_slice(&body).unwrap();
+
         let response = app
             .clone()
             .oneshot(
                 Request::builder()
                     .method(http::Method::DELETE)
-                    .uri("/threads/1/runs/1")
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::empty())
                     .unwrap(),
@@ -1411,12 +1539,48 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
+        // create thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: Thread = serde_json::from_slice(&body).unwrap();
+
+        // create run
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": 1,
+                            "instructions": "Test instructions"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
         let response = app
             .clone()
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
-                    .uri("/threads/1/runs")
+                    .uri(format!("/threads/{}/runs", thread.id))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::empty())
                     .unwrap(),
@@ -1425,5 +1589,80 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let runs: Vec<Run> = serde_json::from_slice(&body).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].instructions, "Test instructions");
     }
+
+    // #[tokio::test] // TODO: gotta create tool_calls etc. annoying but got a test end to end covering this anyway
+    // async fn test_submit_tool_outputs_handler() {
+    //     let app_state = setup().await;
+    //     let app = app(app_state);
+
+    //     // create thread and run
+    //     let response = app
+    //         .clone()
+    //         .oneshot(
+    //             Request::builder()
+    //                 .method(http::Method::POST)
+    //                 .uri("/threads")
+    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+    //                 .body(Body::empty())
+    //                 .unwrap(),
+    //         )
+    //         .await
+    //         .unwrap();
+
+    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    //     let thread: Thread = serde_json::from_slice(&body).unwrap();
+
+    //     let run_input = RunInput {
+    //         assistant_id: 1,
+    //         instructions: "Test instructions".to_string(),
+    //     };
+    //     let response = app
+    //         .clone()
+    //         .oneshot(
+    //             Request::builder()
+    //                 .method(http::Method::POST)
+    //                 .uri(format!("/threads/{}/runs", thread.id))
+    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+    //                 .body(Body::from(serde_json::to_vec(&run_input).unwrap()))
+    //                 .unwrap(),
+    //         )
+    //         .await
+    //         .unwrap();
+
+    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    //     let run: Run = serde_json::from_slice(&body).unwrap();
+
+    //     let tool_outputs = vec![ApiSubmittedToolCall {
+    //         tool_call_id: "abcd".to_string(),
+    //         output: "42".to_string(),
+    //     }];
+
+    //     let request = SubmitToolOutputsRequest { tool_outputs };
+
+    //     let response = app
+    //         .oneshot(
+    //             Request::builder()
+    //                 .method(http::Method::POST)
+    //                 .uri(format!(
+    //                     "/threads/{}/runs/{}/submit_tool_outputs",
+    //                     thread.id, run.id
+    //                 ))
+    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+    //                 .body(Body::from(serde_json::to_vec(&request).unwrap()))
+    //                 .unwrap(),
+    //         )
+    //         .await
+    //         .unwrap();
+
+    //     assert_eq!(response.status(), StatusCode::OK);
+
+    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    //     let run: Run = serde_json::from_slice(&body).unwrap();
+    //     assert_eq!(run.instructions, "Test instructions");
+    // }
 }
