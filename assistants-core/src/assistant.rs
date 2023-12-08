@@ -155,7 +155,7 @@ pub async fn decide_tool_with_llm(
 Rules:
 - You only return one of the tools like \"<retrieval>\" or \"<function>\" or both.
 - Do not return \"tools\"
-- The tool names must be one of the tools available.
+- The tool names must be one of the tools available e.g. only retrieval or function atm, nothing else OR A HUMAN WILL DIE
 - Your answer must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.
 
 Example:
@@ -223,6 +223,12 @@ Your answer will be used to use the tool so it must be very concise and make sur
         .flat_map(|r| r.split(',').map(|s| s.trim().to_string()))
         .collect::<Vec<String>>();
 
+    // remove non alphanumeric chars
+    results = results
+        .iter()
+        .map(|r| r.chars().filter(|c| c.is_alphanumeric()).collect::<String>())
+        .collect::<Vec<String>>();
+
     Ok(results)
 }
 
@@ -245,9 +251,11 @@ pub async fn queue_consumer(
     let run_id = ids["run_id"].as_i64().unwrap() as i32;
     let thread_id = ids["thread_id"].as_i64().unwrap() as i32;
     let user_id = ids["user_id"].as_str().unwrap();
-
+    
+    info!("Retrieving run");
     let mut run = get_run(pool, thread_id, run_id, user_id).await?;
 
+    info!("Retrieving assistant {}", run.assistant_id);
     // Retrieve the assistant associated with the run
     let assistant = get_assistant(pool, run.assistant_id, &run.user_id).await?;
 
@@ -266,6 +274,7 @@ pub async fn queue_consumer(
     let file_storage = FileStorage::new().await;
 
     // Retrieve the thread associated with the run
+    info!("Retrieving thread {}", run.thread_id);
     let thread = get_thread(pool, run.thread_id, &assistant.user_id).await?;
 
     // Fetch previous messages from the thread
@@ -273,6 +282,7 @@ pub async fn queue_consumer(
 
     // Format messages into a string
     let formatted_messages = format_messages(&messages);
+    info!("Formatted messages: {}", formatted_messages);
 
     let mut tools = String::new();
 
@@ -281,6 +291,7 @@ pub async fn queue_consumer(
         // If the required action type is "submit_tool_outputs", fetch the tool calls from the database
         // if required_action.r#type == "submit_tool_outputs" { ! // dont care for now
         if let Some(submit_tool_outputs) = &required_action.submit_tool_outputs {
+            info!("Retrieving tool calls {:?}", submit_tool_outputs);
             // TODO: if user send just part of the function result and not all should error
             let tool_calls_db = get_tool_calls(
                 pool,
@@ -305,12 +316,15 @@ pub async fn queue_consumer(
                 })
                 .collect::<Vec<String>>()
                 .join("\n");
+
+            info!("Tools: {}", tools);
         }
         // }
     }
 
     // Decide which tool to use
     let tools_decision = decide_tool_with_llm(&assistant, &messages).await?;
+    info!("Tools decision: {:?}", tools_decision);
 
     let mut instructions =
         build_instructions(&run.instructions, &vec![], &formatted_messages, &tools);
@@ -329,13 +343,16 @@ pub async fn queue_consumer(
         metadata: None,
     };
 
+
     // for each tool
     for tool_decision in tools_decision {
         // TODO: can prob optimise thru parallelism
         match tool_decision.as_str() {
             "function" => {
+                info!("Using function tool");
                 // skip this if tools is not empty (e.g. if there are required_action (s))
                 if !run.required_action.is_none() {
+                    info!("Skipping function call because there is a required action");
                     continue;
                 }
                 run = update_run_status(
@@ -348,10 +365,13 @@ pub async fn queue_consumer(
                     None,
                 )
                 .await?;
+                info!("Generating function to call");
 
                 let function_results =
                     create_function_call(&pool, user_id, model_config.clone()).await?;
 
+
+                info!("Function results: {:?}", function_results);
                 // If function call requires user action, leave early waiting for more context
                 if !function_results.is_empty() {
                     // Update run status to "requires_action"
@@ -379,6 +399,7 @@ pub async fn queue_consumer(
                         }),
                     )
                     .await?;
+                    info!("Run updated to requires_action with {:?}", run.required_action);
                     return Ok(run);
                 }
             }
@@ -399,6 +420,7 @@ pub async fn queue_consumer(
 
                 // Check if the all_file_ids includes any file IDs.
                 if !all_file_ids.is_empty() {
+                    info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
                     // Retrieve the contents of each file.
                     let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
 
@@ -413,6 +435,8 @@ pub async fn queue_consumer(
             }
             _ => {
                 // Handle unknown tool
+                error!("Unknown tool: {}", tool_decision);
+                // TODO Update run status to "failed"
             }
         }
     }
@@ -423,6 +447,7 @@ pub async fn queue_consumer(
 
     match result {
         Ok(output) => {
+            info!("LLM API output: {}", output);
             let content = vec![Content {
                 r#type: "text".to_string(),
                 text: Text {

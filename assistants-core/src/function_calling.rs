@@ -31,7 +31,7 @@ pub struct Function {
     pub parameters: Parameter,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct FunctionResult {
     pub name: String,
     pub parameters: Option<HashMap<String, String>>,
