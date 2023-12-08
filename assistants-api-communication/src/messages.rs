@@ -21,7 +21,7 @@ pub async fn add_message_handler(
         thread_id,
         "user",
         vec![Content {
-            r#type: "user".to_string(),
+            r#type: "text".to_string(),
             text: Text {
                 value: message.content,
                 annotations: vec![],

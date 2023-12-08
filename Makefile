@@ -82,13 +82,14 @@ test: ## Run all tests
 # ! very experimental :D 
 
 
-VENV_PATH ?= $HOME/Documents/FastChat/env
-
-run: ## Start all services, stop them on SIGINT
+VENV_PATH ?= ${HOME}/Documents/FastChat/env
+# LLM_PATH ?= "open-orca/mistral-7b-openorca"
+LLM_PATH ?= "Intel/neural-chat-7b-v3-2"
+run_llm: ## Start all services, stop them on SIGINT
 	@echo "Starting services..."
 	@source $(VENV_PATH)/bin/activate && \
 	(python3 -m fastchat.serve.controller & echo $$! > controller.pid) && \
-	(python3 -m fastchat.serve.model_worker --model-path open-orca/mistral-7b-openorca --device mps --load-8bit & echo $$! > model_worker.pid) && \
+	(python3 -m fastchat.serve.model_worker --model-path ${LLM_PATH} --device mps --load-8bit & echo $$! > model_worker.pid) && \
 	(python3 -m fastchat.serve.openai_api_server --host localhost --port 8000 & echo $$! > openai_api_server.pid)
 	@echo "Services started. Press Ctrl+C to stop."
 	@trap 'echo "Stopping services..."; \
