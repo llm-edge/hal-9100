@@ -1,4 +1,4 @@
-use assistants_core::function_calling::{Parameter, Property, Function};
+use assistants_core::function_calling::{Function, Parameter, Property};
 use assistants_core::models::Message;
 use assistants_core::{file_storage::FileStorage, models::Tool};
 use axum::extract::FromRef;
@@ -46,7 +46,7 @@ impl From<ApiTool> for Tool {
     fn from(api_tool: ApiTool) -> Self {
         Tool {
             r#type: api_tool.r#type,
-            function: api_tool.function.map(|params| params.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            function: api_tool.function.map(|f| f.into()),
         }
     }
 }
@@ -76,48 +76,43 @@ impl From<ApiParameter> for Parameter {
 impl From<ApiFunction> for Function {
     fn from(api_function: ApiFunction) -> Self {
         Function {
-            user_id: api_function.user_id,
+            user_id: api_function.user_id.unwrap_or_default(),
             name: api_function.name,
             description: api_function.description,
-            parameters: api_function
-                .parameters
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
+            parameters: api_function.parameters.into(),
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiTool {
     pub r#type: String, // TODO validation retrieval or function
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub function: Option<HashMap<String, ApiFunction>>,
+    pub function: Option<ApiFunction>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ApiFunction {
-    pub user_id: String,
+    pub user_id: Option<String>,
     pub name: String,
     pub description: String,
-    pub parameters: HashMap<String, ApiParameter>,
+    pub parameters: ApiParameter,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiProperty {
     #[serde(rename = "type")]
     r#type: String,
-    description: String,
+    description: Option<String>,
     r#enum: Option<Vec<String>>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiParameter {
     #[serde(rename = "type")]
-    r#type: String,
+    pub r#type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    properties: Option<HashMap<String, ApiProperty>>,
-    required: Vec<String>,
+    pub properties: Option<HashMap<String, ApiProperty>>,
+    pub required: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize)]

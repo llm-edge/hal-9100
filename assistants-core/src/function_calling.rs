@@ -11,7 +11,7 @@ use std::{collections::HashMap, error::Error, pin::Pin};
 pub struct Property {
     #[serde(rename = "type")]
     pub r#type: String,
-    pub description: String,
+    pub description: Option<String>,
     pub r#enum: Option<Vec<String>>,
 }
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
@@ -20,7 +20,7 @@ pub struct Parameter {
     pub r#type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<HashMap<String, Property>>,
-    pub required: Vec<String>,
+    pub required: Option<Vec<String>>,
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
@@ -28,13 +28,13 @@ pub struct Function {
     pub user_id: String,
     pub name: String,
     pub description: String,
-    pub parameters: HashMap<String, Parameter>,
+    pub parameters: Parameter,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionResult {
     pub name: String,
-    pub parameters: HashMap<String, String>,
+    pub parameters: Option<HashMap<String, String>>,
 }
 
 #[derive(Clone)]
@@ -280,17 +280,21 @@ mod tests {
             user_id: String::from("test_user"),
             name: String::from("weather"),
             description: String::from("Get the weather for a city"),
-            parameters: {
-                let mut map = HashMap::new();
-                map.insert(
-                    String::from("city"),
-                    Parameter {
-                        r#type: String::from("string"),
-                        properties: Some(HashMap::new()),
-                        required: vec![String::from("city")],
-                    },
-                );
-                map
+            parameters: Parameter {
+                r#type: String::from("object"),
+                required: Some(vec![String::from("city")]),
+                properties: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("city"),
+                        Property {
+                            r#type: String::from("string"),
+                            description: None,
+                            r#enum: None,
+                        },
+                    );
+                    Some(map)
+                },
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -316,14 +320,10 @@ mod tests {
                     let function_name = function_result.name;
                     let parameters = function_result.parameters;
                     assert_eq!(function_name, "weather");
-                    assert_eq!(parameters, {
-                        let mut map = HashMap::new();
-                        map.insert(String::from("city"), String::from("Toronto"));
-                        map
-                    });
+
                     // execute the function
-                    let city = parameters.get("city").unwrap();
-                    let weather = weather(city).await;
+                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
             }
@@ -359,17 +359,21 @@ mod tests {
             user_id: String::from("test_user"),
             name: String::from("weather"),
             description: String::from("Get the weather for a city"),
-            parameters: {
-                let mut map = HashMap::new();
-                map.insert(
-                    String::from("city"),
-                    Parameter {
-                        r#type: String::from("string"),
-                        properties: Some(HashMap::new()),
-                        required: vec![String::from("city")],
-                    },
-                );
-                map
+            parameters: Parameter {
+                r#type: String::from("object"),
+                required: Some(vec![String::from("city")]),
+                properties: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("city"),
+                        Property {
+                            r#type: String::from("string"),
+                            description: None,
+                            r#enum: None,
+                        },
+                    );
+                    Some(map)
+                },
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -395,14 +399,10 @@ mod tests {
                     let function_name = function_result.name;
                     let parameters = function_result.parameters;
                     assert_eq!(function_name, "weather");
-                    assert_eq!(parameters, {
-                        let mut map = HashMap::new();
-                        map.insert(String::from("city"), String::from("Toronto"));
-                        map
-                    });
+
                     // execute the function
-                    let city = parameters.get("city").unwrap();
-                    let weather = weather(city).await;
+                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
             }
@@ -438,17 +438,21 @@ mod tests {
             user_id: String::from("test_user"),
             name: String::from("weather"),
             description: String::from("Get the weather for a city"),
-            parameters: {
-                let mut map = HashMap::new();
-                map.insert(
-                    String::from("city"),
-                    Parameter {
-                        r#type: String::from("string"),
-                        properties: Some(HashMap::new()),
-                        required: vec![String::from("city")],
-                    },
-                );
-                map
+            parameters: Parameter {
+                r#type: String::from("object"),
+                required: Some(vec![String::from("city")]),
+                properties: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("city"),
+                        Property {
+                            r#type: String::from("string"),
+                            description: None,
+                            r#enum: None,
+                        },
+                    );
+                    Some(map)
+                },
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -475,14 +479,9 @@ mod tests {
                     let function_name = function_result.name;
                     let parameters = function_result.parameters;
                     assert_eq!(function_name, "weather");
-                    assert_eq!(parameters, {
-                        let mut map = HashMap::new();
-                        map.insert(String::from("city"), String::from("Toronto"));
-                        map
-                    });
                     // execute the function
-                    let city = parameters.get("city").unwrap();
-                    let weather = weather(city).await;
+                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
             }

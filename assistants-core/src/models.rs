@@ -61,7 +61,7 @@ pub struct Tool {
     // #[serde(skip_serializing_if = "Option::is_none")]
     // pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub function: Option<HashMap<String, Function>>,
+    pub function: Option<Function>,
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
@@ -153,7 +153,7 @@ pub struct ToolCall {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ToolCallFunction {
     pub name: String,
-    pub arguments: HashMap<String, String>,
+    pub arguments: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

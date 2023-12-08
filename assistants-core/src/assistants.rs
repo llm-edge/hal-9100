@@ -68,16 +68,14 @@ pub async fn create_assistant(
         .iter()
         .map(|tool| {
             let tool_json = serde_json::to_value(tool).unwrap();
-            if let Some(functions) = &tool.function {
-                for function in functions.values() {
-                    let future = async move {
-                        match register_function(pool, function.clone()).await {
-                            Ok(_) => info!("Function registered successfully"),
-                            Err(e) => error!("Failed to register function: {:?}", e),
-                        }
-                    };
-                    futures.push(future);
-                }
+            if let Some(function) = &tool.function {
+                let future = async move {
+                    match register_function(pool, function.clone()).await {
+                        Ok(_) => info!("Function registered successfully"),
+                        Err(e) => error!("Failed to register function: {:?}", e),
+                    }
+                };
+                futures.push(future);
             }
             tool_json
         })

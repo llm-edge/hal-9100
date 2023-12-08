@@ -264,7 +264,7 @@ async fn upload_file_handler(
 mod tests {
     use super::*;
     use assistants_api_communication::{
-        models::{ApiFunction, ApiTool},
+        models::{ApiFunction, ApiParameter, ApiTool},
         runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest},
     };
     use axum::{
@@ -1725,18 +1725,15 @@ mod tests {
             tools: Some(vec![
                 ApiTool {
                     r#type: "function".to_string(),
-                    function: Some({
-                        let mut functions = HashMap::new();
-                        functions.insert(
-                    "test_function".to_string(),
-                    ApiFunction {
-                        user_id: "user1".to_string(),
+                    function: Some(ApiFunction {
+                        user_id: Some("user1".to_string()),
                         description: "A function that compute the purpose of life according to the fundamental laws of the universe.".to_string(),
                         name: "compute_purpose_of_life".to_string(),
-                        parameters: HashMap::new(),
-                    },
-                );
-                        functions
+                        parameters: ApiParameter {
+                            r#type: "object".to_string(),
+                            properties: None,
+                            required: None,
+                        },
                     }),
                 },
                 ApiTool {
@@ -1788,7 +1785,7 @@ mod tests {
         // 4. Add a Message to a Thread
         let message = CreateMessage {
             role: "user".to_string(),
-            content: "I need to know what is in <file> and <tools>. Human life at stake, urgent!".to_string(),
+            content: "I need to know the purpose of life. Human life at stake, urgent!".to_string(),
         };
 
         let response = app
@@ -1829,13 +1826,19 @@ mod tests {
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let run: Run = serde_json::from_slice(&body).unwrap();
 
-        // should be queued 
+        // should be queued
         assert_eq!(run.status, "queued");
 
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
         let result = queue_consumer(&pool_clone, &mut con).await;
+
+        assert!(
+            result.is_ok(),
+            "The queue consumer should have run successfully. Instead, it returned: {:?}",
+            result
+        );
 
         // check status
         let response = app

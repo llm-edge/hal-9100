@@ -641,7 +641,7 @@ mod tests {
                         arguments: {
                             let mut map = HashMap::new();
                             map.insert("key".to_string(), "value".to_string());
-                            map
+                            Some(map)
                         },
                     },
                 }],

@@ -70,7 +70,10 @@ fn format_messages(messages: &Vec<Message>) -> String {
     for message in messages {
         formatted_messages.push_str(&format!(
             "<message>\n{}\n</message>\n",
-            serde_json::to_string(&message).unwrap()
+            serde_json::json!({
+                "role": message.role,
+                "content": message.content
+            })
         ));
     }
     formatted_messages
@@ -83,10 +86,16 @@ fn build_instructions(
     previous_messages: &str,
     tools: &str,
 ) -> String {
-    let mut instructions = format!("<instructions>\n{}\n</instructions>\n<file>\n{:?}\n</file>\n<previous_messages>\n{}\n</previous_messages>", original_instructions, file_contents, previous_messages);
+    let mut instructions = format!("<instructions>\n{}\n</instructions>\n", original_instructions);
+
+    if !file_contents.is_empty() {
+        instructions += &format!("<file>\n{:?}\n</file>\n", file_contents);
+    }
+
+    instructions += &format!("<previous_messages>\n{}\n</previous_messages>", previous_messages);
 
     if !tools.is_empty() {
-        instructions = format!("{}\n<tools>\n{}\n</tools>", instructions, tools);
+        instructions += &format!("\n<tools>\n{}\n</tools>", tools);
     }
 
     instructions
@@ -152,8 +161,8 @@ Rules:
 Example:
 <tools>function</tools>
 
-<previous_messages>user: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to calculate something.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
-assistant: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
+<previous_messages> { role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to calculate something.\", annotations: [] } }] }
+{ role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that.\", annotations: [] } }] }
 </previous_messages>
 
 <instructions>You are a helpful assistant.</instructions>
@@ -162,8 +171,8 @@ In this example, the assistant should return \"<function>\".
 
 <tools>function, retrieval</tools>
 
-<previous_messages>user: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to send personalized sales emails to our customers. I have a file with customer information. Can you also search Twitter for recent tweets from these customers to personalize the emails further?\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: [\"customer_info.csv\"], metadata: None, user_id: \"\" }
-assistant: Message { id: 0, object: \"\", created_at: 0, thread_id: 0, role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that. Let's start by looking at the customer information file and then I'll search Twitter for recent tweets.\", annotations: [] } }], assistant_id: None, run_id: None, file_ids: None, metadata: None, user_id: \"\" }
+<previous_messages>{ role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to send personalized sales emails to our customers. I have a file with customer information. Can you also search Twitter for recent tweets from these customers to personalize the emails further?\", annotations: [] } }] }
+{ role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that. Let's start by looking at the customer information file and then I'll search Twitter for recent tweets.\", annotations: [] } }] }
 </previous_messages>
 
 <instructions>You are a helpful assistant.</instructions>
@@ -458,7 +467,7 @@ mod tests {
     use assistants_core::models::Tool;
     use assistants_core::runs::{get_run, run_assistant};
 
-    use crate::function_calling::Parameter;
+    use crate::function_calling::{Parameter, Property};
     use crate::runs::{create_run, submit_tool_outputs, SubmittedToolCall};
 
     use super::*;
@@ -883,36 +892,36 @@ mod tests {
     async fn test_decide_tool_with_llm_anthropic() {
         setup().await;
         // Create a mock assistant with two tools
-        let mut functions = std::collections::HashMap::new();
-
-        functions.insert(
-            "calculator".to_string(),
-            Function {
-                user_id: "user1".to_string(),
-                description: "A calculator function".to_string(),
-                name: "calculator".to_string(),
-                parameters: {
-                    let mut map = HashMap::new();
-                    map.insert(
+        let mut functions = Function {
+            user_id: "user1".to_string(),
+            description: "A calculator function".to_string(),
+            name: "calculator".to_string(),
+            parameters: Parameter {
+                r#type: String::from("object"),
+                properties: {
+                    let mut properties = HashMap::new();
+                    properties.insert(
                         String::from("a"),
-                        Parameter {
+                        Property {
                             r#type: String::from("number"),
-                            properties: Some(HashMap::new()),
-                            required: vec![String::from("a")],
+                            description: Some(String::from("The first number.")),
+                            r#enum: None,
                         },
                     );
-                    map.insert(
+                    properties.insert(
                         String::from("b"),
-                        Parameter {
+                        Property {
                             r#type: String::from("number"),
-                            properties: Some(HashMap::new()),
-                            required: vec![String::from("b")],
+                            description: Some(String::from("The second number.")),
+                            r#enum: None,
                         },
                     );
-                    map
+                    Some(properties)
                 },
+                required: None,
             },
-        );
+        };
+
         let assistant = Assistant {
             tools: vec![Tool {
                 r#type: "function".to_string(),
@@ -947,36 +956,35 @@ mod tests {
     async fn test_decide_tool_with_llm_open_source() {
         setup().await;
         // Create a mock assistant with two tools
-        let mut functions = std::collections::HashMap::new();
-
-        functions.insert(
-            "calculator".to_string(),
-            Function {
-                user_id: "user1".to_string(),
-                description: "A calculator function".to_string(),
-                name: "calculator".to_string(),
-                parameters: {
-                    let mut map = HashMap::new();
-                    map.insert(
+        let mut functions = Function {
+            user_id: "user1".to_string(),
+            description: "A calculator function".to_string(),
+            name: "calculator".to_string(),
+            parameters: Parameter {
+                r#type: String::from("object"),
+                properties: {
+                    let mut properties = HashMap::new();
+                    properties.insert(
                         String::from("a"),
-                        Parameter {
+                        Property {
                             r#type: String::from("number"),
-                            properties: Some(HashMap::new()),
-                            required: vec![String::from("a")],
+                            description: Some(String::from("The first number.")),
+                            r#enum: None,
                         },
                     );
-                    map.insert(
+                    properties.insert(
                         String::from("b"),
-                        Parameter {
+                        Property {
                             r#type: String::from("number"),
-                            properties: Some(HashMap::new()),
-                            required: vec![String::from("b")],
+                            description: Some(String::from("The second number.")),
+                            r#enum: None,
                         },
                     );
-                    map
+                    Some(properties)
                 },
+                required: None,
             },
-        );
+        };
         let assistant = Assistant {
             tools: vec![
                 Tool {
@@ -1048,19 +1056,16 @@ mod tests {
             tools: vec![
                 Tool {
                     r#type: "function".to_string(),
-                    function: Some({
-                        let mut functions = HashMap::new();
-                        functions.insert(
-                        "test_function".to_string(),
-                        Function {
+                    function: Some(Function {
                             user_id: "user1".to_string(),
                             description: "A function that compute the purpose of life according to the fundamental laws of the universe.".to_string(),
                             name: "compute_purpose_of_life".to_string(),
-                            parameters: HashMap::new(),
-                        },
-                    );
-                        functions
-                    }),
+                            parameters: Parameter { 
+                                r#type: String::from("object"),
+                                properties: None,
+                                required: None,
+                            },
+                        }),
                 },
                 Tool {
                     r#type: "retrieval".to_string(),
