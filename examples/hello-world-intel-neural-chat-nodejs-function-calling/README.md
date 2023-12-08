@@ -52,7 +52,7 @@ node
 ```
 
 ```ts
-# Run the following code
+// Paste the following code in your node repl and press enter:
 const OpenAI = require('openai');
 
 const openai = new OpenAI({
