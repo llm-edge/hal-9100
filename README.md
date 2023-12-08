@@ -35,6 +35,7 @@ Need special [support](https://cal.com/louis030195/assistants)?
 
 ## News
 
+- [2023/08/12] 🔥 We released an example of an **open source LLM with function calling**. Read the [example](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
 - [2023/29/11] 🔥 We released an example of using **mistral-7b**, an open source LLM. Read the [example](./examples/hello-world-mistral-curl/README.md).
 
 ## Overview
