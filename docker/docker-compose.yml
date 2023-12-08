@@ -29,3 +29,14 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+
+  assistants:
+    image: ghcr.io/stellar-amenities/assistants/assistants:latest
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  

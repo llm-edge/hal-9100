@@ -44,7 +44,7 @@ server: ## Run the server
 
 ## Run consumer, server, and dockers
 all: reboot
-	@$(MAKE) -j2 consumer server
+	@docker-compose up
 
 display: ## Display the ascii art
 	@echo "$$ASCII_ART"
@@ -133,3 +133,8 @@ docker-build-amd64: ## Build the Docker image locally for Linux amd64
 # Run the Docker image
 docker-run: ## Run the Docker image
 	docker run -p 8080:8080 assistants
+
+# Run everything for development (need rust and docker)
+dev-all: reboot
+	@docker-compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
+	@$(MAKE) -j2 consumer server

@@ -1,0 +1,4 @@
+version: '3.8'
+services:
+  assistants:
+    command: echo "Assistants service disabled in development mode"
