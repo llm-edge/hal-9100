@@ -49,7 +49,9 @@ npm i openai
 
 # Start a node repl
 node
+```
 
+```ts
 # Run the following code
 const OpenAI = require('openai');
 
