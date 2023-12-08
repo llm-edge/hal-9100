@@ -75,6 +75,7 @@ You should see something like this:
   [Symbol(async_id_symbol)]: 270,
   [Symbol(trigger_async_id_symbol)]: 5
 }
+>
 > My name is Pepper, a helpful artificial intelligence assistant.
 
 ## Function calling with Intel's LLM in JS
@@ -404,7 +405,6 @@ getMessages();
 ```
 ```json
 {
-  ...,
   "body": [
     {
       "id": 1,
