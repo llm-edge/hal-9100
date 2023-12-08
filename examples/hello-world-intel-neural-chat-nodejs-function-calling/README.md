@@ -11,6 +11,7 @@ S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=minioadmin
 S3_SECRET_KEY=minioadmin
 S3_BUCKET_NAME=mybucket
+MODEL_URL="http://localhost:8000/v1/chat/completions"
 ```
 
 # Function calling
