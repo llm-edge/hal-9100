@@ -1,10 +1,3 @@
-<p align="center">
-  <a href="https://cal.com/louis030195/assistants">
-    <button style="font-size:20px; color:white; background-color:#007BFF; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
-      🚀 Interested in this API in your infra? 🚀
-    </button>
-  </a>
-</p>
 
 <p align="center">
 <img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/08d69b68-10a3-4ef5-9f99-bd3bc9bbb568">
@@ -28,8 +21,6 @@
 
 
 # Open Source Assistants API
-
-Need special [support](https://cal.com/louis030195/assistants)?
 
 [👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md).
 
