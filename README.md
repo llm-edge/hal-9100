@@ -24,6 +24,28 @@
 
 # Open Source Assistants API
 
+```ts
+const assistant = await openai.beta.assistants.create({
+  instructions: "You are a weather bot. Use the provided functions to answer questions.",
+  model: "Intel/neural-chat-7b-v3-2",
+  tools: [{
+    "type": "function",
+    "function": {
+      "name": "getCurrentWeather",
+      "description": "Get the weather in location",
+      "parameters": {
+          "type": "object",
+          "properties": {
+          "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+          "unit": {"type": "string"}
+          },
+          "required": ["location"]
+      }
+    }
+  }]
+});
+```
+
 [👉 Try it now on your computer](./examples/hello-world-anthropic-curl/README.md).
 
 ## News
