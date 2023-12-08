@@ -70,7 +70,10 @@ pub async fn create_assistant(
             let tool_json = serde_json::to_value(tool).unwrap();
             if let Some(function) = &tool.function {
                 let future = async move {
-                    match register_function(pool, function.clone()).await {
+                    let mut f = function.clone();
+                    // otherwise used id is never set i think
+                    f.user_id = assistant.user_id.clone();
+                    match register_function(pool, f).await {
                         Ok(_) => info!("Function registered successfully"),
                         Err(e) => error!("Failed to register function: {:?}", e),
                     }

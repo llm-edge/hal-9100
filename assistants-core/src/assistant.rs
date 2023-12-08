@@ -12,7 +12,7 @@ use assistants_core::threads::{create_thread, get_thread};
 use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::llm::llm;
 use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 
 use assistants_core::runs::{get_run, update_run, update_run_status};
@@ -229,7 +229,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
         .map(|r| r.chars().filter(|c| c.is_alphanumeric()).collect::<String>())
         .collect::<Vec<String>>();
 
-    Ok(results)
+    Ok(results.into_iter().collect::<HashSet<_>>().into_iter().collect::<Vec<_>>())
 }
 
 // The function that consume the runs queue and do all the LLM software 3.0 logic

@@ -1,12 +1,12 @@
 use assistants_extra::llm::llm;
 use core::future::Future;
 use log::error;
+use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 use serde_json::Value as JsonValue;
 use sqlx::PgPool;
 use std::{collections::HashMap, error::Error, pin::Pin};
-
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Property {
     #[serde(rename = "type")]
@@ -189,6 +189,7 @@ pub async fn create_function_call(
                 return Err(e.into());
             }
         };
+        info!("Generating function call with prompt: {}", prompt);
         let result = match llm(
             &model_config.model_name,
             model_config.model_url.clone(),
@@ -220,6 +221,8 @@ pub async fn create_function_call(
         // };
 
         // parse the result
+        info!("Parsing result: {}", result);
+        // TODO: use case when there are functions but nothing useful to call
         let result: Result<FunctionResult, serde_json::Error> = serde_json::from_str(&result);
         let result = match result {
             Ok(result) => result,
@@ -228,6 +231,7 @@ pub async fn create_function_call(
                 return Err(e.into());
             }
         };
+        info!("Function call generated: {:?}", result);
 
         results.push(result);
     }
