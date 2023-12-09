@@ -3,7 +3,7 @@
 
 https://github.com/stellar-amenities/assistants/assets/25003283/191f1f3d-3a06-4f93-9107-5d89ea9b289e
 
-At the moment, you need both **Rust** and **Docker** installed to run the API.
+At the moment, you need both **Docker** installed to run the API.
 
 Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need an API key that you can put in a `.env` file in the root of the project:
 

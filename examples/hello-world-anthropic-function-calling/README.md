@@ -1,6 +1,6 @@
 
 
-At the moment, you need both **Rust** and **Docker** installed to run the API.
+At the moment, you need both **Docker** installed to run the API.
 
 Additionally, we'll use Anthropic LLM here for simplicity, you need an API key that you can put in a `.env` file in the root of the project:
 
