@@ -138,3 +138,7 @@ docker-run: ## Run the Docker image
 dev-all: reboot
 	@docker-compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up -d
 	@$(MAKE) -j2 consumer server
+
+## Build the Docker image for the code interpreter
+docker-build-code-interpreter: ## Build the Docker image for the code interpreter
+	docker build -f docker/Dockerfile.code-interpreter -t code-interpreter .
