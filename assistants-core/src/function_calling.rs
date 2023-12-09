@@ -37,7 +37,7 @@ pub struct FunctionResult {
     pub parameters: Option<HashMap<String, String>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ModelConfig {
     pub model_name: String,
     pub model_url: Option<String>,
@@ -153,6 +153,76 @@ fn extract_first_json(string: &str) -> Option<&str> {
     re.find(string).map(|m| m.as_str())
 }
 
+// Define a struct for the input
+#[derive(Debug)]
+pub struct FunctionCallInput {
+    pub function: Function,
+    pub user_context: String,
+    pub model_config: ModelConfig,
+}
+
+// Pure function to generate a function call
+pub async fn generate_function_call(
+    input: FunctionCallInput,
+) -> Result<FunctionResult, Box<dyn Error>> {
+    let prompt_data = serde_json::json!({
+        "function": {
+            "name": input.function.name,
+            "description": input.function.description,
+            "parameters": input.function.parameters
+        },
+        "user_context": input.user_context,
+    });
+
+    let prompt = match serde_json::to_string_pretty(&prompt_data) {
+        Ok(json_string) => json_string,
+        Err(e) => {
+            error!("Failed to convert to JSON: {}", e);
+            return Err(e.into());
+        }
+    };
+    info!("Generating function call with prompt: {}", prompt);
+    let result = match llm(
+        &input.model_config.model_name,
+        input.model_config.model_url.clone(),
+        CREATE_FUNCTION_CALL_SYSTEM,
+        &prompt,
+        input.model_config.temperature,
+        input.model_config.max_tokens_to_sample,
+        input
+            .model_config
+            .stop_sequences
+            .as_ref()
+            .map(|v| v.clone()),
+        input.model_config.top_p,
+        input.model_config.top_k,
+        None,
+    )
+    .await
+    {
+        Ok(res) => res,
+        Err(err) => {
+            error!("Failed to call llm: {}", err);
+            return Err(err.into());
+        }
+    };
+
+    // parse the result
+    info!("Parsing result: {}", result);
+    let result: Result<FunctionResult, serde_json::Error> = serde_json::from_str(&result);
+    let result = match result {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Failed to parse result: {}", e);
+            return Err(e.into());
+        }
+    };
+    info!("Function call generated: {:?}", result);
+
+    Ok(result)
+}
+
+// Function to handle database operations
 pub async fn create_function_call(
     pool: &PgPool,
     user_id: &str,
@@ -172,73 +242,23 @@ pub async fn create_function_call(
     let mut results = Vec::new();
 
     for row in rows {
-        // ! TODO parallel and/or eventually should it be a single prompt/llm call? kind of balance between performance/speed and cost
-        let prompt_data = serde_json::json!({
-            "function": {
-                "name": row.name,
-                "description": row.description,
-                "parameters": row.parameters
+        let input = FunctionCallInput {
+            function: Function {
+                user_id: user_id.to_string(),
+                name: row.name.unwrap_or_default(),
+                description: row.description.unwrap_or_default(),
+                parameters: serde_json::from_value(row.parameters.unwrap_or_default())?,
             },
-            "user_context": model_config.user_prompt,
-        });
-
-        let prompt = match serde_json::to_string_pretty(&prompt_data) {
-            Ok(json_string) => json_string,
-            Err(e) => {
-                error!("Failed to convert to JSON: {}", e);
-                return Err(e.into());
-            }
-        };
-        info!("Generating function call with prompt: {}", prompt);
-        let result = match llm(
-            &model_config.model_name,
-            model_config.model_url.clone(),
-            CREATE_FUNCTION_CALL_SYSTEM,
-            &prompt,
-            model_config.temperature,
-            model_config.max_tokens_to_sample,
-            model_config.stop_sequences.as_ref().map(|v| v.clone()),
-            model_config.top_p,
-            model_config.top_k,
-            None,
-        )
-        .await
-        {
-            Ok(res) => res,
-            Err(err) => {
-                error!("Failed to call llm: {}", err);
-                return Err(err.into());
-            }
+            user_context: model_config.user_prompt.clone(),
+            model_config: model_config.clone(),
         };
 
-        // just an additional hack to extract the first JSON from the result
-        // let result = match extract_first_json(&result) {
-        //     Some(result) => result,
-        //     None => {
-        //         error!("Failed to extract JSON from result: {}", result);
-        //         return Err("Failed to extract JSON from result".into());
-        //     }
-        // };
-
-        // parse the result
-        info!("Parsing result: {}", result);
-        // TODO: use case when there are functions but nothing useful to call
-        let result: Result<FunctionResult, serde_json::Error> = serde_json::from_str(&result);
-        let result = match result {
-            Ok(result) => result,
-            Err(e) => {
-                error!("Failed to parse result: {}", e);
-                return Err(e.into());
-            }
-        };
-        info!("Function call generated: {:?}", result);
-
+        let result = generate_function_call(input).await?;
         results.push(result);
     }
 
     Ok(results)
 }
-
 // ! TODO next: fix mistral 7b (prompt is not good enough, stupid LLM returns exactly the prompt he was given), then create list of tests to run for all cases (multiple functions, multiple parameters, different topics, etc.)
 
 #[cfg(test)]
@@ -488,6 +508,64 @@ mod tests {
                     let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
+            }
+            Err(e) => panic!("Function call failed: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_generate_function_call_with_llama_2_70b() {
+        dotenv::dotenv().ok();
+        // Mock function
+        let function = Function {
+            user_id: String::from("test_user"),
+            name: String::from("weather"),
+            description: String::from("Get the weather for a city"),
+            parameters: Parameter {
+                r#type: String::from("object"),
+                required: Some(vec![String::from("city")]),
+                properties: {
+                    let mut map = HashMap::new();
+                    map.insert(
+                        String::from("city"),
+                        Property {
+                            r#type: String::from("string"),
+                            description: None,
+                            r#enum: None,
+                        },
+                    );
+                    Some(map)
+                },
+            },
+        };
+
+        let user_context = String::from("Give me a weather report for Toronto, Canada.");
+
+        let model_config = ModelConfig {
+            model_name: String::from("open-source/llama-2-70b-chat"),
+            model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
+            user_prompt: user_context.clone(),
+            temperature: Some(0.0),
+            max_tokens_to_sample: 200,
+            stop_sequences: None,
+            top_p: Some(1.0),
+            top_k: None,
+            metadata: None,
+        };
+
+        let input = FunctionCallInput {
+            function,
+            user_context,
+            model_config,
+        };
+
+        let result = generate_function_call(input).await;
+
+        match result {
+            Ok(function_result) => {
+                assert_eq!(function_result.name, "weather");
+                let parameters = function_result.parameters.unwrap();
+                assert_eq!(parameters.get("city").unwrap(), "Toronto");
             }
             Err(e) => panic!("Function call failed: {:?}", e),
         }

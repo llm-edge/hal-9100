@@ -10,3 +10,4 @@ bollard = "0.10.1"
 assistants-extra = { path = "../assistants-extra" }
 tokio = { version = "1.0", features = ["full"] }
 futures = "0.3"
+assistants-core = { path = "../assistants-core" }
