@@ -1,3 +1,9 @@
+RUSTC := $(shell command -v rustc 2> /dev/null)
+
+ifndef RUSTC
+  $(error "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+endif
+
 .PHONY: help docker clean
 
 include .env
@@ -43,8 +49,8 @@ server: ## Run the server
 	cargo run --package assistants-api-communication
 
 ## Run consumer, server, and dockers
-all: reboot
-	@docker-compose up
+all:
+	@$(MAKE) -j2 consumer server
 
 display: ## Display the ascii art
 	@echo "$$ASCII_ART"
