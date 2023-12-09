@@ -14,6 +14,8 @@ S3_BUCKET_NAME=mybucket
 MODEL_URL="http://localhost:8000/v1/chat/completions"
 ```
 
+We will use [OpenAI's JS SDK](https://github.com/openai/openai-node), but feel free to use the [python one](https://github.com/openai/openai-python), you can copy paste this doc in chatgpt to translate to python!
+
 # Function calling
 
 Function calling allows you to describe functions to the Assistants and have it intelligently return the functions that need to be called along with their arguments. The Assistants API will pause execution during a Run when it invokes functions, and you can supply the results of the function call back to continue the Run execution.
