@@ -91,19 +91,7 @@ pub struct Message {
     pub user_id: String,
 }
 
-impl Message {
-    pub fn get_all_text_content(&self) -> Vec<&String> {
-        self.content.iter()
-            .filter_map(|content| {
-                if let Content::Text(text_object) = content {
-                    Some(&text_object.text.value)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-}
+
 
 impl Default for Message {
     fn default() -> Self {
