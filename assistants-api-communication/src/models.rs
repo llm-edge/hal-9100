@@ -222,3 +222,125 @@ pub struct UpdateRun {
     #[serde(rename = "metadata", skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListMessagesResponse {
+    pub object: String,
+    pub data: Vec<MessageObject>,
+    pub first_id: String,
+    pub last_id: String,
+    pub has_more: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageObject {
+    pub id: i32,
+    pub object: String,
+    pub created_at: i64,
+    pub thread_id: i32,
+    pub role: String,
+    pub content: Vec<Content>,
+    pub file_ids: Vec<String>,
+    pub assistant_id: Option<i32>,
+    pub run_id: Option<String>,
+    pub metadata: std::collections::HashMap<String, String>,
+}
+impl MessageObject {
+    pub fn get_all_text_content(&self) -> Vec<&String> {
+        self.content
+            .iter()
+            .filter_map(|content| {
+                if let Content::Text(text_object) = content {
+                    Some(&text_object.text.value)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageContentTextObject {
+    #[serde(rename = "type")]
+    pub r#type: String, // Always "text"
+    pub text: TextObject,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TextObject {
+    pub value: String,
+    pub annotations: Vec<Annotation>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Annotation {
+    FileCitation(MessageContentTextAnnotationsFileCitationObject),
+    FilePath(MessageContentTextAnnotationsFilePathObject),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageContentTextAnnotationsFileCitationObject {
+    // Define the fields based on the OpenAPI schema
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageContentTextAnnotationsFilePathObject {
+    // Define the fields based on the OpenAPI schema
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageContentImageFileObject {
+    #[serde(rename = "type")]
+    pub r#type: String, // Always "image_file"
+    pub image_file: ImageFileObject,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImageFileObject {
+    pub file_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Content {
+    Text(MessageContentTextObject),
+    Image(MessageContentImageFileObject),
+}
+
+impl From<Message> for MessageObject {
+    fn from(message: Message) -> Self {
+        MessageObject {
+            id: message.id,
+            object: message.object,
+            created_at: message.created_at,
+            thread_id: message.thread_id,
+            role: message.role,
+            content: message // TODO: image and annotations
+                .content
+                .iter()
+                .map(|content| MessageContentTextObject {
+                    r#type: "text".to_string(),
+                    text: TextObject {
+                        value: content.text.value.clone(),
+                        annotations: vec![], // TODO
+                    },
+                })
+                .map(Content::Text) // Convert each MessageContentTextObject to models::Content::Text
+                .collect(),
+            file_ids: message.file_ids.unwrap_or_default(),
+            assistant_id: message.assistant_id,
+            run_id: message.run_id,
+            metadata: message.metadata.unwrap_or_default(),
+            // Add other fields here...
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListMessagePaginationParams {
+    limit: Option<i32>,
+    order: Option<String>,
+    after: Option<String>,
+    before: Option<String>,
+}
