@@ -64,19 +64,19 @@ pub struct Tool {
     pub function: Option<Function>,
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Content {
     pub r#type: String,
     pub text: Text,
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Text {
     pub value: String,
     pub annotations: Vec<String>,
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub id: i32,        // Changed from i32 to String
     pub object: String, // New field

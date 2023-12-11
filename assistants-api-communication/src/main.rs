@@ -264,7 +264,9 @@ async fn upload_file_handler(
 mod tests {
     use super::*;
     use assistants_api_communication::{
-        models::{ApiFunction, ApiParameter, ApiTool},
+        models::{
+            ApiFunction, ApiParameter, ApiTool, ListMessagesResponse, MessageContentTextObject,
+        },
         runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest},
     };
     use axum::{
@@ -883,7 +885,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_messages_handler() {
         let app_state = setup().await;
-        let app = app(app_state);
+        let app = app(app_state.clone());
+        reset_db(&app_state.pool.clone()).await;
 
         // Create a thread first
         let response = app
@@ -944,8 +947,8 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let body: Vec<Message> = serde_json::from_slice(&body).unwrap();
-        assert_eq!(body.len(), 2); // We added 2 messages
+        let body: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(body.data.len(), 2);
     }
 
     #[tokio::test]
@@ -1320,15 +1323,15 @@ mod tests {
 
         // 8. Check the messages
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
+        let messages: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
 
-        assert_eq!(messages.len(), 2);
-        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages.data.len(), 2);
+        assert_eq!(messages.data[0].role, "user");
         assert_eq!(
-            messages[0].content[0].text.value,
+            messages.data[0].get_all_text_content()[0],
             "I need to solve the equation `3x + 11 = 14`. Can you help me?"
         );
-        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages.data[1].role, "assistant");
         // anthropic is too disobedient :D
         // assert!(messages[1].content[0].text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
     }
@@ -1424,7 +1427,7 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state);
 
-        // create a thread and run
+        // create a thread and run and assistant
         let response = app
             .clone()
             .oneshot(
@@ -1441,6 +1444,35 @@ mod tests {
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let thread: Thread = serde_json::from_slice(&body).unwrap();
 
+        // assistant
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "instructions": "Test instructions",
+                            "name": "Test assistant",
+                            "tools": [
+                                {
+                                    "type": "test"
+                                }
+                            ],
+                            "model": "test"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
+
         let response = app
             .clone()
             .oneshot(
@@ -1450,7 +1482,7 @@ mod tests {
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::from(
                         json!({
-                            "assistant_id": 1,
+                            "assistant_id": assistant.id,
                             "instructions": "Test instructions"
                         })
                         .to_string(),
@@ -1571,6 +1603,34 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let thread: Thread = serde_json::from_slice(&body).unwrap();
+        // assistant
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "instructions": "Test instructions",
+                            "name": "Test assistant",
+                            "tools": [
+                                {
+                                    "type": "test"
+                                }
+                            ],
+                            "model": "test"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: Assistant = serde_json::from_slice(&body).unwrap();
 
         // create run
         app.clone()
@@ -1581,7 +1641,7 @@ mod tests {
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::from(
                         json!({
-                            "assistant_id": 1,
+                            "assistant_id": assistant.id,
                             "instructions": "Test instructions"
                         })
                         .to_string(),
@@ -1930,11 +1990,11 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
+        let messages: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
 
         // 8. Check the assistant's response
-        assert_eq!(messages.len(), 2);
-        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages.data.len(), 2);
+        assert_eq!(messages.data[1].role, "assistant");
         // TODO: it works but claude is just bad
         // assert_eq!(messages[1].content[0].text.value.contains("43"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
         // assert_eq!(messages[1].content[0].text.value.contains("42"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
