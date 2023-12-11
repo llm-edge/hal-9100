@@ -9534,7 +9534,7 @@ x-oaiMeta:
       title: Fine-tunes
       deprecated: true
       description: |
-        Manage fine-tuning jobs to tailor a model to your specific training data. The [updated Fine-tuning endpoint](/docs/guides/fine-tuning) offers more capabilites and newer models.
+        Manage fine-tuning jobs to tailor a model to your specific training data. The [updated Fine-tuning endpoint](/docs/guides/fine-tuning) offers more capabilities and newer models.
 
         The Fine-tunes endpoint will be [shut off on January 4th, 2024](/docs/deprecations/2023-08-22-fine-tunes-endpoint).
       sections:
