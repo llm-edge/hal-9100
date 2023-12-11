@@ -18,7 +18,7 @@ gha_enabled: True
 # Example:
 #
 # description: sweepai/sweep is a python project. The main api endpoints are in sweepai/api.py. Write code that adheres to PEP8.
-description: ''
+description: 'The ⭐️ Open Source ⭐️ (OpenAI) Assistants API allows you to build AI assistants within your own applications with your own models. The API enables building AI assistants within applications using Open Source models or other AI providers than OpenAI, tools, and knowledge to respond to user queries. This API is in beta, with continuous enhancements and support for various tools. Key features include Code Interpreter, Knowledge Retrieval, Function Calling, and File Handling. The API is designed to be highly reliable, edge compatible, compatible with OpenAI Assistants API, and free.'
 
 # This sets whether to create pull requests as drafts. If this is set to True, then all pull requests will be created as drafts and GitHub Actions will not be triggered.
 draft: False
