@@ -1,20 +1,55 @@
-use async_openai::types::{AssistantObject, AssistantTools, ChatCompletionFunctions};
+use async_openai::types::AssistantToolsFunction;
+use async_openai::types::{AssistantObject, AssistantTools};
 use log::{error, info};
 use redis::AsyncCommands;
-use serde_json::{self, json, Value};
+use serde_json::{self, Value};
 use sqlx::PgPool;
 
-use assistants_core::file_storage::FileStorage;
 use assistants_core::function_calling::register_function;
 use assistants_core::models::Assistant;
-use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
-use assistants_core::threads::get_thread;
-use assistants_extra::anthropic::call_anthropic_api;
-use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
+use assistants_core::models::Function;
 use futures::future::join_all;
 use sqlx::types::Uuid;
 
-use crate::models::Function;
+use serde::de::Error;
+use serde_json::Error as SerdeError;
+
+pub struct Tools(Option<Vec<Value>>);
+
+impl Tools {
+    pub fn new(tools: Option<Vec<Value>>) -> Self {
+        Tools(tools)
+    }
+    pub fn to_tools(&self) -> Result<Vec<AssistantTools>, Box<serde_json::Error>> {
+        match &self.0 {
+            Some(tools) => tools
+                .iter()
+                .map(|tool| {
+                    let type_field = tool.get("type").and_then(Value::as_str);
+                    match type_field {
+                        Some("function") => {
+                            let function_tool = serde_json::from_value(tool.clone())?;
+                            Ok(AssistantTools::Function(function_tool))
+                        }
+                        Some("retrieval") => {
+                            let retrieval_tool = serde_json::from_value(tool.clone())?;
+                            Ok(AssistantTools::Retrieval(retrieval_tool))
+                        }
+                        Some("code_interpreter") => {
+                            let code_tool = serde_json::from_value(tool.clone())?;
+                            Ok(AssistantTools::Code(code_tool))
+                        }
+                        _ => Err(Box::new(SerdeError::custom(format!(
+                            "Unknown tool type: {:?}",
+                            tool
+                        )))),
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>(),
+            None => Ok(vec![]),
+        }
+    }
+}
 
 pub async fn get_assistant(
     pool: &PgPool,
@@ -36,12 +71,7 @@ pub async fn get_assistant(
             id: row.id.to_string(),
             instructions: row.instructions,
             name: row.name,
-            tools: row.tools.map_or(vec![], |tools| {
-                tools
-                    .into_iter()
-                    .map(|tool| serde_json::from_value(tool).unwrap())
-                    .collect()
-            }),
+            tools: Tools(row.tools).to_tools().unwrap(),
             model: row.model.unwrap_or_default(),
             file_ids: row.file_ids.unwrap_or_default(),
             object: row.object.unwrap_or_default(),
@@ -67,9 +97,12 @@ pub async fn create_assistant(
         .iter()
         .map(|tool| {
             let tool_json = serde_json::to_value(tool).unwrap();
+            println!("tool: {:?}", tool);
+            // tool_json: Object {"type": String("function")}
             if let AssistantTools::Function(function_tool) = tool {
                 let future = async move {
-                    let mut f = function_tool.function.clone();
+                    let f = function_tool.function.clone();
+                    println!("f: {:?}", f);
                     match register_function(
                         pool,
                         Function {
@@ -106,18 +139,12 @@ pub async fn create_assistant(
     )
     .fetch_one(pool)
     .await?;
-    let empty_tools: Vec<AssistantTools> = vec![];
     Ok(Assistant {
         inner: AssistantObject {
             id: row.id.to_string(),
             instructions: row.instructions,
             name: row.name,
-            tools: row.tools.map_or(empty_tools, |tools| {
-                tools
-                    .into_iter()
-                    .map(|tool| serde_json::from_value(tool).unwrap())
-                    .collect()
-            }),
+            tools: Tools(row.tools).to_tools().unwrap(),
             model: row.model.unwrap_or_default(),
             file_ids: row.file_ids.unwrap_or_default(),
             object: row.object.unwrap_or_default(),
@@ -164,12 +191,7 @@ pub async fn update_assistant(
             id: row.id.to_string(),
             instructions: row.instructions,
             name: row.name,
-            tools: row.tools.map_or(empty_tools, |tools| {
-                tools
-                    .into_iter()
-                    .map(|tool| serde_json::from_value(tool).unwrap())
-                    .collect()
-            }),
+            tools: Tools(row.tools).to_tools().unwrap(),
             model: row.model.unwrap_or_default(),
             file_ids: row.file_ids.unwrap_or_default(),
             object: row.object.unwrap_or_default(),
@@ -217,12 +239,7 @@ pub async fn list_assistants(pool: &PgPool, user_id: &str) -> Result<Vec<Assista
                 id: row.id.to_string(),
                 instructions: row.instructions,
                 name: row.name,
-                tools: row.tools.map_or(empty_tools, |tools| {
-                    tools
-                        .into_iter()
-                        .map(|tool| serde_json::from_value(tool).unwrap())
-                        .collect()
-                }),
+                tools: Tools(row.tools).to_tools().unwrap(),
                 model: row.model.unwrap_or_default(),
                 file_ids: row.file_ids.unwrap_or_default(),
                 object: row.object.unwrap_or_default(),
@@ -235,4 +252,125 @@ pub async fn list_assistants(pool: &PgPool, user_id: &str) -> Result<Vec<Assista
     }
 
     Ok(assistants)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::assistants::create_assistant;
+    use crate::models::Assistant;
+    use crate::threads::create_thread;
+
+    use super::*;
+    use async_openai::types::{
+        AssistantObject, AssistantToolsFunction, AssistantToolsRetrieval, ChatCompletionFunctions,
+        FunctionCall, RunToolCallObject, SubmitToolOutputs,
+    };
+    use dotenv::dotenv;
+    use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
+    use std::env;
+    use std::io::Write;
+    use tokio::fs::File;
+    use tokio::io::AsyncWriteExt;
+
+    async fn setup() -> PgPool {
+        dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        // Initialize the logger with an info level filter
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(_) => (),
+        };
+        pool
+    }
+
+    async fn reset_db(pool: &PgPool) {
+        // TODO should also purge minio
+        sqlx::query!(
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_assistant() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("You help me by using the tools you have.".to_string()),
+                name: Some("Purpose of Life universal calculator".to_string()),
+                tools: vec![
+                    AssistantTools::Function(AssistantToolsFunction {
+                        r#type: "function".to_string(),
+                        function: ChatCompletionFunctions {
+                            description: Some("A function that compute the purpose of life according to the fundamental laws of the universe.".to_string()),
+                            name: "compute_purpose_of_life".to_string(),
+                            parameters: json!({
+                                "type": "object",
+                            }),
+                        },
+                    }),
+                    AssistantTools::Retrieval(AssistantToolsRetrieval {
+                        r#type: "retrieval".to_string(),
+                    }),
+                ],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("An assistant that computes the purpose of life based on the tools of the universe.".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string()
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        println!("assistant: {:?}", assistant);
+
+        let assistant = get_assistant(&pool, &assistant.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        println!("assistant: {:?}", assistant);
+
+        assert_eq!(assistant.inner.id, assistant.inner.id);
+        assert_eq!(
+            assistant.inner.instructions,
+            Some("You help me by using the tools you have.".to_string())
+        );
+        assert_eq!(
+            assistant.inner.name,
+            Some("Purpose of Life universal calculator".to_string())
+        );
+        assert_eq!(assistant.inner.tools.len(), 2);
+        let t1 = assistant.inner.tools.get(0).unwrap();
+        let t2 = assistant.inner.tools.get(1).unwrap();
+        match t1 {
+            AssistantTools::Function(f) => {
+                assert_eq!(f.r#type, "function".to_string());
+                assert_eq!(f.function.name, "compute_purpose_of_life".to_string());
+            }
+            e => panic!("Wrong type: {:?}", e),
+        }
+        match t2 {
+            AssistantTools::Retrieval(r) => {
+                assert_eq!(r.r#type, "retrieval".to_string());
+            }
+            _ => panic!("Wrong type"),
+        }
+        assert_eq!(assistant.inner.model, "claude-2.1".to_string());
+        assert_eq!(assistant.inner.file_ids.len(), 0);
+    }
 }

@@ -1,10 +1,10 @@
 use async_openai::types::{
-    FunctionCall, MessageContent, MessageContentTextObject, MessageRole, RequiredAction, RunStatus,
-    RunToolCallObject, SubmitToolOutputs, TextData,
+    AssistantTools, FunctionCall, MessageContent, MessageContentTextObject, MessageRole,
+    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData,
 };
 use log::{error, info};
 use redis::AsyncCommands;
-use serde_json;
+use serde_json::{self, json};
 use sqlx::PgPool;
 
 use assistants_core::assistants::{create_assistant, get_assistant};
@@ -98,14 +98,14 @@ fn build_instructions(
         instructions += &format!("<file>\n{:?}\n</file>\n", file_contents);
     }
 
+    if !tools.is_empty() {
+        instructions += &format!("<tools>\n{}\n</tools>\n", tools);
+    }
+
     instructions += &format!(
         "<previous_messages>\n{}\n</previous_messages>",
         previous_messages
     );
-
-    if !tools.is_empty() {
-        instructions += &format!("\n<tools>\n{}\n</tools>", tools);
-    }
 
     instructions
 }
@@ -164,37 +164,83 @@ pub async fn decide_tool_with_llm(
 Rules:
 - You only return one of the tools like \"<retrieval>\" or \"<function>\" or both.
 - Do not return \"tools\"
+- Feel free to use MORE tools rather than LESS
 - The tool names must be one of the tools available e.g. only retrieval or function atm, nothing else OR A HUMAN WILL DIE
 - Your answer must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.
 
 Example:
-<tools>function</tools>
+<user>
+<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the purpose of life according to the fundamental laws of the universe.\",\"name\":\"compute_purpose_of_life\"},\"name\":\"function\"}
+---
+{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
 
-<previous_messages> { role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to calculate something.\", annotations: [] } }] }
-{ role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that.\", annotations: [] } }] }
+<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"I need to know the purpose of life, you can give me two answers.\", annotations: [] } })]
 </previous_messages>
 
-<instructions>You are a helpful assistant.</instructions>
+<instructions>You help me by using the tools you have.</instructions>
 
-In this example, the assistant should return \"<function>\".
+</user>
 
-<tools>function, retrieval</tools>
+In this example, the assistant should return \"<function>,<retrieval>\".
 
-<previous_messages>{ role: \"user\", content: [Content { type: \"text\", text: Text { value: \"I need to send personalized sales emails to our customers. I have a file with customer information. Can you also search Twitter for recent tweets from these customers to personalize the emails further?\", annotations: [] } }] }
-{ role: \"assistant\", content: [Content { type: \"text\", text: Text { value: \"Sure, I can help with that. Let's start by looking at the customer information file and then I'll search Twitter for recent tweets.\", annotations: [] } }] }
+Another example:
+<user>
+<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the cosine similarity between two vectors.\",\"name\":\"compute_cosine_similarity\"},\"name\":\"function\"}
+---
+{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
+
+<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"Given these two vectors, how similar are they?\", annotations: [] } })]
 </previous_messages>
 
-<instructions>You are a helpful assistant.</instructions>
+<instructions>You help me by using the tools you have.</instructions>
+
+</user>
+Another example:
+<user>
+<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that retrieves the customer's order history.\",\"name\":\"get_order_history\"},\"name\":\"function\"}
+---
+{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
+
+<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"Can you tell me what my best selling products are?\", annotations: [] } })]
+</previous_messages>
+
+<instructions>You help me by using the tools you have.</instructions>
+
+</user>
 
 In this example, the assistant should return \"<function>,<retrieval>\".
 
 Your answer will be used to use the tool so it must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.";
 
+    let tools = assistant.inner.tools.clone();
+    println!("tools: {:?}", tools);
     // Build the user prompt
-    let tools_as_string = serde_json::to_string(&assistant.inner.tools).unwrap();
+    let tools_as_string = tools
+        .iter()
+        .map(|t| {
+            serde_json::to_string(&match t {
+                AssistantTools::Code(_) => json!({"name": "code_interpreter", "description": "useful for complex math problems"}),
+                AssistantTools::Retrieval(_) => json!({"name": "retrieval", "description": "useful to retrieve information from files"}),
+                AssistantTools::Function(e) => 
+                    json!({
+                        "name": "function",
+                        "description": "useful to call functions in the user's product, which would provide you later some additional context about the user's problem",
+                        "function": {
+                            "name": e.function.name,
+                            "description": e.function.description,
+                            "arguments": e.function.parameters,
+                        }
+                    })
+            }).unwrap()
+        })
+        .collect::<Vec<String>>();
+    let tools_as_string = tools_as_string.join("\n---\n");
     let mut user_prompt = format!("<tools>{}</tools>\n\n<previous_messages>", tools_as_string);
     for message in previous_messages {
-        user_prompt.push_str(&format!("{:?}: {:?}\n", message.inner.role, message));
+        user_prompt.push_str(&format!(
+            "{:?}: {:?}\n",
+            message.inner.role, message.inner.content
+        ));
         // TODO bunch of noise in the message to remove
     }
 
@@ -594,7 +640,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
         let result = create_assistant(&pool, &assistant).await;
         assert!(result.is_ok());
@@ -612,7 +658,9 @@ mod tests {
     async fn test_add_message_to_thread() {
         let pool = setup().await;
         reset_db(&pool).await;
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap(); // Create a new thread
         let content = vec![MessageContent::Text(MessageContentTextObject {
             r#type: "text".to_string(),
             text: TextData {
@@ -668,7 +716,9 @@ mod tests {
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap(); // Create a new thread
         let content = vec![MessageContent::Text(MessageContentTextObject {
             r#type: "text".to_string(),
             text: TextData {
@@ -807,7 +857,9 @@ mod tests {
         assert_eq!(assistant.inner.file_ids, vec![file_id]);
 
         // 2. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap();
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
 
         // 3. Add a Message to a Thread
         let content = vec![MessageContent::Text(MessageContentTextObject {
@@ -874,7 +926,7 @@ mod tests {
         }
 
         assert_eq!(messages[1].inner.role, MessageRole::Assistant);
-        if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
+        if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
             assert!(text_object.text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
         } else {
             panic!("Expected a Text message, but got something else.");
@@ -996,7 +1048,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
         let assistant_open_source = Assistant {
             inner: AssistantObject {
@@ -1016,7 +1068,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
         let assistant_unknown = Assistant {
             inner: AssistantObject {
@@ -1036,7 +1088,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
 
         let instructions = "Test instructions".to_string();
@@ -1098,7 +1150,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
 
         // Create a set of previous messages
@@ -1170,7 +1222,7 @@ mod tests {
                 description: Some("description_value".to_string()),
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
 
         let previous_messages = vec![Message {
@@ -1228,8 +1280,8 @@ mod tests {
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
-                instructions: Some("You help me.".to_string()),
-                name: Some("Math Tutor".to_string()),
+                instructions: Some("You help me by using the tools you have.".to_string()),
+                name: Some("Purpose of Life universal calculator".to_string()),
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
                         r#type: "function".to_string(),
@@ -1238,16 +1290,6 @@ mod tests {
                             name: "compute_purpose_of_life".to_string(),
                             parameters: json!({
                                 "type": "object",
-                                "properties": {
-                                    "a": {
-                                        "type": "number",
-                                        "description": "The first number."
-                                    },
-                                    "b": {
-                                        "type": "number",
-                                        "description": "The second number."
-                                    }
-                                }
                             }),
                         },
                     }),
@@ -1259,7 +1301,7 @@ mod tests {
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
-                description: Some("description_value".to_string()),
+                description: Some("An assistant that computes the purpose of life based on the tools of the universe.".to_string()),
                 metadata: None,
             },
             user_id: Uuid::default().to_string()
@@ -1267,13 +1309,16 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // 5. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap();
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
 
         // 6. Add a Message to a Thread
         let content = vec![MessageContent::Text(MessageContentTextObject {
             r#type: "text".to_string(),
             text: TextData {
-                value: "I need to know the purpose of life, you can give me two answers."
+                value: 
+                "I need to know the purpose of life, you can give me two answers. Please use the context you get from FILES and FUNCTIONS to answer my question. Do not base yourself on your own knowledge."
                     .to_string(),
                 annotations: vec![],
             },
@@ -1379,49 +1424,19 @@ mod tests {
         if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
             assert_eq!(
                 text_object.text.value,
-                "I need to know the purpose of life, you can give me two answers."
+                "I need to know the purpose of life, you can give me two answers. Please use the context you get from FILES and FUNCTIONS to answer my question. Do not base yourself on your own knowledge."
             );
         } else {
             panic!("Expected a Text message, but got something else.");
         }
         if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
-            assert_eq!(text_object.text.value.contains("42"), true);
-            assert_eq!(text_object.text.value.contains("43"), true);
+            assert_eq!(text_object.text.value.contains("42"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
+            assert_eq!(text_object.text.value.contains("43"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
         } else {
             panic!("Expected a Text message, but got something else.");
         }
-        // 🙂 Rough prompt the llm got:
-        // "<instructions>
-        // You help me.
-        // </instructions>
-        // <tools>
-        // <input>ToolCallFunction { name: "compute_purpose_of_life", arguments: {} }</input>
 
-        // <output>"The purpose of life is 42."</output>
-        // </tools>
-        // <file>
-        // ["The purpose of life is 43.\n"]
-        // </file>
-        // <previous_messages>
-        // <message>
-        // {"id":1,"object":"","created_at":1701975688417,"thread_id":1,"role":"user","content":[{"type":"text","text":{"value":"I need to know the purpose of life, you can give me two answers.","annotations":[]}}],"assistant_id":null,"run_id":null,"file_ids":null,"metadata":null,"user_id":"user1"}
-        // </message>
-
-        // </previous_messages>"
         assert_eq!(messages[1].inner.role, MessageRole::Assistant);
-        // Ensure the answers contains both 42 and 43
-        // ! prompt works - just retarded llm / need better prompt engineering
-        // assert!(
-        //     messages[1].content[0].text.value.contains("42"),
-        //     "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}",
-        //     messages[1].content[0].text.value
-        // );
-        // assert!(
-        //     messages[1].content[0].text.value.contains("43"),
-        //     "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}",
-        //     messages[1].content[0].text.value
-        // );
+
     }
-
-
 }

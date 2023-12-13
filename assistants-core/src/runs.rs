@@ -747,7 +747,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string()
         };
-        create_assistant(&pool, &assistant).await.unwrap();
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
         let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
         println!("thread: {:?}", thread);

@@ -1,6 +1,6 @@
 use assistants_api_communication::models::AppState;
 use assistants_core::assistants::{
-    create_assistant, delete_assistant, get_assistant, list_assistants, update_assistant,
+    create_assistant, delete_assistant, get_assistant, list_assistants, update_assistant, Tools,
 };
 use assistants_core::models::Assistant;
 use async_openai::types::{
@@ -11,25 +11,36 @@ use axum::{
     http::StatusCode,
     response::Json as JsonResponse,
 };
+use serde_json::Value;
 use sqlx::types::Uuid;
 
 pub async fn create_assistant_handler(
     State(app_state): State<AppState>,
-    Json(assistant): Json<CreateAssistantRequest>,
+    Json(assistant): Json<Value>, // TODO https://github.com/64bit/async-openai/issues/166
 ) -> Result<JsonResponse<AssistantObject>, (StatusCode, String)> {
+    let tools = assistant["tools"].as_array().unwrap().to_vec();
     let assistant = create_assistant(
         &app_state.pool,
         &Assistant {
             inner: AssistantObject {
                 id: Default::default(),
-                instructions: assistant.instructions,
-                name: assistant.name,
-                tools: assistant
-                    .tools
-                    .map(|tools| tools.into_iter().map(|tool| tool.into()).collect())
-                    .unwrap_or(vec![]),
-                model: assistant.model,
-                file_ids: assistant.file_ids.unwrap_or(vec![]),
+                instructions: Some(assistant["instructions"].as_str().unwrap().to_string()),
+                name: Some(assistant["name"].as_str().unwrap().to_string()),
+                tools: match Tools::new(Some(tools)).to_tools() {
+                    Ok(tools) => tools,
+                    Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+                },
+                model: assistant["model"].as_str().unwrap().to_string(),
+                file_ids: if assistant["file_ids"].is_array() {
+                    assistant["file_ids"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|file_id| file_id.as_str().unwrap().to_string())
+                        .collect()
+                } else {
+                    vec![]
+                },
                 object: Default::default(),
                 created_at: Default::default(),
                 description: Default::default(),

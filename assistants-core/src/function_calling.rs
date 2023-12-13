@@ -8,6 +8,7 @@ use log::error;
 use log::info;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use serde_json::to_value;
 use serde_json::Value;
 use sqlx::types::Uuid;
@@ -78,16 +79,16 @@ pub async fn register_function(pool: &PgPool, function: Function) -> Result<Stri
 
 const CREATE_FUNCTION_CALL_SYSTEM: &str = "Given the user's problem, we have a set of functions available that could potentially help solve this problem. Please review the functions and their descriptions, and select the most appropriate function to use. Also, determine the best parameters to use for this function based on the user's context. 
 
-Please provide the name of the function you want to use and the parameters in the following format: { 'name': 'function_name', 'parameters': { 'parameter_name1': 'parameter_value', 'parameter_name2': 'parameter_value' ... } }.
+Please provide the name of the function you want to use and the arguments in the following format: { 'name': 'function_name', 'arguments': { 'arg_name1': 'parameter_value', 'arg_name2': 'arg_value' ... } }.
 
 Rules:
 - The function name must be one of the functions available.
-- The parameters must be a subset of the parameters available.
-- The parameters must be in the correct format (e.g. string, integer, etc.).
-- The parameters must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
-- The parameters must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
+- The arguments must be a subset of the arguments available.
+- The arguments must be in the correct format (e.g. string, integer, etc.).
+- The arguments must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
+- The arguments must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
 - **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
-- If the function has no parameters, then you can simply provide the function name (e.g. { 'name': 'function_name' }). It can still be a valid function call that provide useful information.
+- If the function has no arguments, then you can simply provide the function name (e.g. { 'name': 'function_name' }). It can still be a valid function call that provide useful information.
 - CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELSE
 - IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
 
@@ -98,21 +99,21 @@ Examples:
 Prompt:
 {\"function\": {\"description\": \"Fetch a user's profile\",\"name\": \"get_user_profile\",\"parameters\": {\"username\": {\"properties\": {},\"required\": [\"username\"],\"type\": \"string\"}}},\"user_context\": \"I want to see the profile of user 'john_doe'.\"}
 Answer:
-{ \"name\": \"get_user_profile\", \"parameters\": { \"username\": \"john_doe\" } }
+{ \"name\": \"get_user_profile\", \"arguments\": { \"username\": \"john_doe\" } }
 
 2. Sending a message
 
 Prompt:
 {\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
 Answer:
-{ \"name\": \"send_message\", \"parameters\": { \"recipient\": \"jane_doe\", \"message\": \"Hello, how are you?\" } }
+{ \"name\": \"send_message\", \"arguments\": { \"recipient\": \"jane_doe\", \"message\": \"Hello, how are you?\" } }
 
 Negative examples:
 
 Prompt:
 {\"function\": {\"description\": \"Get the weather for a city\",\"name\": \"weather\",\"parameters\": {\"city\": {\"properties\": {},\"required\": [\"city\"],\"type\": \"string\"}}},\"user_context\": \"Give me a weather report for Toronto, Canada.\"}
 Incorrect Answer:
-{ \"name\": \"weather\", \"parameters\": { \"city\": \"Toronto, Canada\" } }
+{ \"name\": \"weather\", \"arguments\": { \"city\": \"Toronto, Canada\" } }
 
 In this case, the function weather expects a city parameter, but the llm provided a city and country (\"Toronto, Canada\") instead of just the city (\"Toronto\"). This would cause the function call to fail because the weather function does not know how to handle a city and country as input.
 
@@ -179,9 +180,13 @@ pub async fn generate_function_call(
 
     // parse the result
     info!("Parsing result: {}", result);
-    let result: Result<FunctionCall, serde_json::Error> = serde_json::from_str(&result);
+
+    let result: Result<serde_json::Value, serde_json::Error> = serde_json::from_str(&result);
     let result = match result {
-        Ok(result) => result,
+        Ok(result) => (
+            result.get("name").unwrap().to_string(),
+            result.get("arguments").unwrap().to_string(),
+        ),
         Err(e) => {
             error!("Failed to parse result: {}", e);
             return Err(e.into());
@@ -189,7 +194,10 @@ pub async fn generate_function_call(
     };
     info!("Function call generated: {:?}", result);
 
-    Ok(result)
+    Ok(FunctionCall {
+        name: result.0.trim_matches('\"').to_string(),
+        arguments: result.1,
+    })
 }
 
 // Function to handle database operations
@@ -289,11 +297,12 @@ mod tests {
                     }
                 }),
             },
-            user_id: String::from("test_user"),
+            user_id: Uuid::new_v4().to_string(),
         };
         register_function(&pool, weather_function).await.unwrap();
 
-        let user_id = "test_user";
+        let user_id = Uuid::default().to_string();
+
         let model_config = ModelConfig {
             model_name: String::from("gpt-3.5-turbo"),
             model_url: None,
@@ -306,7 +315,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, user_id, model_config).await;
+        let result = create_function_call(&pool, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -352,7 +361,7 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            user_id: String::from("test_user"),
+            user_id: Uuid::new_v4().to_string(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -371,7 +380,7 @@ mod tests {
         };
         register_function(&pool, weather_function).await.unwrap();
 
-        let user_id = "test_user";
+        let user_id = Uuid::default().to_string();
         let model_config = ModelConfig {
             model_name: String::from("claude-2.1"),
             model_url: None,
@@ -384,7 +393,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, user_id, model_config).await;
+        let result = create_function_call(&pool, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -430,7 +439,7 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            user_id: String::from("test_user"),
+            user_id: Uuid::default().to_string(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -449,7 +458,7 @@ mod tests {
         };
         register_function(&pool, weather_function).await.unwrap();
 
-        let user_id = "test_user";
+        let user_id = Uuid::default().to_string();
         let model_config = ModelConfig {
             // model_name: String::from("open-source/mistral-7b-instruct"),
             model_name: String::from("open-source/llama-2-70b-chat"),
@@ -463,7 +472,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, user_id, model_config).await;
+        let result = create_function_call(&pool, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -488,7 +497,7 @@ mod tests {
     async fn test_generate_function_call_with_llama_2_70b() {
         dotenv::dotenv().ok();
         let function = Function {
-            user_id: String::from("test_user"),
+            user_id: Uuid::default().to_string(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),

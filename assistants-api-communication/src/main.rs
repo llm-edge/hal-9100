@@ -416,7 +416,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_assistant() {
+    async fn test_update_assistant() {
         let app_state = setup().await;
         let app = app(app_state);
 
@@ -456,7 +456,7 @@ mod tests {
             instructions: Some("updated test".to_string()),
             name: Some("updated test".to_string()),
             tools: Some(vec![AssistantTools::Code(AssistantToolsCode {
-                r#type: "updated test".to_string(),
+                r#type: "code_interpreter".to_string(),
             })]),
             model: "updated test".to_string(),
             file_ids: None,
@@ -488,7 +488,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_assistant() {
+    async fn test_delete_assistant() {
         let app_state = setup().await;
         let app = app(app_state);
 
@@ -541,9 +541,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_assistants() {
+    async fn test_list_assistants() {
         let app_state = setup().await;
-        let app = app(app_state);
+        let app = app(app_state.clone());
+        reset_db(&app_state.pool.clone()).await;
 
         // Create an assistant first
         let assistant = CreateAssistantRequest {
@@ -1558,7 +1559,7 @@ mod tests {
                             "name": "Test assistant",
                             "tools": [
                                 {
-                                    "type": "test"
+                                    "type": "code_interpreter"
                                 }
                             ],
                             "model": "test"
@@ -1745,7 +1746,7 @@ mod tests {
                             "name": "Test assistant",
                             "tools": [
                                 {
-                                    "type": "test"
+                                    "type": "code_interpreter"
                                 }
                             ],
                             "model": "test"
@@ -1907,29 +1908,27 @@ mod tests {
         let file_id = body["file_id"].as_str().unwrap().to_string();
 
         // 2. Create an Assistant with the uploaded file and function tool
-        let assistant = CreateAssistantRequest {
-            instructions: Some("You are a helpful assistant that leverages the tools and files you're given to help the user.".to_string()),
-            name: Some("Life Purpose Calculator".to_string()),
-            tools: Some(vec![
-                AssistantTools::Function(AssistantToolsFunction {
-                    r#type: "function".to_string(),
-                    function: ChatCompletionFunctions {
-                        description: Some("A function that compute the purpose of life according to the fundamental laws of the universe.".to_string()),
-                        name: "compute_purpose_of_life".to_string(),
-                        parameters: json!({
+        let assistant = json!({ // ! hack using json because serializsation of assistantools is fked
+            "instructions": "You are a helpful assistant that leverages the tools and files you're given to help the user.",
+            "name": "Life Purpose Calculator",
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "description": "A function that compute the purpose of life according to the fundamental laws of the universe.",
+                        "name": "compute_purpose_of_life",
+                        "parameters": {
                             "type": "object",
-                        }),
+                        }
                     }
-                }),
-                AssistantTools::Retrieval(AssistantToolsRetrieval {
-                    r#type: "retrieval".to_string(),
-                }),
-            ]),
-            model: "claude-2.1".to_string(),
-            file_ids: Some(vec![file_id]), // Associate the uploaded file with the assistant
-            description: None,
-            metadata: None,
-        };
+                },
+                {
+                    "type": "retrieval"
+                }
+            ],
+            "model": "claude-2.1",
+            "file_ids": [file_id], // Associate the uploaded file with the assistant
+        });
         let response = app
             .clone()
             .oneshot(
