@@ -109,19 +109,20 @@ async function createAssistant() {
     const assistant = await openai.beta.assistants.create({
         instructions: "You are a weather bot. Use the provided functions to answer questions.",
         model: "Intel/neural-chat-7b-v3-2",
+        name: "Weather Bot",
         tools: [{
             "type": "function",
             "function": {
-            "name": "getCurrentWeather",
-            "description": "Get the weather in location",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
-                "unit": {"type": "string"}
-                },
-                "required": ["location"]
-            }
+              "name": "getCurrentWeather",
+              "description": "Get the weather in location",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                  "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+                  "unit": {"type": "string"}
+                  },
+                  "required": ["location"]
+              }
             }
         }]
     });
@@ -131,10 +132,10 @@ createAssistant();
 ```
 ```json
 {
-  "id": 1,
+  "id": "75ce7666-7560-4bb2-8358-48107d94183a",
   "object": "",
   "created_at": 1702071264602,
-  "name": "",
+  "name": "Weather Bot",
   "description": null,
   "model": "Intel/neural-chat-7b-v3-2",
   "instructions": "You are a weather bot. Use the provided functions to answer questions.",
@@ -142,7 +143,6 @@ createAssistant();
     {
       "type": "function",
       "function": {
-        "user_id": "",
         "name": "getCurrentWeather",
         "description": "Get the weather in location",
         "parameters": {
@@ -168,7 +168,6 @@ createAssistant();
   ],
   "file_ids": null,
   "metadata": null,
-  "user_id": "user1"
 }
 ```
 
@@ -183,9 +182,7 @@ createThread();
 ```
 ```json
 {
-  "id": 1,
-  "user_id": "user1",
-  "file_ids": null,
+  "id": "f74681b8-2371-4db1-946f-3efb070f0b19",
   "object": "",
   "created_at": 1702071499412,
   "metadata": null
@@ -193,12 +190,12 @@ createThread();
 ```
 4. **Add a Message to a Thread**
 
-*Replace 1 with the actual thread id*
+*Replace the UUID with the actual thread id*
 
 ```ts
 async function createMessage() {
     const message = await openai.beta.threads.messages.create(
-        1,
+        "f74681b8-2371-4db1-946f-3efb070f0b19",
         {
             role: "user",
             content: "What's the weather in San Francisco?"
@@ -210,10 +207,10 @@ createMessage();
 ```
 ```json
 {
-  "id": 1,
+  "id": "7f109eba-796f-4961-9589-3af529f14e6e",
   "object": "",
-  "created_at": 1702071554048,
-  "thread_id": 1,
+  "created_at": 1702499213,
+  "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
   "role": "user",
   "content": [
     {
@@ -224,23 +221,22 @@ createMessage();
       }
     }
   ],
-  "assistant_id": null,
-  "run_id": null,
-  "file_ids": null,
-  "metadata": null,
-  "user_id": "user1"
+  "assistant_id": "00000000-0000-0000-0000-000000000000",
+  "run_id": "00000000-0000-0000-0000-000000000000",
+  "file_ids": [],
+  "metadata": null
 }
 ```
 5. **Run the Assistant**
 
-*Replace :thread_id and :assistant_id with the actual thread id and assistant id*
+*Replace :thread_id and :assistant_id with the actual thread id and assistant id (check 1. and 3.)*
 
 ```ts
 async function createRun() {
     const run = await openai.beta.threads.runs.create(
-    1,
+        "f74681b8-2371-4db1-946f-3efb070f0b19",
     { 
-        assistant_id: 1,
+        assistant_id: "75ce7666-7560-4bb2-8358-48107d94183a",
         instructions: "You are a weather bot. Use the provided functions to answer questions."
     }
     );
@@ -250,15 +246,15 @@ createRun();
 ```
 ```json
 {
-  "id": 1,
+  "id": "3933cbe4-5c26-4f93-b2d8-f03dabc055f2",
   "object": "",
-  "created_at": 1702071678154,
-  "thread_id": 1,
-  "assistant_id": 1,
+  "created_at": 1702499360,
+  "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
+  "assistant_id": "75ce7666-7560-4bb2-8358-48107d94183a",
   "status": "queued",
   "required_action": null,
   "last_error": null,
-  "expires_at": 0,
+  "expires_at": null,
   "started_at": null,
   "cancelled_at": null,
   "failed_at": null,
@@ -267,8 +263,7 @@ createRun();
   "instructions": "You are a weather bot. Use the provided functions to answer questions.",
   "tools": [],
   "file_ids": [],
-  "metadata": {},
-  "user_id": "user1"
+  "metadata": {}
 }
 ```
 6. **Check the Run Status**
@@ -277,7 +272,10 @@ createRun();
 
 ```ts
 async function getRun() {
-    const run = await openai.beta.threads.runs.retrieve(1, 1);
+    const run = await openai.beta.threads.runs.retrieve(
+        "f74681b8-2371-4db1-946f-3efb070f0b19",
+        "3933cbe4-5c26-4f93-b2d8-f03dabc055f2"
+    );
     console.log(JSON.stringify(run, null, 2));
 }
 getRun();
@@ -285,31 +283,29 @@ getRun();
 (feel free to run this command multiple times until the run is completed - LLM can be slow, especially if you run it on your coffee machine)
 ```json
 {
-  "id": 1,
+  "id": "3933cbe4-5c26-4f93-b2d8-f03dabc055f2",
   "object": "",
-  "created_at": 1702072570201,
-  "thread_id": 1,
-  "assistant_id": 1,
+  "created_at": 1702499360,
+  "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
+  "assistant_id": "75ce7666-7560-4bb2-8358-48107d94183a",
   "status": "requires_action",
   "required_action": {
     "type": "submit_tool_outputs",
     "submit_tool_outputs": {
       "tool_calls": [
         {
-          "id": "b8c67848-c2e5-4bbd-afe5-37fd296bc4c1",
+          "id": "9cb246b2-061c-46a4-aa34-80e7587c81c4",
           "type": "function",
           "function": {
             "name": "getCurrentWeather",
-            "arguments": {
-              "location": "San Francisco, CA"
-            }
+            "arguments": "{\"location\":\"San Francisco, CA\",\"unit\":\"imperial\"}"
           }
         }
       ]
     }
   },
   "last_error": null,
-  "expires_at": 0,
+  "expires_at": null,
   "started_at": null,
   "cancelled_at": null,
   "failed_at": null,
@@ -318,8 +314,7 @@ getRun();
   "instructions": "You are a weather bot. Use the provided functions to answer questions.",
   "tools": [],
   "file_ids": [],
-  "metadata": {},
-  "user_id": "user1"
+  "metadata": {}
 }
 ```
 
@@ -330,23 +325,24 @@ The Assistant is now waiting for the user to submit the results of the function 
 In practice you would execute, say, your javascript function:
 
 ```js
-const output = getCurrentWeather({location: "San Francisco, CA"}) // this would do a request to a weather API
+// this would do a request to a weather API
+const output = getCurrentWeather({location: "San Francisco, CA", unit: "imperial"})
 console.log(output)
-> {"temperature": 20, "unit": "C"}
+> {"temperature": 68, "unit": "F"}
 ```
 
-Good. So it seems the weather in San Francisco is 20C. Let's submit that to the Assistant:
+Good. So it seems the weather in San Francisco is 68F. Let's tell the LLM about it:
 
 ```ts
 async function submitToolOutputs() {
     const run = await openai.beta.threads.runs.submitToolOutputs(
-        1,
-        1,
+        "f74681b8-2371-4db1-946f-3efb070f0b19",
+        "3933cbe4-5c26-4f93-b2d8-f03dabc055f2",
         {
             tool_outputs: [
                 {
-                    tool_call_id: "b8c67848-c2e5-4bbd-afe5-37fd296bc4c1",
-                    output: "{\"temperature\": 20, \"unit\": \"C\"}"
+                    tool_call_id: "9cb246b2-061c-46a4-aa34-80e7587c81c4",
+                    output: "{\"temperature\": 68, \"unit\": \"F\"}"
                 }
             ]
         }
@@ -357,31 +353,29 @@ submitToolOutputs();
 ```
 ```json
 {
-  "id": 1,
+  "id": "3933cbe4-5c26-4f93-b2d8-f03dabc055f2",
   "object": "",
-  "created_at": 1702072570201,
-  "thread_id": 1,
-  "assistant_id": 1,
+  "created_at": 1702499360,
+  "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
+  "assistant_id": "75ce7666-7560-4bb2-8358-48107d94183a",
   "status": "queued",
   "required_action": {
     "type": "submit_tool_outputs",
     "submit_tool_outputs": {
       "tool_calls": [
         {
-          "id": "b8c67848-c2e5-4bbd-afe5-37fd296bc4c1",
+          "id": "9cb246b2-061c-46a4-aa34-80e7587c81c4",
           "type": "function",
           "function": {
             "name": "getCurrentWeather",
-            "arguments": {
-              "location": "San Francisco, CA"
-            }
+            "arguments": "{\"location\":\"San Francisco, CA\",\"unit\":\"imperial\"}"
           }
         }
       ]
     }
   },
   "last_error": null,
-  "expires_at": 0,
+  "expires_at": null,
   "started_at": null,
   "cancelled_at": null,
   "failed_at": null,
@@ -390,8 +384,7 @@ submitToolOutputs();
   "instructions": "You are a weather bot. Use the provided functions to answer questions.",
   "tools": [],
   "file_ids": [],
-  "metadata": {},
-  "user_id": "user1"
+  "metadata": {}
 }
 ```
 
@@ -399,23 +392,25 @@ Now the LLM knows about the weather in San Francisco, and can answer questions a
 
 9. **Display the Assistant's Response**
 
-*Replace 1 with the actual thread id*
+*Replace with the actual thread id*
 
 ```ts
 async function getMessages() {
-    const messages = await openai.beta.threads.messages.list(1);
+    const messages = await openai.beta.threads.messages.list(
+        "f74681b8-2371-4db1-946f-3efb070f0b19"
+    );
     console.log(JSON.stringify(messages, null, 2));
 }
 getMessages();
 ```
 ```json
 {
-  "body": [
+  "data": [
     {
-      "id": 1,
+      "id": "7f109eba-796f-4961-9589-3af529f14e6e",
       "object": "",
-      "created_at": 1702072559915,
-      "thread_id": 1,
+      "created_at": 1702499213,
+      "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
       "role": "user",
       "content": [
         {
@@ -426,32 +421,30 @@ getMessages();
           }
         }
       ],
-      "assistant_id": null,
-      "run_id": null,
-      "file_ids": null,
-      "metadata": null,
-      "user_id": "user1"
+      "assistant_id": "00000000-0000-0000-0000-000000000000",
+      "run_id": "00000000-0000-0000-0000-000000000000",
+      "file_ids": [],
+      "metadata": null
     },
     {
-      "id": 2,
+      "id": "5add8363-1285-463a-a647-6bceee7b84f3",
       "object": "",
-      "created_at": 1702072988701,
-      "thread_id": 1,
+      "created_at": 1702499547,
+      "thread_id": "f74681b8-2371-4db1-946f-3efb070f0b19",
       "role": "assistant",
       "content": [
         {
           "type": "text",
           "text": {
-            "value": "Given the recent details regarding the current weather in San Francisco, the temperature in San Francisco can be described as around 20 degrees Celsius.",
+            "value": "I just checked the weather in San Francisco, CA with Fahrenheit as the unit. The temperature in San Francisco at the given time is 68 degrees Fahrenheit.",
             "annotations": []
           }
         }
       ],
-      "assistant_id": null,
-      "run_id": null,
-      "file_ids": null,
-      "metadata": null,
-      "user_id": "user1"
+      "assistant_id": "00000000-0000-0000-0000-000000000000",
+      "run_id": "00000000-0000-0000-0000-000000000000",
+      "file_ids": [],
+      "metadata": null
     }
   ]
 }

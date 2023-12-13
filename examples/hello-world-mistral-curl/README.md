@@ -73,7 +73,6 @@ curl -X POST http://localhost:3000/assistants \
     "tools": [{"type": "retrieval"}],
     "file_ids": null,
     "metadata": null,
-    "user_id": "user1"
 }
 ```
 
@@ -86,7 +85,6 @@ curl -X POST http://localhost:3000/threads \
 ```json
 {
     "id": 1,
-    "user_id": "user1",
     "file_ids": null,
     "object": "",
     "created_at": 1701039812831,
@@ -125,7 +123,6 @@ curl -X POST http://localhost:3000/threads/1/messages \
     "run_id": null,
     "file_ids": null,
     "metadata": null,
-    "user_id": "user1"
 }
 ```
 5. **Run the Assistant**
@@ -160,7 +157,6 @@ curl -X POST http://localhost:3000/threads/1/runs \
     "tools": [],
     "file_ids": [],
     "metadata": null,
-    "user_id": ""
 }
 ```
 6. **Check the Run Status**
@@ -192,7 +188,6 @@ curl -X GET http://localhost:3000/threads/1/runs/1 \
     "tools": [],
     "file_ids": [],
     "metadata": null,
-    "user_id": ""
 }
 ```
 7. **Display the Assistant's Response**
@@ -224,7 +219,6 @@ curl http://localhost:3000/threads/1/messages \
         "run_id": null,
         "file_ids": null,
         "metadata": null,
-        "user_id": "user1"
     },
     {
         "id": 2,
@@ -245,7 +239,6 @@ curl http://localhost:3000/threads/1/messages \
         "run_id": null,
         "file_ids": null,
         "metadata": null,
-        "user_id": ""
     }
 ]
 ```

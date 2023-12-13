@@ -2,6 +2,7 @@ use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::openai::{
     call_open_source_openai_api_with_messages, call_openai_api_with_messages, Message,
 };
+use log::info;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -32,6 +33,7 @@ pub async fn llm(
             "<system>\n{}\n</system>\n<user>\n{}\n</user>",
             system_prompt, user_prompt
         );
+        info!("Calling Claude API with instructions: {}", instructions);
 
         call_anthropic_api(
             instructions,
@@ -47,6 +49,7 @@ pub async fn llm(
         .map(|res| res.completion)
         .map_err(|e| Box::new(e) as Box<dyn Error>)
     } else if model_name.contains("gpt") {
+        info!("Calling OpenAI API with messages: {:?}", messages);
         call_openai_api_with_messages(
             messages,
             max_tokens_to_sample,
@@ -58,12 +61,14 @@ pub async fn llm(
         .await
         .map(|res| res.choices[0].message.content.clone())
         .map_err(|e| Box::new(e) as Box<dyn Error>)
-    } else if model_name.contains("/") { // ! super hacky
+    } else if model_name.contains("/") {
+        // ! super hacky
         let model_name = model_name.split('/').last().unwrap_or_default();
         let url = model_url.unwrap_or_else(|| {
             std::env::var("MODEL_URL")
                 .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"))
         });
+        info!("Calling Open Source LLM through OpenAI API with messages: {:?}", messages);
         call_open_source_openai_api_with_messages(
             messages,
             max_tokens_to_sample,

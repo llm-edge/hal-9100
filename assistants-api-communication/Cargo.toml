@@ -13,7 +13,7 @@ tokio = { version = "1.0", features = ["full"] }
 tokio-stream = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-sqlx = { version = "0.5", features = ["macros", "postgres", "runtime-async-std-rustls"] }
+sqlx = { version = "0.7.3", features = ["macros", "postgres", "runtime-async-std-rustls", "json", "uuid"] }
 assistants-core = { path = "../assistants-core" }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 minio = "0.1.0"
@@ -26,6 +26,8 @@ log = "0.4"
 env_logger = "0.8"
 validator = { version = "0.14.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
+async-openai = "0.17.1"
+uuid = { version = "0.8", features = ["serde", "v4"] }
 
 [dev-dependencies]
 mime = "0.3.16"
