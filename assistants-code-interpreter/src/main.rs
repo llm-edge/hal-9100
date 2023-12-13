@@ -7,11 +7,10 @@
 // TODO: copy paste https://github.com/KillianLucas/open-interpreter into a safe server-side environment that generate and execute code
 
 use assistants_core::function_calling::generate_function_call;
-use assistants_core::function_calling::Function;
-use assistants_core::function_calling::FunctionCallInput;
 use assistants_core::function_calling::ModelConfig;
-use assistants_core::function_calling::Parameter;
-use assistants_core::function_calling::Property;
+use assistants_core::models::Function;
+use assistants_core::models::FunctionCallInput;
+use async_openai::types::ChatCompletionFunctions;
 use bollard::container::LogOutput;
 use bollard::container::{
     Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
@@ -21,6 +20,8 @@ use bollard::exec::StartExecResults;
 use bollard::models::HostConfig;
 use bollard::Docker;
 use futures::stream::StreamExt;
+use serde_json::json;
+use uuid::Uuid;
 use std::collections::HashMap;
 use std::default::Default;
 use std::io::{self, Write};
@@ -78,24 +79,20 @@ So generate the Python code that we will execute that can help the user with thi
     // Generate Python code
     let function_call_input = FunctionCallInput {
         function: Function {
-            user_id: "user1".to_string(),
-            name: "exec".to_string(),
-            description: "A function that executes Python code".to_string(),
-            parameters: Parameter {
-                r#type: String::from("object"),
-                required: Some(vec![String::from("code")]),
-                properties: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        String::from("code"),
-                        Property {
-                            r#type: String::from("string"),
-                            description: Some(String::from("The Python code to execute")),
-                            r#enum: None,
-                        },
-                    );
-                    Some(map)
-                },
+            user_id: Uuid::default().to_string(),
+            inner: ChatCompletionFunctions {
+                name: "exec".to_string(),
+                description: Some("A function that executes Python code".to_string()),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["code"],
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "The Python code to execute"
+                        }
+                    }
+                }),
             },
         },
         user_context: build_prompt(&user_input),
@@ -113,11 +110,11 @@ So generate the Python code that we will execute that can help the user with thi
     };
 
     let function_result = generate_function_call(function_call_input).await?;
-    println!("Function result: {:?}", function_result);
-    let python_code = function_result.parameters.unwrap();
-    let python_code = python_code.get("code").unwrap();
-
-    println!("Python code generated {:?}", python_code);
+    let python_code = function_result.arguments;
+    let python_code: HashMap<String, String> = serde_json::from_str(&python_code)?;
+    let python_code = python_code
+        .get("code")
+        .expect("Expected 'code' field in the function result");
 
     // Connect to Docker
     let docker = Docker::connect_with_local_defaults()?;

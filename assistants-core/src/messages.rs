@@ -1,18 +1,19 @@
+use assistants_core::models::Message;
+use async_openai::types::{MessageContent, MessageObject, MessageRole};
 use log::{error, info};
-use serde_json;
+use serde_json::{self, Value};
+use sqlx::types::Uuid;
 use sqlx::PgPool;
-
-use assistants_core::models::{Assistant, Content, Message, Run, Text, Thread};
 
 pub async fn get_message(
     pool: &PgPool,
-    thread_id: i32,
-    message_id: i32,
+    thread_id: &str,
+    message_id: &str,
     user_id: &str,
 ) -> Result<Message, sqlx::Error> {
     let row = sqlx::query!(
         r#"
-        SELECT * FROM messages WHERE id = $1 AND thread_id = $2 AND user_id = $3
+        SELECT * FROM messages WHERE id::text = $1 AND thread_id::text = $2 AND user_id::text = $3
         "#,
         message_id,
         thread_id,
@@ -21,38 +22,42 @@ pub async fn get_message(
     .fetch_one(pool)
     .await?;
     Ok(Message {
-        id: row.id,
-        created_at: row.created_at,
-        thread_id: row.thread_id.unwrap_or_default(),
-        role: row.role,
-        content: serde_json::from_value(row.content).unwrap_or_default(),
-        assistant_id: row.assistant_id,
-        run_id: row.run_id,
-        file_ids: row.file_ids,
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
+        inner: MessageObject {
+            id: row.id.to_string(),
+            created_at: row.created_at,
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            role: match row.role.as_str() {
+                "user" => MessageRole::User,
+                "assistant" => MessageRole::Assistant,
+                _ => MessageRole::User,
+            },
+            content: serde_json::from_value(row.content).unwrap_or_default(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            run_id: Some(row.run_id.unwrap_or_default().to_string()),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: serde_json::from_value(row.metadata.unwrap_or_default()).unwrap(),
+            object: row.object.unwrap_or_default(),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn update_message(
     pool: &PgPool,
-    thread_id: i32,
-    message_id: i32,
+    thread_id: &str,
+    message_id: &str,
     user_id: &str,
-    metadata: Option<std::collections::HashMap<String, String>>,
+    metadata: Option<std::collections::HashMap<String, Value>>,
 ) -> Result<Message, sqlx::Error> {
     let row = sqlx::query!(
         r#"
         UPDATE messages SET metadata = $1
-        WHERE id = $2 AND thread_id = $3 AND user_id = $4
+        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4
         RETURNING *
         "#,
         serde_json::to_value(metadata).unwrap(),
@@ -63,36 +68,40 @@ pub async fn update_message(
     .fetch_one(pool)
     .await?;
     Ok(Message {
-        id: row.id,
-        created_at: row.created_at,
-        thread_id: row.thread_id.unwrap_or_default(),
-        role: row.role,
-        content: serde_json::from_value(row.content).unwrap_or_default(),
-        assistant_id: row.assistant_id,
-        run_id: row.run_id,
-        file_ids: row.file_ids,
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
+        inner: MessageObject {
+            id: row.id.to_string(),
+            created_at: row.created_at,
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            role: match row.role.as_str() {
+                "user" => MessageRole::User,
+                "assistant" => MessageRole::Assistant,
+                _ => MessageRole::User,
+            },
+            content: serde_json::from_value(row.content).unwrap_or_default(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            run_id: Some(row.run_id.unwrap_or_default().to_string()),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: serde_json::from_value(row.metadata.unwrap_or_default()).unwrap(),
+            object: row.object.unwrap_or_default(),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn delete_message(
     pool: &PgPool,
-    thread_id: i32,
-    message_id: i32,
+    thread_id: &str,
+    message_id: &str,
     user_id: &str,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-        DELETE FROM messages WHERE id = $1 AND thread_id = $2 AND user_id = $3
+        DELETE FROM messages WHERE id::text = $1 AND thread_id::text = $2 AND user_id::text = $3
         "#,
         message_id,
         thread_id,
@@ -105,7 +114,7 @@ pub async fn delete_message(
 
 pub async fn list_messages(
     pool: &PgPool,
-    thread_id: i32,
+    thread_id: &str,
     user_id: &str,
 ) -> Result<Vec<Message>, sqlx::Error> {
     info!("Listing messages for thread_id: {}", thread_id);
@@ -113,27 +122,37 @@ pub async fn list_messages(
         r#"
         SELECT id, created_at, thread_id, role, content::jsonb, assistant_id, run_id, file_ids, metadata, user_id, object
         FROM messages
-        WHERE thread_id = $1 AND user_id = $2
+        WHERE thread_id::text = $1 AND user_id::text = $2
         "#,
-        &thread_id, &user_id,
+        thread_id, user_id,
     )
     .fetch_all(pool)
     .await?
     .into_iter()
     .map(|row| {
-        // let content: Vec<Content> = serde_json::from_value(row.content.clone()).unwrap_or_default();
         Message {
-            id: row.id,
-            created_at: row.created_at,
-            thread_id: row.thread_id.unwrap_or_default(),
-            role: row.role,
-            content: serde_json::from_value(row.content).unwrap_or_default(),
-            assistant_id: row.assistant_id,
-            run_id: row.run_id,
-            file_ids: row.file_ids,
-            metadata: row.metadata.map(|v| v.as_object().unwrap().clone().into_iter().map(|(k, v)| (k, v.as_str().unwrap().to_string())).collect()),
-            user_id: row.user_id.unwrap_or_default(),
-            object: row.object.unwrap_or_default(),
+            inner: MessageObject {
+                id: row.id.to_string(),
+                created_at: row.created_at,
+                thread_id: row.thread_id.unwrap_or_default().to_string(),
+                role: match row.role.as_str() {
+                    "user" => MessageRole::User,
+                    "assistant" => MessageRole::Assistant,
+                    _ => MessageRole::User,
+                },
+                content: serde_json::from_value(row.content).unwrap_or_default(),
+                assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+                run_id: Some(row.run_id.unwrap_or_default().to_string()),
+                file_ids: row
+                    .file_ids
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|file_id| file_id.to_string())
+                    .collect(),
+                metadata: serde_json::from_value(row.metadata.unwrap_or_default()).unwrap(),
+                object: row.object.unwrap_or_default(),
+            },
+            user_id: row.user_id.unwrap_or_default().to_string(),
         }
     })
     .collect();
@@ -142,14 +161,14 @@ pub async fn list_messages(
 
 pub async fn add_message_to_thread(
     pool: &PgPool,
-    thread_id: i32,
-    role: &str,
-    content: Vec<Content>,
+    thread_id: &str,
+    role: MessageRole,
+    content: Vec<MessageContent>,
     user_id: &str,
     file_ids: Option<Vec<String>>,
 ) -> Result<Message, sqlx::Error> {
     info!(
-        "Adding message to thread_id: {}, role: {}, user_id: {}",
+        "Adding message to thread_id: {}, role: {:?}, user_id: {}",
         thread_id, role, user_id
     );
     let content_json = match serde_json::to_string(&content) {
@@ -161,39 +180,40 @@ pub async fn add_message_to_thread(
         Some(file_ids) => Some(file_ids),
         None => None,
     };
-    let file_ids_ref: Option<&[String]> = file_ids.as_ref().map(|v| v.as_slice());
     let row = sqlx::query!(
         r#"
         INSERT INTO messages (thread_id, role, content, user_id, file_ids)
         VALUES ($1, $2, to_jsonb($3::jsonb), $4, $5)
         RETURNING *
         "#,
-        &thread_id,
-        &role,
+        Uuid::parse_str(thread_id).unwrap(),
+        match role {
+            MessageRole::User => "user",
+            MessageRole::Assistant => "assistant",
+        },
         &content_value,
-        user_id,
-        file_ids_ref
+        Uuid::parse_str(user_id).unwrap(),
+        &file_ids.unwrap_or_default()
     )
     .fetch_one(pool)
     .await?;
     Ok(Message {
-        id: row.id,
-        created_at: row.created_at,
-        thread_id: row.thread_id.unwrap_or_default(),
-        role: row.role,
-        content: serde_json::from_value(row.content).unwrap_or_default(),
-        assistant_id: row.assistant_id,
-        run_id: row.run_id,
-        file_ids: row.file_ids,
-        metadata: row.metadata.map(|v| {
-            v.as_object()
-                .unwrap()
-                .clone()
-                .into_iter()
-                .map(|(k, v)| (k, v.as_str().unwrap().to_string()))
-                .collect()
-        }),
-        user_id: row.user_id.unwrap_or_default(),
-        object: row.object.unwrap_or_default(),
+        inner: MessageObject {
+            id: row.id.to_string(),
+            created_at: row.created_at,
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            role: match row.role.as_str() {
+                "user" => MessageRole::User,
+                "assistant" => MessageRole::Assistant,
+                _ => MessageRole::User,
+            },
+            content: serde_json::from_value(row.content).unwrap_or_default(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            run_id: Some(row.run_id.unwrap_or_default().to_string()),
+            file_ids: row.file_ids.unwrap_or_default(),
+            metadata: serde_json::from_value(row.metadata.unwrap_or_default()).unwrap(),
+            object: row.object.unwrap_or_default(),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }

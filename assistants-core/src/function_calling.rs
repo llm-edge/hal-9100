@@ -1,42 +1,20 @@
+use assistants_core::models::Function;
 use assistants_extra::llm::llm;
+use async_openai::types::ChatCompletionFunctionCall;
+use async_openai::types::ChatCompletionFunctions;
+use async_openai::types::FunctionCall;
 use core::future::Future;
 use log::error;
 use log::info;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
-use serde_json::Value as JsonValue;
+use serde_json::Value;
+use sqlx::types::Uuid;
 use sqlx::PgPool;
 use std::{collections::HashMap, error::Error, pin::Pin};
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
-pub struct Property {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub description: Option<String>,
-    pub r#enum: Option<Vec<String>>,
-}
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
-pub struct Parameter {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<HashMap<String, Property>>,
-    pub required: Option<Vec<String>>,
-}
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
-pub struct Function {
-    pub user_id: String,
-    pub name: String,
-    pub description: String,
-    pub parameters: Parameter,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FunctionResult {
-    pub name: String,
-    pub parameters: Option<HashMap<String, String>>,
-}
-
+use crate::models::FunctionCallInput;
 #[derive(Clone, Debug)]
 pub struct ModelConfig {
     pub model_name: String,
@@ -76,25 +54,26 @@ impl ModelConfig {
     }
 }
 
-pub async fn register_function(pool: &PgPool, function: Function) -> Result<i32, sqlx::Error> {
-    let parameters_json =
-        to_value(&function.parameters).map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
-
+pub async fn register_function(pool: &PgPool, function: Function) -> Result<String, sqlx::Error> {
+    let parameters_json = to_value(&function.inner.parameters)
+        .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+    let user_id = Uuid::parse_str(&function.user_id)
+        .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
     let row = sqlx::query!(
         r#"
         INSERT INTO functions (user_id, name, description, parameters)
         VALUES ($1, $2, $3, $4)
         RETURNING id
         "#,
-        function.user_id,
-        function.name,
-        function.description,
+        user_id,
+        function.inner.name,
+        function.inner.description,
         &parameters_json,
     )
     .fetch_one(pool)
     .await?;
 
-    Ok(row.id)
+    Ok(row.id.clone().to_string())
 }
 
 const CREATE_FUNCTION_CALL_SYSTEM: &str = "Given the user's problem, we have a set of functions available that could potentially help solve this problem. Please review the functions and their descriptions, and select the most appropriate function to use. Also, determine the best parameters to use for this function based on the user's context. 
@@ -147,29 +126,20 @@ In this case, the LLM simply returned the exact same input as output, which is n
 
 Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.";
 
-use regex::Regex;
 fn extract_first_json(string: &str) -> Option<&str> {
     let re = Regex::new(r"\{.*?\}").unwrap();
     re.find(string).map(|m| m.as_str())
 }
 
-// Define a struct for the input
-#[derive(Debug)]
-pub struct FunctionCallInput {
-    pub function: Function,
-    pub user_context: String,
-    pub model_config: ModelConfig,
-}
-
 // Pure function to generate a function call
 pub async fn generate_function_call(
     input: FunctionCallInput,
-) -> Result<FunctionResult, Box<dyn Error>> {
+) -> Result<FunctionCall, Box<dyn Error>> {
     let prompt_data = serde_json::json!({
         "function": {
-            "name": input.function.name,
-            "description": input.function.description,
-            "parameters": input.function.parameters
+            "name": input.function.inner.name,
+            "description": input.function.inner.description,
+            "parameters": input.function.inner.parameters
         },
         "user_context": input.user_context,
     });
@@ -209,7 +179,7 @@ pub async fn generate_function_call(
 
     // parse the result
     info!("Parsing result: {}", result);
-    let result: Result<FunctionResult, serde_json::Error> = serde_json::from_str(&result);
+    let result: Result<FunctionCall, serde_json::Error> = serde_json::from_str(&result);
     let result = match result {
         Ok(result) => result,
         Err(e) => {
@@ -227,12 +197,12 @@ pub async fn create_function_call(
     pool: &PgPool,
     user_id: &str,
     model_config: ModelConfig,
-) -> Result<Vec<FunctionResult>, Box<dyn Error>> {
+) -> Result<Vec<FunctionCall>, Box<dyn Error>> {
     let rows = sqlx::query!(
         r#"
         SELECT id, name, description, parameters
         FROM functions
-        WHERE user_id = $1
+        WHERE user_id::text = $1
         "#,
         user_id
     )
@@ -244,10 +214,12 @@ pub async fn create_function_call(
     for row in rows {
         let input = FunctionCallInput {
             function: Function {
+                inner: ChatCompletionFunctions {
+                    name: row.name.unwrap_or_default(),
+                    description: row.description,
+                    parameters: serde_json::from_value(row.parameters.unwrap_or_default())?,
+                },
                 user_id: user_id.to_string(),
-                name: row.name.unwrap_or_default(),
-                description: row.description.unwrap_or_default(),
-                parameters: serde_json::from_value(row.parameters.unwrap_or_default())?,
             },
             user_context: model_config.user_prompt.clone(),
             model_config: model_config.clone(),
@@ -265,6 +237,7 @@ pub async fn create_function_call(
 mod tests {
     use super::*;
     use dotenv;
+    use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
     use std::env;
 
@@ -301,25 +274,22 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            user_id: String::from("test_user"),
-            name: String::from("weather"),
-            description: String::from("Get the weather for a city"),
-            parameters: Parameter {
-                r#type: String::from("object"),
-                required: Some(vec![String::from("city")]),
-                properties: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        String::from("city"),
-                        Property {
-                            r#type: String::from("string"),
-                            description: None,
-                            r#enum: None,
-                        },
-                    );
-                    Some(map)
-                },
+            inner: ChatCompletionFunctions {
+                name: String::from("weather"),
+                description: Some(String::from("Get the weather for a city")),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": null,
+                            "enum": null
+                        }
+                    }
+                }),
             },
+            user_id: String::from("test_user"),
         };
         register_function(&pool, weather_function).await.unwrap();
 
@@ -342,11 +312,13 @@ mod tests {
             Ok(function_results) => {
                 for function_result in function_results {
                     let function_name = function_result.name;
-                    let parameters = function_result.parameters;
+                    let parameters = function_result.arguments;
                     assert_eq!(function_name, "weather");
+                    let param_json: HashMap<String, String> =
+                        serde_json::from_str(&parameters).unwrap();
 
                     // execute the function
-                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let city = param_json.get("city").unwrap().to_string();
                     let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
@@ -381,23 +353,20 @@ mod tests {
         // Register the weather function
         let weather_function = Function {
             user_id: String::from("test_user"),
-            name: String::from("weather"),
-            description: String::from("Get the weather for a city"),
-            parameters: Parameter {
-                r#type: String::from("object"),
-                required: Some(vec![String::from("city")]),
-                properties: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        String::from("city"),
-                        Property {
-                            r#type: String::from("string"),
-                            description: None,
-                            r#enum: None,
-                        },
-                    );
-                    Some(map)
-                },
+            inner: ChatCompletionFunctions {
+                name: String::from("weather"),
+                description: Some(String::from("Get the weather for a city")),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": null,
+                            "enum": null
+                        }
+                    }
+                }),
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -421,11 +390,13 @@ mod tests {
             Ok(function_results) => {
                 for function_result in function_results {
                     let function_name = function_result.name;
-                    let parameters = function_result.parameters;
+                    let parameters = function_result.arguments;
                     assert_eq!(function_name, "weather");
+                    let param_json: HashMap<String, String> =
+                        serde_json::from_str(&parameters).unwrap();
 
                     // execute the function
-                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let city = param_json.get("city").unwrap().to_string();
                     let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
@@ -460,23 +431,20 @@ mod tests {
         // Register the weather function
         let weather_function = Function {
             user_id: String::from("test_user"),
-            name: String::from("weather"),
-            description: String::from("Get the weather for a city"),
-            parameters: Parameter {
-                r#type: String::from("object"),
-                required: Some(vec![String::from("city")]),
-                properties: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        String::from("city"),
-                        Property {
-                            r#type: String::from("string"),
-                            description: None,
-                            r#enum: None,
-                        },
-                    );
-                    Some(map)
-                },
+            inner: ChatCompletionFunctions {
+                name: String::from("weather"),
+                description: Some(String::from("Get the weather for a city")),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": null,
+                            "enum": null
+                        }
+                    }
+                }),
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -501,10 +469,13 @@ mod tests {
             Ok(function_results) => {
                 for function_result in function_results {
                     let function_name = function_result.name;
-                    let parameters = function_result.parameters;
+                    let parameters = function_result.arguments;
                     assert_eq!(function_name, "weather");
+                    let param_json: HashMap<String, String> =
+                        serde_json::from_str(&parameters).unwrap();
+
                     // execute the function
-                    let city = parameters.unwrap().get("city").unwrap().to_string();
+                    let city = param_json.get("city").unwrap().to_string();
                     let weather = weather(&city).await;
                     assert_eq!(weather, "The weather in Toronto is sunny.");
                 }
@@ -516,26 +487,22 @@ mod tests {
     #[tokio::test]
     async fn test_generate_function_call_with_llama_2_70b() {
         dotenv::dotenv().ok();
-        // Mock function
         let function = Function {
             user_id: String::from("test_user"),
-            name: String::from("weather"),
-            description: String::from("Get the weather for a city"),
-            parameters: Parameter {
-                r#type: String::from("object"),
-                required: Some(vec![String::from("city")]),
-                properties: {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        String::from("city"),
-                        Property {
-                            r#type: String::from("string"),
-                            description: None,
-                            r#enum: None,
-                        },
-                    );
-                    Some(map)
-                },
+            inner: ChatCompletionFunctions {
+                name: String::from("weather"),
+                description: Some(String::from("Get the weather for a city")),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": null,
+                            "enum": null
+                        }
+                    }
+                }),
             },
         };
 
@@ -564,8 +531,10 @@ mod tests {
         match result {
             Ok(function_result) => {
                 assert_eq!(function_result.name, "weather");
-                let parameters = function_result.parameters.unwrap();
-                assert_eq!(parameters.get("city").unwrap(), "Toronto");
+                let parameters = function_result.arguments;
+                let param_json: HashMap<String, String> =
+                    serde_json::from_str(&parameters).unwrap();
+                assert_eq!(param_json.get("city").unwrap(), "Toronto");
             }
             Err(e) => panic!("Function call failed: {:?}", e),
         }

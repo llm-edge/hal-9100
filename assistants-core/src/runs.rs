@@ -1,29 +1,23 @@
 // assistants-core/src/runs.rs
 
+use async_openai::types::AssistantTools;
+use async_openai::types::AssistantToolsRetrieval;
+use async_openai::types::RequiredAction;
+use async_openai::types::RunObject;
+use async_openai::types::RunStatus;
 use log::{error, info};
 use serde::Deserialize;
 use serde::Serialize;
 use sqlx::PgPool;
 
 use assistants_core::models::Run;
-use assistants_core::models::Tool;
+use assistants_core::models::SubmittedToolCall;
 use futures::stream::StreamExt; // Don't forget to import StreamExt
 use redis::AsyncCommands;
+use serde_json::json;
+use sqlx::types::Uuid;
 use std::collections::HashMap;
 use std::error::Error;
-
-use assistants_core::models::RequiredAction;
-
-use serde_json::json;
-
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
-pub struct SubmittedToolCall {
-    pub id: String,
-    pub output: String,
-    pub run_id: i32,
-    pub created_at: i64,
-    pub user_id: String,
-}
 
 pub async fn get_tool_calls(
     pool: &PgPool,
@@ -40,7 +34,7 @@ pub async fn get_tool_calls(
         "#,
         &tool_call_ids
             .into_iter()
-            .map(|s| s.to_string())
+            .map(|s| Uuid::parse_str(s).unwrap())
             .collect::<Vec<_>>(),
     )
     .fetch_all(pool)
@@ -49,11 +43,11 @@ pub async fn get_tool_calls(
     let tool_calls = rows
         .into_iter()
         .map(|row| SubmittedToolCall {
-            id: row.id,
+            id: row.id.to_string(),
             output: row.output.unwrap_or_default(),
-            run_id: row.run_id.unwrap_or_default(),
+            run_id: row.run_id.unwrap_or_default().to_string(),
             created_at: row.created_at,
-            user_id: row.user_id.unwrap_or_default(),
+            user_id: row.user_id.unwrap_or_default().to_string(),
         })
         .collect();
 
@@ -62,8 +56,8 @@ pub async fn get_tool_calls(
 
 pub async fn submit_tool_outputs(
     pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
+    thread_id: &str,
+    run_id: &str,
     user_id: &str,
     tool_outputs: Vec<SubmittedToolCall>,
     mut con: redis::aio::Connection,
@@ -74,17 +68,17 @@ pub async fn submit_tool_outputs(
     let run = get_run(pool, thread_id, run_id, user_id).await?;
 
     // should throw if run is not in status requires_action
-    if run.status != "requires_action" {
+    if run.inner.status != RunStatus::RequiresAction {
         let err_msg = "Run is not in status requires_action";
         error!("{}", err_msg);
         return Err(sqlx::Error::Configuration(err_msg.into()));
     }
     // should throw if tool outputs length is not matching all the tool calls asked for
     if run
+        .inner
         .required_action
         .unwrap()
         .submit_tool_outputs
-        .unwrap()
         .tool_calls
         .len()
         != tool_outputs.len()
@@ -101,7 +95,7 @@ pub async fn submit_tool_outputs(
             r#"
             UPDATE tool_calls
             SET output = $1
-            WHERE id = $2 AND run_id = $3 AND user_id = $4
+            WHERE id::text = $2 AND run_id::text = $3 AND user_id::text = $4
             "#,
             tool_output.output,
             tool_output.id,
@@ -114,7 +108,7 @@ pub async fn submit_tool_outputs(
 
     // Create a JSON object with run_id and thread_id
     let ids = serde_json::json!({
-        "run_id": run.id,
+        "run_id": run.inner.id,
         "thread_id": thread_id,
         "user_id": user_id
     });
@@ -128,15 +122,15 @@ pub async fn submit_tool_outputs(
         .map_err(|e| sqlx::Error::Configuration(e.into()))?;
 
     let updated_run =
-        update_run_status(pool, thread_id, run_id, "queued".to_string(), user_id, None).await?;
+        update_run_status(pool, thread_id, run_id, RunStatus::Queued, user_id, None).await?;
 
     Ok(updated_run)
 }
 
 pub async fn run_assistant(
     pool: &PgPool,
-    thread_id: i32,
-    assistant_id: i32,
+    thread_id: &str,
+    assistant_id: &str,
     instructions: &str,
     user_id: &str,
     mut con: redis::aio::Connection,
@@ -156,7 +150,7 @@ pub async fn run_assistant(
 
     // Create a JSON object with run_id and thread_id
     let ids = serde_json::json!({
-        "run_id": run.id,
+        "run_id": run.inner.id,
         "thread_id": thread_id,
         "user_id": user_id
     });
@@ -173,8 +167,8 @@ pub async fn run_assistant(
     let updated_run = update_run_status(
         pool,
         thread_id,
-        run.id,
-        "queued".to_string(),
+        &run.inner.id,
+        RunStatus::Queued,
         &run.user_id,
         None,
     )
@@ -185,8 +179,8 @@ pub async fn run_assistant(
 
 pub async fn create_run(
     pool: &PgPool,
-    thread_id: i32,
-    assistant_id: i32,
+    thread_id: &str,
+    assistant_id: &str,
     instructions: &str,
     user_id: &str,
 ) -> Result<Run, sqlx::Error> {
@@ -197,52 +191,80 @@ pub async fn create_run(
         VALUES ($1, $2, $3, $4)
         RETURNING *
         "#,
-        thread_id,
-        assistant_id,
+        Uuid::parse_str(thread_id).unwrap(),
+        Uuid::parse_str(assistant_id).unwrap(),
         instructions,
-        user_id
+        Uuid::parse_str(user_id).unwrap()
     )
     .fetch_one(pool)
     .await?;
 
     Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        created_at: row.created_at,
-        object: row.object.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-            .unwrap_or_default(),
-        last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: Tool::from_value(row.tools),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: Some(
-            serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
+        inner: RunObject {
+            id: row.id.to_string(),
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            instructions: row.instructions.unwrap_or_default(),
+            created_at: row.created_at,
+            object: row.object.unwrap_or_default(),
+            status: match row.status.unwrap_or_default().as_str() {
+                "queued" => RunStatus::Queued,
+                "in_progress" => RunStatus::InProgress,
+                "requires_action" => RunStatus::RequiresAction,
+                "completed" => RunStatus::Completed,
+                "failed" => RunStatus::Failed,
+                "cancelled" => RunStatus::Cancelled,
+                _ => RunStatus::Queued,
+            },
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
                 .unwrap_or_default(),
-        ),
-        // Add other fields as necessary
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                .unwrap_or_default(),
+            expires_at: row.expires_at,
+            started_at: row.started_at,
+            cancelled_at: row.cancelled_at,
+            failed_at: row.failed_at,
+            completed_at: row.completed_at,
+            model: row.model.unwrap_or_default(),
+            tools: row
+                .tools
+                .unwrap_or_default()
+                .iter()
+                .map(|tools| {
+                    serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(|_| {
+                        AssistantTools::Retrieval(AssistantToolsRetrieval {
+                            r#type: "retrieval".to_string(),
+                        })
+                    })
+                })
+                .collect(),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: Some(
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                    row.metadata.unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            ),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn get_run(
     pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
+    thread_id: &str,
+    run_id: &str,
     user_id: &str,
 ) -> Result<Run, sqlx::Error> {
     info!("Getting run from database for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
-        SELECT * FROM runs WHERE id = $1 AND thread_id = $2 AND user_id = $3
+        SELECT * FROM runs WHERE id::text = $1 AND thread_id::text = $2 AND user_id::text = $3
         "#,
         run_id,
         thread_id,
@@ -262,37 +284,67 @@ pub async fn get_run(
     })?;
 
     Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        created_at: row.created_at,
-        object: row.object.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-            .unwrap_or_default(),
-        last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: Tool::from_value(row.tools),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: Some(
-            serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
+        inner: RunObject {
+            id: row.id.to_string(),
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            instructions: row.instructions.unwrap_or_default(),
+            created_at: row.created_at,
+            object: row.object.unwrap_or_default(),
+            status: match row.status.unwrap_or_default().as_str() {
+                "queued" => RunStatus::Queued,
+                "in_progress" => RunStatus::InProgress,
+                "requires_action" => RunStatus::RequiresAction,
+                "completed" => RunStatus::Completed,
+                "failed" => RunStatus::Failed,
+                "cancelled" => RunStatus::Cancelled,
+                "expired" => RunStatus::Expired,
+                "cancelling" => RunStatus::Cancelling,
+                _ => RunStatus::Queued,
+            },
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
                 .unwrap_or_default(),
-        ),
-        // Add other fields as necessary
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                .unwrap_or_default(),
+            expires_at: row.expires_at,
+            started_at: row.started_at,
+            cancelled_at: row.cancelled_at,
+            failed_at: row.failed_at,
+            completed_at: row.completed_at,
+            model: row.model.unwrap_or_default(),
+            tools: row
+                .tools
+                .unwrap_or_default()
+                .iter()
+                .map(|tools| {
+                    serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(|_| {
+                        AssistantTools::Retrieval(AssistantToolsRetrieval {
+                            r#type: "retrieval".to_string(),
+                        })
+                    })
+                })
+                .collect(),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: Some(
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                    row.metadata.unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            ),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn update_run(
     pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
+    thread_id: &str,
+    run_id: &str,
     metadata: std::collections::HashMap<String, String>,
     user_id: &str,
 ) -> Result<Run, sqlx::Error> {
@@ -301,7 +353,7 @@ pub async fn update_run(
         r#"
         UPDATE runs
         SET metadata = $1
-        WHERE id = $2 AND thread_id = $3 AND user_id = $4
+        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4
         RETURNING *
         "#,
         serde_json::to_value(metadata).unwrap(),
@@ -323,38 +375,66 @@ pub async fn update_run(
     })?;
 
     Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        created_at: row.created_at,
-        object: row.object.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-            .unwrap_or_default(),
-        last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: Tool::from_value(row.tools),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: Some(
-            serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
+        inner: RunObject {
+            id: row.id.to_string(),
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            instructions: row.instructions.unwrap_or_default(),
+            created_at: row.created_at,
+            object: row.object.unwrap_or_default(),
+            status: match row.status.unwrap_or_default().as_str() {
+                "queued" => RunStatus::Queued,
+                "in_progress" => RunStatus::InProgress,
+                "requires_action" => RunStatus::RequiresAction,
+                "completed" => RunStatus::Completed,
+                "failed" => RunStatus::Failed,
+                "cancelled" => RunStatus::Cancelled,
+                _ => RunStatus::Queued,
+            },
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
                 .unwrap_or_default(),
-        ),
-        // Add other fields as necessary
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                .unwrap_or_default(),
+            expires_at: row.expires_at,
+            started_at: row.started_at,
+            cancelled_at: row.cancelled_at,
+            failed_at: row.failed_at,
+            completed_at: row.completed_at,
+            model: row.model.unwrap_or_default(),
+            tools: row
+                .tools
+                .unwrap_or_default()
+                .iter()
+                .map(|tools| {
+                    serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(|_| {
+                        AssistantTools::Retrieval(AssistantToolsRetrieval {
+                            r#type: "retrieval".to_string(),
+                        })
+                    })
+                })
+                .collect(),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: Some(
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                    row.metadata.unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            ),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn update_run_status(
     pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
-    status: String,
+    thread_id: &str,
+    run_id: &str,
+    status: RunStatus,
     user_id: &str,
     required_action: Option<RequiredAction>,
 ) -> Result<Run, sqlx::Error> {
@@ -363,10 +443,19 @@ pub async fn update_run_status(
         r#"
         UPDATE runs
         SET status = $1, required_action = COALESCE($5, required_action)
-        WHERE id = $2 AND thread_id = $3 AND user_id = $4
+        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4
         RETURNING *
         "#,
-        status,
+        match status {
+            RunStatus::Queued => "queued",
+            RunStatus::InProgress => "in_progress",
+            RunStatus::RequiresAction => "requires_action",
+            RunStatus::Completed => "completed",
+            RunStatus::Failed => "failed",
+            RunStatus::Cancelled => "cancelled",
+            RunStatus::Expired => "expired",
+            RunStatus::Cancelling => "cancelling",
+        },
         run_id,
         thread_id,
         &user_id,
@@ -389,16 +478,16 @@ pub async fn update_run_status(
 
     // If required_action is present, create tool_calls rows
     if let Some(action) = required_action {
-        futures::stream::iter(action.submit_tool_outputs.unwrap().tool_calls.iter())
+        futures::stream::iter(action.submit_tool_outputs.tool_calls.iter())
             .then(|tool_call| async move {
                 let _ = sqlx::query!(
                     r#"
                     INSERT INTO tool_calls (id, run_id, user_id)
                     VALUES ($1, $2, $3)
                     "#,
-                    tool_call.id,
-                    run_id,
-                    user_id,
+                    Uuid::parse_str(&tool_call.id).unwrap(),
+                    Uuid::parse_str(run_id).unwrap(),
+                    Uuid::parse_str(user_id).unwrap(),
                 )
                 .execute(pool)
                 .await;
@@ -408,46 +497,74 @@ pub async fn update_run_status(
     }
 
     Ok(Run {
-        id: row.id,
-        thread_id: row.thread_id.unwrap_or_default(),
-        assistant_id: row.assistant_id.unwrap_or_default(),
-        instructions: row.instructions.unwrap_or_default(),
-        user_id: row.user_id.unwrap_or_default(),
-        created_at: row.created_at,
-        object: row.object.unwrap_or_default(),
-        status: row.status.unwrap_or_default(),
-        required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-            .unwrap_or_default(),
-        last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
-        expires_at: row.expires_at.unwrap_or_default(),
-        started_at: row.started_at,
-        cancelled_at: row.cancelled_at,
-        failed_at: row.failed_at,
-        completed_at: row.completed_at,
-        model: row.model.unwrap_or_default(),
-        tools: Tool::from_value(row.tools),
-        file_ids: row.file_ids.unwrap_or_default(),
-        metadata: Some(
-            serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
+        inner: RunObject {
+            id: row.id.to_string(),
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            instructions: row.instructions.unwrap_or_default(),
+            created_at: row.created_at,
+            object: row.object.unwrap_or_default(),
+            status: match row.status.unwrap_or_default().as_str() {
+                "queued" => RunStatus::Queued,
+                "in_progress" => RunStatus::InProgress,
+                "requires_action" => RunStatus::RequiresAction,
+                "completed" => RunStatus::Completed,
+                "failed" => RunStatus::Failed,
+                "cancelled" => RunStatus::Cancelled,
+                _ => RunStatus::Queued,
+            },
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
                 .unwrap_or_default(),
-        ),
-        // Add other fields as necessary
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                .unwrap_or_default(),
+            expires_at: row.expires_at,
+            started_at: row.started_at,
+            cancelled_at: row.cancelled_at,
+            failed_at: row.failed_at,
+            completed_at: row.completed_at,
+            model: row.model.unwrap_or_default(),
+            tools: row
+                .tools
+                .unwrap_or_default()
+                .iter()
+                .map(|tools| {
+                    serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(|_| {
+                        AssistantTools::Retrieval(AssistantToolsRetrieval {
+                            r#type: "retrieval".to_string(),
+                        })
+                    })
+                })
+                .collect(),
+            file_ids: row
+                .file_ids
+                .unwrap_or_default()
+                .iter()
+                .map(|file_id| file_id.to_string())
+                .collect(),
+            metadata: Some(
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                    row.metadata.unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            ),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
 pub async fn delete_run(
     pool: &PgPool,
-    thread_id: i32,
-    run_id: i32,
+    thread_id: &str,
+    run_id: &str,
     user_id: &str,
 ) -> Result<(), sqlx::Error> {
     info!("Deleting run for run_id: {}", run_id);
     sqlx::query!(
         r#"
         DELETE FROM runs
-        WHERE id = $1
-        AND thread_id = $2
-        AND user_id = $3
+        WHERE id::text = $1
+        AND thread_id::text = $2
+        AND user_id::text = $3
         "#,
         run_id,
         thread_id,
@@ -471,15 +588,15 @@ pub async fn delete_run(
 
 pub async fn list_runs(
     pool: &PgPool,
-    thread_id: i32,
+    thread_id: &str,
     user_id: &str,
 ) -> Result<Vec<Run>, sqlx::Error> {
     info!("Listing runs for thread_id: {}", thread_id);
     let rows = sqlx::query!(
         r#"
         SELECT * FROM runs
-        WHERE thread_id = $1
-        AND user_id = $2
+        WHERE thread_id::text = $1
+        AND user_id::text = $2
         "#,
         thread_id,
         user_id,
@@ -500,31 +617,62 @@ pub async fn list_runs(
     let runs = rows
         .into_iter()
         .map(|row| Run {
-            id: row.id,
-            thread_id: row.thread_id.unwrap_or_default(),
-            assistant_id: row.assistant_id.unwrap_or_default(),
-            instructions: row.instructions.unwrap_or_default(),
-            user_id: row.user_id.unwrap_or_default(),
-            created_at: row.created_at,
-            object: row.object.unwrap_or_default(),
-            status: row.status.unwrap_or_default(),
-            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                .unwrap_or_default(),
-            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                .unwrap_or_default(),
-            expires_at: row.expires_at.unwrap_or_default(),
-            started_at: row.started_at,
-            cancelled_at: row.cancelled_at,
-            failed_at: row.failed_at,
-            completed_at: row.completed_at,
-            model: row.model.unwrap_or_default(),
-            tools: Tool::from_value(row.tools),
-            file_ids: row.file_ids.unwrap_or_default(),
-            metadata: Some(
-                serde_json::from_value::<HashMap<String, String>>(row.metadata.unwrap_or_default())
+            inner: RunObject {
+                id: row.id.to_string(),
+                thread_id: row.thread_id.unwrap_or_default().to_string(),
+                assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+                instructions: row.instructions.unwrap_or_default(),
+                created_at: row.created_at,
+                object: row.object.unwrap_or_default(),
+                status: match row.status.unwrap_or_default().as_str() {
+                    "queued" => RunStatus::Queued,
+                    "in_progress" => RunStatus::InProgress,
+                    "requires_action" => RunStatus::RequiresAction,
+                    "completed" => RunStatus::Completed,
+                    "failed" => RunStatus::Failed,
+                    "cancelled" => RunStatus::Cancelled,
+                    "expired" => RunStatus::Expired,
+                    "cancelling" => RunStatus::Cancelling,
+                    _ => RunStatus::Queued,
+                },
+                required_action: serde_json::from_value(row.required_action.unwrap_or_default())
                     .unwrap_or_default(),
-            ),
-            // Add other fields as necessary
+                last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                    .unwrap_or_default(),
+                expires_at: row.expires_at,
+                started_at: row.started_at,
+                cancelled_at: row.cancelled_at,
+                failed_at: row.failed_at,
+                completed_at: row.completed_at,
+                model: row.model.unwrap_or_default(),
+                tools: row
+                    .tools
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|tools| {
+                        serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(
+                            |_| {
+                                AssistantTools::Retrieval(AssistantToolsRetrieval {
+                                    r#type: "retrieval".to_string(),
+                                })
+                            },
+                        )
+                    })
+                    .collect(),
+                file_ids: row
+                    .file_ids
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|file_id| file_id.to_string())
+                    .collect(),
+                metadata: Some(
+                    serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                        row.metadata.unwrap_or_default(),
+                    )
+                    .unwrap_or_default(),
+                ),
+            },
+            user_id: row.user_id.unwrap_or_default().to_string(),
         })
         .collect();
 
@@ -534,10 +682,13 @@ pub async fn list_runs(
 #[cfg(test)]
 mod tests {
     use crate::assistants::create_assistant;
-    use crate::models::{Assistant, SubmitToolOutputs, ToolCall, ToolCallFunction};
+    use crate::models::Assistant;
     use crate::threads::create_thread;
 
     use super::*;
+    use async_openai::types::{
+        AssistantObject, FunctionCall, RunToolCallObject, SubmitToolOutputs,
+    };
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
     use std::env;
@@ -579,27 +730,26 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
         let assistant = Assistant {
-            id: 1,
-            instructions: Some(
-                "You are a personal math tutor. Write and run code to answer math questions."
-                    .to_string(),
-            ),
-            name: Some("Math Tutor".to_string()),
-            tools: vec![Tool {
-                r#type: "yo".to_string(),
-                function: None,
-            }],
-            model: "claude-2.1".to_string(),
-            user_id: "user1".to_string(),
-            file_ids: None,
-            object: "object_value".to_string(),
-            created_at: 0,
-            description: Some("description_value".to_string()),
-            metadata: None,
+            inner: AssistantObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                name: Some("Math Tutor".to_string()),
+                description: None,
+                model: "claude-2.1".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                tools: vec![],
+                file_ids: vec![],
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string()
         };
         create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
-        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
         println!("thread: {:?}", thread);
 
         // Get Redis URL from environment variable
@@ -609,10 +759,10 @@ mod tests {
 
         let result = run_assistant(
             &pool,
-            thread.id,
-            assistant.id,
+            &thread.inner.id,
+            &assistant.inner.id,
             "Please address the user as Jane Doe. The user has a premium account.",
-            assistant.user_id.as_str(),
+            &assistant.user_id,
             con,
         )
         .await; // Use the id of the new thread
@@ -632,20 +782,20 @@ mod tests {
         // Create a required action with tool calls
         let required_action = Some(RequiredAction {
             r#type: "action_type".to_string(), // Add the missing field
-            submit_tool_outputs: Some(SubmitToolOutputs {
-                tool_calls: vec![ToolCall {
+            submit_tool_outputs: SubmitToolOutputs {
+                tool_calls: vec![RunToolCallObject {
                     id: uuid::Uuid::new_v4().to_string(),
                     r#type: "tool_call_type".to_string(),
-                    function: ToolCallFunction {
+                    function: FunctionCall {
                         name: "tool_call_function_name".to_string(),
                         arguments: {
                             let mut map = HashMap::new();
                             map.insert("key".to_string(), "value".to_string());
-                            Some(map)
+                            serde_json::to_string(&map).unwrap()
                         },
                     },
                 }],
-            }),
+            },
             // Add other fields as necessary
         });
 
@@ -653,35 +803,34 @@ mod tests {
         let assistant = create_assistant(
             &pool,
             &Assistant {
-                id: 1,
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![Tool {
-                    r#type: "yo".to_string(),
-                    function: None,
-                }],
-                model: "claude-2.1".to_string(),
-                user_id: "user1".to_string(),
-                file_ids: None,
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
+                inner: AssistantObject {
+                    id: "".to_string(),
+                    object: "".to_string(),
+                    created_at: 0,
+                    name: Some("Math Tutor".to_string()),
+                    description: None,
+                    model: "claude-2.1".to_string(),
+                    instructions: Some(
+                        "You are a personal math tutor. Write and run code to answer math questions."
+                            .to_string(),
+                    ),
+                    tools: vec![],
+                    file_ids: vec![],
+                    metadata: None,
+                },
+                user_id: Uuid::default().to_string()
+            }
         )
         .await
         .unwrap();
 
-        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
         let run = create_run(
             &pool,
-            thread.id,
-            assistant.id, // assistant_id
+            &thread.inner.id,
+            &assistant.inner.id, // assistant_id
             "Please address the user as Jane Doe. The user has a premium account.",
-            "user1", // user_id
+            &Uuid::default().to_string() // user_id
         )
         .await
         .unwrap();
@@ -689,20 +838,23 @@ mod tests {
         // Call the function with the required action
         let run = update_run_status(
             &pool,
-            thread.id, // thread_id
-            run.id,    // run_id
-            "queued".to_string(),
-            "user1", // user_id
+            &thread.inner.id, // thread_id
+            &run.inner.id,    // run_id
+            RunStatus::Queued,
+            &Uuid::default().to_string(), // user_id
             required_action,
         )
         .await
         .unwrap();
 
         // Query the database to check if the tool calls were inserted
-        let rows = sqlx::query!("SELECT * FROM tool_calls WHERE run_id = $1", run.id)
-            .fetch_all(&pool)
-            .await
-            .unwrap();
+        let rows = sqlx::query!(
+            "SELECT * FROM tool_calls WHERE run_id = $1",
+            Uuid::parse_str(&run.inner.id).unwrap()
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
 
         // Assert that the number of rows is equal to the number of tool calls
         assert_eq!(rows.len(), 1);
@@ -714,48 +866,48 @@ mod tests {
         reset_db(&pool).await;
 
         // create run and thread and assistant
-        let thread = create_thread(&pool, "user1").await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
         let assistant = create_assistant(
             &pool,
             &Assistant {
-                id: 1,
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![Tool {
-                    r#type: "yo".to_string(),
-                    function: None,
-                }],
-                model: "claude-2.1".to_string(),
-                user_id: "user1".to_string(),
-                file_ids: None,
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
+                inner: AssistantObject {
+                    id: "".to_string(),
+                    object: "".to_string(),
+                    created_at: 0,
+                    name: Some("Math Tutor".to_string()),
+                    description: None,
+                    model: "claude-2.1".to_string(),
+                    instructions: Some(
+                        "You are a personal math tutor. Write and run code to answer math questions."
+                            .to_string(),
+                    ),
+                    tools: vec![],
+                    file_ids: vec![],
+                    metadata: None,
+                },
+                user_id: Uuid::default().to_string()
+            }
         )
         .await
         .unwrap();
         let run = create_run(
             &pool,
-            thread.id,
-            assistant.id, // assistant_id
+            &thread.inner.id,
+            &assistant.inner.id, // assistant_id
             "Please address the user as Jane Doe. The user has a premium account.",
-            "user1", // user_id
+            &Uuid::default().to_string()
         )
         .await
         .unwrap();
-        let user_id = "user1";
+        let user_id = Uuid::default().to_string();
         let tool_call_id = "call_abc123";
+        let id = run.inner.id.clone();
 
         // Create a tool output
         let tool_output = SubmittedToolCall {
             id: tool_call_id.to_string(),
             output: "0".to_string(),
-            run_id: run.id,
+            run_id: id.clone(),
             created_at: 0,
             user_id: user_id.to_string(),
         };
@@ -765,8 +917,15 @@ mod tests {
         let con = client.get_async_connection().await.unwrap();
 
         // Submit the tool output
-        let result =
-            submit_tool_outputs(&pool, thread.id, run.id, user_id, vec![tool_output], con).await;
+        let result = submit_tool_outputs(
+            &pool,
+            &thread.inner.id,
+            &id,
+            &user_id,
+            vec![tool_output],
+            con,
+        )
+        .await;
         // shuould be Err(Configuration("Run is not in status requires_action"))
         assert!(!result.is_ok(), "should be Err");
     }

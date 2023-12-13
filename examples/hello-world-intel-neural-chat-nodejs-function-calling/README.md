@@ -142,7 +142,6 @@ createAssistant();
     {
       "type": "function",
       "function": {
-        "user_id": "",
         "name": "getCurrentWeather",
         "description": "Get the weather in location",
         "parameters": {
@@ -168,7 +167,6 @@ createAssistant();
   ],
   "file_ids": null,
   "metadata": null,
-  "user_id": "user1"
 }
 ```
 
@@ -184,7 +182,6 @@ createThread();
 ```json
 {
   "id": 1,
-  "user_id": "user1",
   "file_ids": null,
   "object": "",
   "created_at": 1702071499412,
@@ -228,7 +225,6 @@ createMessage();
   "run_id": null,
   "file_ids": null,
   "metadata": null,
-  "user_id": "user1"
 }
 ```
 5. **Run the Assistant**
@@ -268,7 +264,6 @@ createRun();
   "tools": [],
   "file_ids": [],
   "metadata": {},
-  "user_id": "user1"
 }
 ```
 6. **Check the Run Status**
@@ -319,7 +314,6 @@ getRun();
   "tools": [],
   "file_ids": [],
   "metadata": {},
-  "user_id": "user1"
 }
 ```
 
@@ -391,7 +385,6 @@ submitToolOutputs();
   "tools": [],
   "file_ids": [],
   "metadata": {},
-  "user_id": "user1"
 }
 ```
 
@@ -430,7 +423,6 @@ getMessages();
       "run_id": null,
       "file_ids": null,
       "metadata": null,
-      "user_id": "user1"
     },
     {
       "id": 2,
@@ -451,7 +443,6 @@ getMessages();
       "run_id": null,
       "file_ids": null,
       "metadata": null,
-      "user_id": "user1"
     }
   ]
 }

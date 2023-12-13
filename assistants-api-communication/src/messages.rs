@@ -1,10 +1,12 @@
-use assistants_api_communication::models::{
-    AppState, CreateMessage, ListMessagesResponse, UpdateMessage,
-};
+use assistants_api_communication::models::AppState;
 use assistants_core::messages::{
     add_message_to_thread, delete_message, get_message, list_messages, update_message,
 };
-use assistants_core::models::{Content, Message, Text};
+use assistants_core::models::Message;
+use async_openai::types::{
+    CreateMessageRequest, ListMessagesResponse, MessageContent, MessageContentTextObject,
+    MessageObject, MessageRole, ModifyMessageRequest, TextData,
+};
 use axum::extract::Query;
 use axum::{
     extract::{Json, Path, State},
@@ -12,44 +14,53 @@ use axum::{
     response::Json as JsonResponse,
 };
 use log::error;
+use sqlx::types::Uuid;
 
 use crate::models::ListMessagePaginationParams;
 
 pub async fn add_message_handler(
-    Path((thread_id,)): Path<(i32,)>,
+    Path((thread_id,)): Path<(String,)>,
     State(app_state): State<AppState>,
-    Json(message): Json<CreateMessage>,
-) -> Result<JsonResponse<Message>, (StatusCode, String)> {
-    let user_id = "user1";
+    Json(message): Json<CreateMessageRequest>,
+) -> Result<JsonResponse<MessageObject>, (StatusCode, String)> {
+    let user_id = Uuid::default().to_string();
+
+    let content = vec![MessageContent::Text(MessageContentTextObject {
+        r#type: "text".to_string(),
+        text: TextData {
+            value: message.content,
+            annotations: vec![],
+        },
+    })];
     let message = add_message_to_thread(
         &app_state.pool,
-        thread_id,
-        "user",
-        vec![Content {
-            r#type: "text".to_string(),
-            text: Text {
-                value: message.content,
-                annotations: vec![],
-            },
-        }],
-        user_id,
+        &thread_id,
+        MessageRole::User,
+        content,
+        &user_id,
         None,
     )
     .await;
     match message {
-        Ok(message) => Ok(JsonResponse(message)),
+        Ok(message) => Ok(JsonResponse(message.inner)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
 }
 
 // Fetch a specific message
 pub async fn get_message_handler(
-    Path((thread_id, message_id)): Path<(i32, i32)>,
+    Path((thread_id, message_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
-) -> Result<JsonResponse<Message>, (StatusCode, String)> {
-    let message = get_message(&app_state.pool, thread_id, message_id, "user1").await;
+) -> Result<JsonResponse<MessageObject>, (StatusCode, String)> {
+    let message = get_message(
+        &app_state.pool,
+        &thread_id,
+        &message_id,
+        &Uuid::default().to_string(),
+    )
+    .await;
     match message {
-        Ok(message) => Ok(JsonResponse(message)),
+        Ok(message) => Ok(JsonResponse(message.inner)),
         Err(e) => {
             let error_message = e.to_string();
             error!("Failed to get message: {}", error_message);
@@ -60,47 +71,46 @@ pub async fn get_message_handler(
 
 // Update a specific message
 pub async fn update_message_handler(
-    Path((thread_id, message_id)): Path<(i32, i32)>,
+    Path((thread_id, message_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
-    Json(message_input): Json<UpdateMessage>,
-) -> Result<JsonResponse<Message>, (StatusCode, String)> {
+    Json(message_input): Json<ModifyMessageRequest>,
+) -> Result<JsonResponse<MessageObject>, (StatusCode, String)> {
     let message = update_message(
         &app_state.pool,
-        thread_id,
-        message_id,
-        "user1",
+        &thread_id,
+        &message_id,
+        &Uuid::default().to_string(),
         message_input.metadata,
     )
     .await;
     match message {
-        Ok(message) => Ok(JsonResponse(message)),
+        Ok(message) => Ok(JsonResponse(message.inner)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
 }
 
 // Delete a specific message
-pub async fn delete_message_handler(
-    Path((thread_id, message_id)): Path<(i32, i32)>,
+pub async fn delete_message_handler( // TODO: does not exist?
+    Path((thread_id, message_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<()>, (StatusCode, String)> {
-    let result = delete_message(&app_state.pool, thread_id, message_id, "user1").await;
+    let result = delete_message(
+        &app_state.pool,
+        &thread_id,
+        &message_id,
+        &Uuid::default().to_string(),
+    )
+    .await;
     match result {
         Ok(_) => Ok(JsonResponse(())),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
 }
-// pub struct ListMessagesResponse {
-//     pub object: String,
-//     pub data: Vec<MessageObject>,
-//     pub first_id: String,
-//     pub last_id: String,
-//     pub has_more: bool,
-// }
 
 // List all messages from an assistant
 pub async fn list_messages_handler(
     // TODO: impl pagination properly
-    Path((thread_id,)): Path<(i32,)>,
+    Path((thread_id,)): Path<(String,)>,
     Query(pagination_params): Query<ListMessagePaginationParams>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<ListMessagesResponse>, (StatusCode, String)> {
@@ -112,8 +122,8 @@ pub async fn list_messages_handler(
     // } = pagination_params;
     let messages = list_messages(
         &app_state.pool,
-        thread_id,
-        "user1",
+        &thread_id,
+        &Uuid::default().to_string(),
         // limit,
         // order,
         // after,
@@ -124,14 +134,8 @@ pub async fn list_messages_handler(
         Ok(messages) => Ok(JsonResponse(ListMessagesResponse {
             object: "list".to_string(),
             data: messages.clone().into_iter().map(|m| m.into()).collect(),
-            first_id: messages
-                .first()
-                .map(|m| m.id.to_string())
-                .unwrap_or_default(),
-            last_id: messages
-                .last()
-                .map(|m| m.id.to_string())
-                .unwrap_or_default(),
+            first_id: messages.first().map(|m| m.inner.id.to_string()),
+            last_id: messages.last().map(|m| m.inner.id.to_string()),
             // has_more: messages.len() == limit as usize,
             has_more: false,
         })),
