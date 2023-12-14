@@ -43,7 +43,7 @@ const assistant = await openai.beta.assistants.create({
 });
 ```
 
-[👉 Get started on your machine right now.](./examples/hello-world-anthropic-curl/README.md)
+[👉 Get started on your machine right now.](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md)
 
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
@@ -77,4 +77,4 @@ const assistant = await openai.beta.assistants.create({
 - **For Innovators**: Looking for an edge in AI? Here's where you leapfrog the competition.
 - **For the Visionaries**: Dreamt of a custom AI assistant? Let's make it a reality.
 
-Ready to build your AI assistant with freedom? [Start here.](./examples/hello-world-anthropic-curl/README.md)
+Ready to build your AI assistant with freedom? [Start here.](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md)
