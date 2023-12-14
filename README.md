@@ -20,13 +20,14 @@
 
 # Quickstart
 
-```ts
+```diff
 // Import the essentials
 const assistant = await openai.beta.assistants.create({
   // Define your assistant's purpose
   instructions: "You are a weather bot. Fetch and display weather data.",
   // Choose your model
-  model: "OpenSourceModel/your-model-v1",
+-  model: "gpt4",
++  model: "OpenSourceModel/your-model-v1",
   // Set up the tools for your assistant
   tools: [{
     "type": "function",
@@ -72,9 +73,35 @@ const assistant = await openai.beta.assistants.create({
   - [x] pdf, text files
   - [ ] images, videos, etc. (We're working on it!)
 
+## What can you build with Assistants?
+
+- [Perplexity for Astronauts: Stellar Amenities uses Assistants to let the LLM automatically find the right information on the spacecraft to help Astronauts](https://ai.stellaramenities.space)
+
 ## Join the Movement
 - **For Developers**: We've got the docs, tools, and a community ready to help you build what's next.
 - **For Innovators**: Looking for an edge in AI? Here's where you leapfrog the competition.
 - **For the Visionaries**: Dreamt of a custom AI assistant? Let's make it a reality.
 
 Ready to build your AI assistant with freedom? [Start here.](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md)
+
+## Deployment
+
+Please follow [this documentation](https://github.com/stellar-amenities/assistants/blob/main/ee/k8s/README.md).
+
+## FAQ
+
+<details>
+<summary>What's the difference with LangChain?</summary>
+LangChain offers detailed control over AI conversations, while OpenAI's Assistants API simplifies the process, managing conversation history, data/vector store, and tool switching for you.
+</details>
+
+<details>
+<summary>Are you related to OpenAI?</summary>
+No.
+</details>
+
+<details>
+<summary>I don't use Assistants API. Can I use this?</summary>
+We recommend switching to the Assistants API for a more streamlined experience, allowing you to focus more on your product than on infrastructure.
+</details>
+
