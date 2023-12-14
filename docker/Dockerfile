@@ -18,7 +18,7 @@ COPY . /app
 # Start a new stage to create a lean final image
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y libssl-dev openssl
+RUN apt-get update && apt-get install -y libssl-dev openssl curl
 
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@pg:5432/mydatabase
