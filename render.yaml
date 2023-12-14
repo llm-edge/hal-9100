@@ -1,7 +1,7 @@
 services:
   - type: pserv
     name: assistants
-    env: docker
+    runtime: image
     dockerCommand: "/bin/bash -c 'curl -L https://raw.githubusercontent.com/stellar-amenities/assistants/main/assistants-core/src/migrations.sql -o migrations.sql && psql -U postgres -d mydatabase -f migrations.sql && /app/entrypoint.sh'"
     image: 
       url: stellar-amenities/assistants/assistants:latest
