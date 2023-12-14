@@ -52,40 +52,11 @@ server: ## Run the server
 all:
 	@$(MAKE) -j2 consumer server
 
-display: ## Display the ascii art
-	@echo "$$ASCII_ART"
-
-define ASCII_ART
- ________  ________   ________  ___  ________  _________  ________  ________   _________  ________      
-|\   __  \|\   ____\ |\   ____\|\  \|\   ____\|\___   ___\\   __  \|\   ___  \|\___   ___\\   ____\     
-\ \  \|\  \ \  \___|_\ \  \___|\ \  \ \  \___|\|___ \  \_\ \  \|\  \ \  \\ \  \|___ \  \_\ \  \___|_    
- \ \   __  \ \_____  \\ \_____  \ \  \ \_____  \   \ \  \ \ \   __  \ \  \\ \  \   \ \  \ \ \_____  \   
-  \ \  \ \  \|____|\  \\|____|\  \ \  \|____|\  \   \ \  \ \ \  \ \  \ \  \\ \  \   \ \  \ \|____|\  \  
-   \ \__\ \__\____\_\  \ ____\_\  \ \__\____\_\  \   \ \__\ \ \__\ \__\ \__\\ \__\   \ \__\  ____\_\  \ 
-    \|__|\|__|\_________\\_________\|__|\_________\   \|__|  \|__|\|__|\|__| \|__|    \|__| |\_________\
-             \|_________\|_________|   \|_________|                                         \|_________|
-                                                                                                        
-						___                          ___                          ___     
-						/__/\                        /__/\                        /__/\    
-						\  \:\                       \  \:\                       \  \:\   
-						\__\:\                       \__\:\                       \__\:\  
-						/  /::\                      /  /::\                      /  /::\ 
-						/  /:/\:\                    /  /:/\:\                    /  /:/\:\
-						/  /:/__\/                   /  /:/__\/                   /  /:/__\/
-					/__/:/                       /__/:/                       /__/:/     
-					\__\/                        \__\/                        \__\/      
-																							
-endef
-export ASCII_ART
-
 
 ## Test all
 test: ## Run all tests
 	@set -a && . .env && set +a && \
 	RUST_TEST_THREADS=1 cargo test --features ci
-
-
-# ! very experimental :D 
 
 
 VENV_PATH ?= ${HOME}/Documents/FastChat/env
@@ -148,3 +119,12 @@ dev-all: reboot
 ## Build the Docker image for the code interpreter
 docker-build-code-interpreter: ## Build the Docker image for the code interpreter
 	docker build -f docker/Dockerfile.code-interpreter -t code-interpreter .
+
+## Run remote Docker image of Assistants plus the databases
+docker-run-remote: ## Run remote Docker image of Assistants plus the databases
+	docker-compose -f docker/docker-compose.yml up -d
+	@echo "Waiting for the databases to be ready..."
+	@while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
+	@docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
+	@docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+	docker run --platform linux/arm64 --env-file .env -p 8080:8080 ghcr.io/stellar-amenities/assistants/assistants:latest
