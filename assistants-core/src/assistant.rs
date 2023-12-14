@@ -1342,7 +1342,7 @@ mod tests {
             &pool,
             &thread.inner.id,
             &assistant.inner.id,
-            "You help me.",
+            "You help me by using the tools you have.",
             assistant.user_id.as_str(),
             con,
         )
