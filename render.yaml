@@ -1,4 +1,36 @@
+databases:
+  - name: pg
+    plan: free
+    databaseName: mydatabase
+    user: valid_user_name
+
 services:
+  - type: redis
+    name: redis
+    ipAllowList: # required
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free
+    maxmemoryPolicy: noeviction # optional (defaults to allkeys-lru)
+
+  - type: web
+    name: minio
+    runtime: image
+    image:
+      url: docker.io/minio/minio:RELEASE.2023-08-04T17-40-21Z.hotfix.04968f7ec
+    dockerCommand: minio server /data
+    autoDeploy: false
+    disk:
+      name: data
+      mountPath: /data
+    envVars:
+      - key: MINIO_ACCESS_KEY
+        value: "minioadmin"
+      - key: MINIO_SECRET_KEY
+        value: "minioadmin"
+      - key: MINIO_BROWSER
+        value: "off"
+
   - type: pserv
     name: assistants
     runtime: image
@@ -29,33 +61,4 @@ services:
       - key: S3_BUCKET_NAME
         value: "mybucket"
 
-  - type: redis
-    name: redis
-    ipAllowList: # required
-      - source: 0.0.0.0/0
-        description: everywhere
-    plan: free
-    maxmemoryPolicy: noeviction # optional (defaults to allkeys-lru)
 
-  - type: web
-    name: minio
-    runtime: image
-    image:
-      url: docker.io/minio/minio:RELEASE.2023-08-04T17-40-21Z.hotfix.04968f7ec
-    dockerCommand: minio server /data
-    autoDeploy: false
-    disk:
-      name: data
-      mountPath: /data
-    envVars:
-      - key: MINIO_ACCESS_KEY
-        value: "minioadmin"
-      - key: MINIO_SECRET_KEY
-        value: "minioadmin"
-      - key: MINIO_BROWSER
-        value: "off"
-databases:
-  - name: pg
-    plan: free
-    databaseName: mydatabase
-    user: valid_user_name
