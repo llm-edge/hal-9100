@@ -30,7 +30,7 @@ services:
         value: "mybucket"
 
   - type: redis
-    name: lightning
+    name: redis
     ipAllowList: # required
       - source: 0.0.0.0/0
         description: everywhere
