@@ -3,7 +3,7 @@
 <img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/d160b5b6-450b-469f-ba6b-929de2e87bcf">
   <h1 align="center">⭐️ Open Source Assistants API</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
-  <h4 align="center">Why pay more for less? Go beyond with your own models – Free, Open, Unmatched.</h4>
+  <h4 align="center">75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
   <p align="center">
     <a href="https://discord.gg/XMetBW3zCG"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
     <hr />
@@ -105,3 +105,8 @@ No.
 We recommend switching to the Assistants API for a more streamlined experience, allowing you to focus more on your product than on infrastructure.
 </details>
 
+<details>
+<summary>Does the Assistants API support audio and images?</summary>
+Images soon, working on it.
+Audio in a few weeks.
+</details>
