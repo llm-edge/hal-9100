@@ -1,13 +1,15 @@
 
 
 // This example demonstrates how to use the Open Source Assistants API to create an assistant that can answer questions about the weather.
-// 1. Start Postgres, Redis, and Minio:
+// 1. Get an API key from Perplexity https://docs.perplexity.ai/docs
+// and place in .env MODEL_API_KEY="get it here https://docs.perplexity.ai/docs"
+// 2. Start Postgres, Redis, and Minio:
 // make reboot
-// 2. In another terminal, start the API server:
+// 3. In another terminal, start the API server:
 // make all
-// 3. In another terminal, install OpenAI SDK:
+// 4. In another terminal, install OpenAI SDK:
 // npm i openai
-// 4. Run this script:
+// 5. Run this script:
 // node ./examples/quickstart.js
 
 const OpenAI = require('openai');

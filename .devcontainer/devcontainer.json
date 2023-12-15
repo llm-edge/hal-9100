@@ -27,11 +27,10 @@
 	// "shutdownAction": "none",
 	// Uncomment the next line to run commands after the container is created.
 	// TODO: crashes
-	// "postCreateCommand": "make reboot",
-	// "postStartCommand": [
-	// 	"npm i openai",
-	// 	"echo 'You can now execute the quickstart using: node ./examples/quickstart.js'"
-	// ],
+	"postCreateCommand": "cp .env.example .env",
+	"postStartCommand": [
+		"npm i openai"
+	],
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -42,6 +41,7 @@
 		},
 		"codespaces": {
 			"openFiles": [
+				"examples/README.md",
 				"examples/quickstart.js"
 			]
 		}
