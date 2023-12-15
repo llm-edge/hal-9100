@@ -1,5 +1,7 @@
 # Deploying Assistants to Kubernetes
 
+If you want to run this, please DM @louis030195 (Discord, Twitter, etc.). He will help you instantly.
+
 At the moment the simplest way to deploy Assistants is on Kubernetes.
 
 First, you need to deploy an LLM. 
