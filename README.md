@@ -1,6 +1,6 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/d160b5b6-450b-469f-ba6b-929de2e87bcf">
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/204370dd-a5d6-4d7d-af29-8b9be389b362">
   <h1 align="center">⭐️ Open Source Assistants API</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
   <h4 align="center">75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
