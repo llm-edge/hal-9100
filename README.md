@@ -5,6 +5,8 @@
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
   <h4 align="center">75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
   <p align="center">
+    <a href='https://codespaces.new/stellar-amenities/assistants?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
+    <br />
     <a href="https://discord.gg/XMetBW3zCG"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
     <hr />
     <a href="https://cal.com/louis030195/unleash-llms">📞 Need Support? We're here for you.</a>
