@@ -26,13 +26,20 @@
 	// Uncomment the next line if you want to keep your containers running after VS Code shuts down.
 	// "shutdownAction": "none",
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "make reboot",
-	"postStartCommand": [
-		"npm i openai",
-		"echo 'You can now execute the quickstart using: node ./examples/quickstart.js'"
-	],
+	// TODO: crashes
+	// "postCreateCommand": "make reboot",
+	// "postStartCommand": [
+	// 	"npm i openai",
+	// 	"echo 'You can now execute the quickstart using: node ./examples/quickstart.js'"
+	// ],
 	// Configure tool-specific properties.
 	"customizations": {
+		"vscode": {
+			// Disable opening the Welcome page when VS Code starts up.
+			"settings": {
+				"workbench.startupEditor": "none"
+			}
+		},
 		"codespaces": {
 			"openFiles": [
 				"examples/quickstart.js"

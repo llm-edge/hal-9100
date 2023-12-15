@@ -1,9 +1,13 @@
 
 
 // This example demonstrates how to use the Open Source Assistants API to create an assistant that can answer questions about the weather.
-// Just run:
+// 1. Start Postgres, Redis, and Minio:
+// make reboot
+// 2. In another terminal, start the API server:
 // make all
-// And in another terminal:
+// 3. In another terminal, install OpenAI SDK:
+// npm i openai
+// 4. Run this script:
 // node ./examples/quickstart.js
 
 const OpenAI = require('openai');
