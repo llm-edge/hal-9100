@@ -34,7 +34,7 @@
 	// "shutdownAction": "none",
 
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "cp .env.example .env && echo 'Please make sure to fill env var properly in .env'",
+	"postStartCommand": "cp .env.example .env && echo 'Please make sure to fill env var properly in .env' && make reboot",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
