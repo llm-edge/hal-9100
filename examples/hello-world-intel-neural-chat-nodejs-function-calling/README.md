@@ -88,6 +88,9 @@ You should see something like this:
 1. **Start the server**
 
 ```bash
+# This will start postgres, redis, minio
+make reboot
+# This will start the API server
 make all
 ```
 

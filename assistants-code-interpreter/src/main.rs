@@ -21,10 +21,13 @@ use bollard::models::HostConfig;
 use bollard::Docker;
 use futures::stream::StreamExt;
 use serde_json::json;
-use uuid::Uuid;
 use std::collections::HashMap;
 use std::default::Default;
 use std::io::{self, Write};
+use uuid::Uuid;
+
+// TODO: later optimise stuff like: run docker container in the background, use a pool of docker containers, etc.
+// TODO: latr run multiple interpreters in parallel and use llm to take best output or smthing.
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,12 +36,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     io::stdout().flush()?;
     let mut user_input = String::new();
     io::stdin().read_line(&mut user_input)?;
-    let result = interpreter(user_input).await?;
-    println!("Result: {}", result);
+    let result = safe_interpreter(user_input, 3).await?;
+    println!("Result: {:?}", result);
     Ok(())
 }
 
-async fn interpreter(user_input: String) -> Result<String, Box<dyn std::error::Error>> {
+async fn safe_interpreter(
+    user_input: String,
+    max_attempts: usize,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let mut input = user_input.to_string();
+    for _ in 0..max_attempts {
+        match interpreter(input.clone()).await {
+            Ok((result, _model_output)) => return Ok(result),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                input = format!(
+                    "{}\nThis is the code you generated and it failed with error: {}. Please fix it.",
+                    user_input,
+                    e
+                );
+            }
+        }
+    }
+    Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "Max attempts reached",
+    )))
+}
+
+async fn interpreter(user_input: String) -> Result<(String, String), Box<dyn std::error::Error>> {
     println!("Generating Python code...");
 
     let build_prompt = |user_input: &str| {
@@ -188,7 +215,7 @@ So generate the Python code that we will execute that can help the user with thi
             }),
         )
         .await?;
-    Ok(output)
+    Ok((output, python_code.to_string()))
 }
 
 #[cfg(test)]
@@ -202,30 +229,30 @@ mod tests {
         dotenv().ok();
 
         let inputs = vec![
-            "Compute the factorial of 10",
-            "Calculate the standard deviation of the numbers 1, 2, 3, 4, 5",
-            "Find the roots of the equation x^2 - 3x + 2 = 0",
-            "Calculate the area under the curve y = x^2 from x = 0 to x = 2",
-            "Compute the integral of x^2 from 0 to 1",
-            "Calculate the determinant of the matrix [[1, 2], [3, 4]]",
-            "Solve the system of equations: 2x + 3y = 7 and x - y = 1",
-            "Compute the eigenvalues of the matrix [[1, 2], [3, 4]]",
-            "Calculate the dot product of the vectors [1, 2, 3] and [4, 5, 6]",
-            "Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]",
-            "Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1",
-            "Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
-            "Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1",
-            "Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]",
-            "Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)",
-            "Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}",
-            "Calculate the convolution of the functions f(t) = t and g(t) = t^2",
-            "Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
-            "Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2",
-            "Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]",
+            ("Compute the factorial of 10", "EXPECTED_OUTPUT"),
+            ("Calculate the standard deviation of the numbers 1, 2, 3, 4, 5", "EXPECTED_OUTPUT"),
+            ("Find the roots of the equation x^2 - 3x + 2 = 0", "EXPECTED_OUTPUT"),
+            ("Calculate the area under the curve y = x^2 from x = 0 to x = 2", "EXPECTED_OUTPUT"),
+            ("Compute the integral of x^2 from 0 to 1", "EXPECTED_OUTPUT"),
+            ("Calculate the determinant of the matrix [[1, 2], [3, 4]]", "EXPECTED_OUTPUT"),
+            ("Solve the system of equations: 2x + 3y = 7 and x - y = 1", "EXPECTED_OUTPUT"),
+            ("Compute the eigenvalues of the matrix [[1, 2], [3, 4]]", "EXPECTED_OUTPUT"),
+            ("Calculate the dot product of the vectors [1, 2, 3] and [4, 5, 6]", "EXPECTED_OUTPUT"),
+            ("Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]", "EXPECTED_OUTPUT"),
+            ("Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1", "EXPECTED_OUTPUT"),
+            ("Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "EXPECTED_OUTPUT"),
+            ("Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1", "EXPECTED_OUTPUT"),
+            ("Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]", "EXPECTED_OUTPUT"),
+            ("Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)", "EXPECTED_OUTPUT"),
+            ("Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}", "EXPECTED_OUTPUT"),
+            ("Calculate the convolution of the functions f(t) = t and g(t) = t^2", "EXPECTED_OUTPUT"),
+            ("Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "EXPECTED_OUTPUT"),
+            ("Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2", "EXPECTED_OUTPUT"),
+            ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "EXPECTED_OUTPUT"),
         ];
 
-        for input in inputs {
-            let result = interpreter(input.to_string()).await;
+        for (input, expected_output) in inputs {
+            let result = safe_interpreter(input.to_string(), 3).await;
             assert!(
                 result.is_ok(),
                 "Failed on input: {} error: {:?}",
@@ -233,10 +260,12 @@ mod tests {
                 result
             );
             let result_string = result.unwrap();
+            println!("Problem to solve: {}. \nResult: {}", input, result_string);
             assert!(
-                result_string.len() > 0,
-                "Failed on input: {}. Result: {}",
+                result_string == expected_output,
+                "Failed on input: {}. Expected: {}. Got: {}",
                 input,
+                expected_output,
                 result_string
             );
         }

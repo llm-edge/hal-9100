@@ -46,6 +46,9 @@ curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/j
 1. **Start the server**
 
 ```bash
+# This will start postgres, redis, minio
+make reboot
+# This will start the API server
 make all
 ```
 

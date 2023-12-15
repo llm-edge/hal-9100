@@ -19,5 +19,6 @@ S3_BUCKET_NAME=mybucket
 
 ## Usage 
 
-1. Run `make all` from the root of `assistants`
-2. Open the file index.html with a browser (double click)
+1. Run `make reboot` from the root of `assistants` to start the database, redis and minio
+2. Run `make all` from the root of `assistants` to start the API server
+3. Open the file index.html with a browser (double click)
