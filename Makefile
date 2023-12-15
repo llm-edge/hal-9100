@@ -24,9 +24,15 @@ help:
 ## Docker compose up
 docker: ## Run docker compose up
 	docker-compose -f docker/docker-compose.yml up -d
-	while ! docker exec -it pg pg_isready -U postgres; do sleep 1; done
-	docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
-	docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+	@echo "Waiting for the infra to be ready..."
+	@while ! docker exec -it pg pg_isready -U postgres > /dev/null 2>&1; do sleep 1; done
+	@echo "Database is up and running"
+	@sleep 1
+	@echo "Creating database and applying migrations..."
+	@docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || true
+	@docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || true
+	@docker exec pg psql -U postgres -d mydatabase -c "SELECT * FROM runs;" > /dev/null 2>&1 || (echo "Database is not ready" && exit 1)
+	@echo "Database is ready"
 
 ## Stop and remove containers
 clean: ## Stop and remove docker-postgres-1, docker-redis-1, docker-minio-1 containers
@@ -39,13 +45,11 @@ reboot: clean docker ## Clean and run docker compose up
 
 ## Run the consumer
 consumer: ## Run the consumer
-	@set -a && . .env && set +a && \
 	cargo run --package assistants-core --bin run_consumer
 
 
 ## Run the server
 server: ## Run the server
-	@set -a && . .env && set +a && \
 	cargo run --package assistants-api-communication
 
 ## Run consumer, server, and dockers
@@ -55,7 +59,6 @@ all:
 
 ## Test all
 test: ## Run all tests
-	@set -a && . .env && set +a && \
 	RUST_TEST_THREADS=1 cargo test --features ci
 
 

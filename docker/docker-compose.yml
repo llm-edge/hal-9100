@@ -11,6 +11,14 @@ services:
     ports:
       - 5432:5432
     command: postgres
+    volumes:
+      - ./healthcheck.sh:/healthcheck.sh
+    healthcheck:
+      test: ["CMD-SHELL", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
   redis:
     container_name: redis 
     image: redis
