@@ -41,7 +41,7 @@ The best way to get started is through GitHub Codespaces:
 - [2023/29/11] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
 ## Key Features
-- [ ] **Code Interpreter**: Runs Python code in a sandboxed environment.
+- [ ] **Code Interpreter**: Runs Python code in a sandboxed environment. (Soon! We're working on it!)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
 - [x] **Function Calling**: Defines and executes custom functions.
 - [x] **File Handling**: Supports a range of file formats.
