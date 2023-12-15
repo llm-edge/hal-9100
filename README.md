@@ -22,9 +22,9 @@
 
 # Quickstart
 
-The best way to get started is through GitHub Codespaces:
+Get started in less than a minute through GitHub Codespaces:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants?quickstart=1)
 
 
 ## Why Open Source Assistants API?

@@ -11,8 +11,8 @@ We will use Perplexity API to get started quickly with an LLM but you can run th
 
 ## Setup
 
-1. Start Postgres, Redis, and Minio: `make reboot`. 
-2. In another terminal, start the API server: `make all`
+1. Start Postgres, Redis, and Minio: `make reboot`. This will take a few seconds.
+2. Start the API server: `make all`. This will take a few seconds.
 
 ## Running the Script
 
