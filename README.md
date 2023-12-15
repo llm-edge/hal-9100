@@ -22,31 +22,10 @@
 
 # Quickstart
 
-```diff
-// Import the essentials
-const assistant = await openai.beta.assistants.create({
-  // Define your assistant's purpose
-  instructions: "You are a weather bot. Fetch and display weather data.",
-  // Choose your model
--  model: "gpt4",
-+  model: "OpenSourceModel/your-model-v1",
-  // Set up the tools for your assistant
-  tools: [{
-    "type": "function",
-    "function": {
-      "name": "getCurrentWeather",
-      "description": "Fetch weather for a location",
-      "parameters": {
-        "location": {"type": "string", "description": "City and state, e.g., San Francisco, CA"},
-        "unit": {"type": "string"}
-      },
-      "required": ["location"]
-    }
-  }]
-});
-```
+The best way to get started is through GitHub Codespaces:
 
-[👉 Get started on your machine right now.](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants)
+
 
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
@@ -63,14 +42,8 @@ const assistant = await openai.beta.assistants.create({
 
 ## Key Features
 - [ ] **Code Interpreter**: Runs Python code in a sandboxed environment.
-  - [ ] Anthropic
-  - [ ] Open source LLMs (We're working on it!)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
-  - [x] Anthropic
-  - [x] Open source LLMs
 - [x] **Function Calling**: Defines and executes custom functions.
-  - [x] Anthropic
-  - [x] Open source LLMs
 - [x] **File Handling**: Supports a range of file formats.
   - [x] pdf, text files
   - [ ] images, videos, etc. (We're working on it!)
@@ -83,8 +56,6 @@ const assistant = await openai.beta.assistants.create({
 - **For Developers**: We've got the docs, tools, and a community ready to help you build what's next.
 - **For Innovators**: Looking for an edge in AI? Here's where you leapfrog the competition.
 - **For the Visionaries**: Dreamt of a custom AI assistant? Let's make it a reality.
-
-Ready to build your AI assistant with freedom? [Start here.](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md)
 
 ## Deployment
 
