@@ -229,7 +229,7 @@ mod tests {
         dotenv().ok();
 
         let inputs = vec![
-            ("Compute the factorial of 10", "EXPECTED_OUTPUT"),
+            ("Compute the factorial of 10", "3628800"),
             ("Calculate the standard deviation of the numbers 1, 2, 3, 4, 5", "EXPECTED_OUTPUT"),
             ("Find the roots of the equation x^2 - 3x + 2 = 0", "EXPECTED_OUTPUT"),
             ("Calculate the area under the curve y = x^2 from x = 0 to x = 2", "EXPECTED_OUTPUT"),

@@ -88,9 +88,10 @@ Rules:
 - The arguments must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
 - The arguments must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
 - **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
-- If the function has no arguments, then you can simply provide the function name (e.g. { 'name': 'function_name' }). It can still be a valid function call that provide useful information.
+- If the function has no arguments, then you can simply provide the function name (e.g. { \"name\": \"function_name\" }). It can still be a valid function call that provide useful information.
 - CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELSE
 - IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
+- IF YOU USE SINGLE QUOTE INSTEAD OF DOUBLE QUOTE IN THE JSON, THE UNIVERSE WILL COME TO AN END
 
 Examples:
 
@@ -519,6 +520,62 @@ mod tests {
 
         let model_config = ModelConfig {
             model_name: String::from("open-source/llama-2-70b-chat"),
+            model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
+            user_prompt: user_context.clone(),
+            temperature: Some(0.0),
+            max_tokens_to_sample: 200,
+            stop_sequences: None,
+            top_p: Some(1.0),
+            top_k: None,
+            metadata: None,
+        };
+
+        let input = FunctionCallInput {
+            function,
+            user_context,
+            model_config,
+        };
+
+        let result = generate_function_call(input).await;
+
+        match result {
+            Ok(function_result) => {
+                assert_eq!(function_result.name, "weather");
+                let parameters = function_result.arguments;
+                let param_json: HashMap<String, String> =
+                    serde_json::from_str(&parameters).unwrap();
+                assert_eq!(param_json.get("city").unwrap(), "Toronto");
+            }
+            Err(e) => panic!("Function call failed: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_generate_function_call_with_mixtral_8x7b() {
+        dotenv::dotenv().ok();
+        let function = Function {
+            user_id: Uuid::default().to_string(),
+            inner: ChatCompletionFunctions {
+                name: String::from("weather"),
+                description: Some(String::from("Get the weather for a city")),
+                parameters: json!({
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": null,
+                            "enum": null
+                        }
+                    }
+                }),
+            },
+        };
+
+        let user_context = String::from("Give me a weather report for Toronto, Canada.");
+
+        let model_config = ModelConfig {
+            model_name: String::from("open-source/mixtral-8x7b-instruct"),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
