@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 RUSTC := $(shell command -v rustc 2> /dev/null)
 
 ifndef RUSTC
@@ -45,21 +46,21 @@ reboot: clean docker ## Clean and run docker compose up
 
 ## Run the consumer
 consumer: ## Run the consumer
-	cargo run --package assistants-core --bin run_consumer
+	@source .env && cargo run --package assistants-core --bin run_consumer
 
 
 ## Run the server
 server: ## Run the server
-	cargo run --package assistants-api-communication
+	@source .env && cargo run --package assistants-api-communication
 
 ## Run consumer, server, and dockers
 all:
-	@$(MAKE) -j2 consumer server
+	@source .env && $(MAKE) -j2 consumer server
 
 
 ## Test all
 test: ## Run all tests
-	RUST_TEST_THREADS=1 cargo test --features ci
+	@source .env && RUST_TEST_THREADS=1 cargo test --features ci
 
 
 VENV_PATH ?= ${HOME}/Documents/FastChat/env

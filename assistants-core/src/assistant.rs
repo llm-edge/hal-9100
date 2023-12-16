@@ -389,6 +389,9 @@ pub async fn queue_consumer(
         // }
     }
 
+    info!("Assistant tools: {:?}", assistant.inner.tools);
+    info!("Asking LLM to decide which tool to use");
+
     // Decide which tool to use
     let tools_decision = decide_tool_with_llm(&assistant, &messages).await?;
     info!("Tools decision: {:?}", tools_decision);
