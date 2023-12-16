@@ -6,16 +6,20 @@ This guide demonstrates how to use the Open Source Assistants API to create an a
 
 We will use Perplexity API to get started quickly with an LLM but you can run this example with any LLM.
 
-1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). 
+1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key.
 2. Install OpenAI SDK: `npm i openai`
 
 ## Setup
 
 1. Start Postgres, Redis, Minio, and the server: `make reboot && make all`. This will take a few seconds.
 
-## Running the Script
+## Running the example
 
-Run the script using Node.js: `node ./examples/quickstart.js`
+Run the [example](./examples/quickstart.js) using Node.js: `node ./examples/quickstart.js`
+
+You should see at the end:
+
+>The current temperature in San Francisco is 68 degrees Fahrenheit.
 
 ## What did happen?
 
