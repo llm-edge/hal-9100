@@ -2,6 +2,8 @@
 
 This guide demonstrates how to use the Open Source Assistants API to create an assistant that can answer questions about the weather using function calling.
 
+Function calling is a more precise and automatic way to provide context to an LLM than retrieval.
+
 ## Prerequisites
 
 We will use Perplexity API to get started quickly with an LLM but you can run this example with any LLM.
@@ -25,7 +27,7 @@ You should see at the end:
 
 In `quickstart.js`, we're creating a weather assistant using the Open Source Assistants API. Here's a step-by-step breakdown:
 
-1. **Setup**: We import the OpenAI SDK and initialize it with our API key and base URL.
+1. **Setup**: We import the OpenAI SDK and initialize it with the local server as base URL.
 
 2. **Create Assistant**: We create an assistant with specific instructions and tools. In this case, the assistant is a weather bot that uses a function to get the current weather.
 
@@ -35,11 +37,11 @@ In `quickstart.js`, we're creating a weather assistant using the Open Source Ass
 
 5. **Create Run**: We create a run, which is an instance of the assistant performing its task.
 
-6. **Get Run**: We retrieve the run to check its status. If the run requires action (like fetching the weather), we handle that.
+6. **Get Run**: We retrieve the run to check its status. The run will require an action through function calling. We run our function given the input provided by the assistant.
 
-7. **Submit Tool Outputs**: If the run required action, we fetch the weather and submit the output back to the run.
+7. **Submit Tool Outputs**: Once we fetched the weather, we submit the output to the assistant.
 
-8. **Get Messages**: Finally, we retrieve all messages in the thread. This includes the user's original question and the assistant's response.
+8. **Get Messages**: Finally, we retrieve all messages in the thread. This includes the user's original question and the assistant's response. The LLM is able to answer the question by using the precise context provided by the function call.
 
 This script demonstrates how to use the Open Source Assistants API to create an interactive assistant that can answer questions using function calls.
 
