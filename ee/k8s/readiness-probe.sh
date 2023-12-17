@@ -1,25 +1,27 @@
 #!/bin/bash
 
-# ! TODO should use id output of request instead of hard coded "1s"
-
 URL=$1
 
 # Create an Assistant
-curl -X POST $URL/assistants \
+ASSISTANT_RESPONSE=$(curl -s -X POST $URL/assistants \
 -H "Content-Type: application/json" \
 -d '{
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
     "tools": [{"type": "retrieval"}],
     "model": "claude-2.1"
-}'
+}')
+
+ASSISTANT_ID=$(echo $ASSISTANT_RESPONSE | jq -r '.id')
 
 # Create a Thread
-curl -X POST $URL/threads \
--H "Content-Type: application/json"
+THREAD_RESPONSE=$(curl -s -X POST $URL/threads \
+-H "Content-Type: application/json")
+
+THREAD_ID=$(echo $THREAD_RESPONSE | jq -r '.id')
 
 # Add a Message to a Thread
-curl -X POST $URL/threads/1/messages \
+curl -X POST $URL/threads/$THREAD_ID/messages \
 -H "Content-Type: application/json" \
 -d '{
     "role": "user",
@@ -27,16 +29,16 @@ curl -X POST $URL/threads/1/messages \
 }'
 
 # Run the Assistant
-curl -X POST $URL/threads/1/runs \
+curl -X POST $URL/threads/$THREAD_ID/runs \
 -H "Content-Type: application/json" \
 -d '{
-    "assistant_id": 1,
+    "assistant_id": "'$ASSISTANT_ID'",
     "instructions": "Please solve the equation."
 }'
 
 STATUS=""
 ATTEMPTS=0
-MAX_ATTEMPTS=10
+MAX_ATTEMPTS=3
 
 # Poll until status is succeeded or max attempts reached
 while [ "$STATUS" != "succeeded" -a $ATTEMPTS -lt $MAX_ATTEMPTS ]; do

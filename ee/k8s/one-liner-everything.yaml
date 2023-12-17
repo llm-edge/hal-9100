@@ -50,6 +50,7 @@ spec:
 
       - name: rust-api
         image: ghcr.io/stellar-amenities/assistants/assistants:latest
+        imagePullPolicy: Always # for dev
         env:
         - name: DATABASE_URL
           value: postgres://postgres:secret@localhost:5432/mydatabase
@@ -71,7 +72,8 @@ spec:
         readinessProbe:
           exec:
             command:
-            - /app/readiness-probe.sh http://localhost:3000
+            - /app/readiness-probe.sh
+            - http://localhost:3000
           initialDelaySeconds: 30
           periodSeconds: 10
       volumes:
@@ -107,8 +109,12 @@ spec:
 
 # kubectl get pods -n assistants -l app=assistants
 # POD_NAME=$(kubectl get pods -n assistants -l app=assistants -o jsonpath="{.items[0].metadata.name}")
+# kubectl describe pod/$POD_NAME -n assistants
 # kubectl logs $POD_NAME -n assistants -c rust-api
 # URL=$(kubectl get svc rust-api-service -n assistants -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 # curl -X GET http://$URL/threads/1/runs/1 -H "Content-Type: application/json"
 
 # ./ee/k8s/readiness-probe.sh $URL
+
+# TODO: add vLLM kubernetes deployment to gpu 
+
