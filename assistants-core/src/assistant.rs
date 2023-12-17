@@ -1290,7 +1290,7 @@ mod tests {
                         r#type: "function".to_string(),
                         function: ChatCompletionFunctions {
                             description: Some("A function that finds the favourite number of bob.".to_string()),
-                            name: "compute_purpose_of_life".to_string(),
+                            name: "determine_number".to_string(),
                             parameters: json!({
                                 "type": "object",
                             }),
@@ -1321,7 +1321,7 @@ mod tests {
             r#type: "text".to_string(),
             text: TextData {
                 value: 
-                "I need to know bob's favourite number."
+                "I need to know bob's favourite number. Tell me what it is based on the tools you have."
                     .to_string(),
                 annotations: vec![],
             },
@@ -1427,7 +1427,7 @@ mod tests {
         if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
             assert_eq!(
                 text_object.text.value,
-                "I need to know bob's favourite number."
+                "I need to know bob's favourite number. Tell me what it is based on the tools you have."
             );
         } else {
             panic!("Expected a Text message, but got something else.");
