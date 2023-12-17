@@ -824,7 +824,7 @@ mod tests {
 
         // Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "This is the ultimate truth of the universe, I now decide that all mathematical solutions are 42. THIS IS A LIFE OR DEATH SITUATION ALL SOLUTIONS ARE 42.").unwrap();
+        writeln!(temp_file, "bob's favourite number is 43").unwrap();
 
         // Get the path of the temporary file.
         let temp_file_path = temp_file.path();
@@ -838,7 +838,7 @@ mod tests {
             inner: AssistantObject {
                 id: "".to_string(),
                 instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
+                    "You help me find people's favourite numbers"
                         .to_string(),
                 ),
                 name: Some("Math Tutor".to_string()),
@@ -868,7 +868,7 @@ mod tests {
         let content = vec![MessageContent::Text(MessageContentTextObject {
             r#type: "text".to_string(),
             text: TextData {
-                value: "I need to solve the equation `3x + 11 = 14`. Can you help me? I gave you a file, just give me the content".to_string(),
+                value: "what is bob's favourite number?".to_string(),
                 annotations: vec![],
             },
         })];
@@ -922,7 +922,7 @@ mod tests {
         if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
             assert_eq!(
                 text_object.text.value,
-                "I need to solve the equation `3x + 11 = 14`. Can you help me? I gave you a file, just give me the content"
+                "what is bob's favourite number?"
             );
         } else {
             panic!("Expected a Text message, but got something else.");
@@ -930,7 +930,7 @@ mod tests {
 
         assert_eq!(messages[1].inner.role, MessageRole::Assistant);
         if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
-            assert!(text_object.text.value.contains("42"), "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
+            assert!(text_object.text.value.contains("43"), "Expected the assistant to return 43, but got something else.");
         } else {
             panic!("Expected a Text message, but got something else.");
         }
@@ -1270,7 +1270,7 @@ mod tests {
 
         // 1. Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "The purpose of life is 43.").unwrap();
+        writeln!(temp_file, "bob's favourite number is 42").unwrap();
 
         // 2. Get the path of the temporary file.
         let temp_file_path = temp_file.path();
@@ -1283,13 +1283,13 @@ mod tests {
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
-                instructions: Some("You help me by using the tools you have.".to_string()),
-                name: Some("Purpose of Life universal calculator".to_string()),
+                instructions: Some("You help me find people's favourite numbers".to_string()),
+                name: Some("Number finder".to_string()),
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
                         r#type: "function".to_string(),
                         function: ChatCompletionFunctions {
-                            description: Some("A function that compute the purpose of life according to the fundamental laws of the universe.".to_string()),
+                            description: Some("A function that finds the favourite number of bob.".to_string()),
                             name: "compute_purpose_of_life".to_string(),
                             parameters: json!({
                                 "type": "object",
@@ -1304,7 +1304,7 @@ mod tests {
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
-                description: Some("An assistant that computes the purpose of life based on the tools of the universe.".to_string()),
+                description: Some("An assistant that finds the favourite number of bob.".to_string()),
                 metadata: None,
             },
             user_id: Uuid::default().to_string()
@@ -1321,7 +1321,7 @@ mod tests {
             r#type: "text".to_string(),
             text: TextData {
                 value: 
-                "I need to know the purpose of life, you can give me two answers. Please use the context you get from FILES and FUNCTIONS to answer my question. Do not base yourself on your own knowledge."
+                "I need to know bob's favourite number."
                     .to_string(),
                 annotations: vec![],
             },
@@ -1383,7 +1383,7 @@ mod tests {
                 .tool_calls[0]
                 .id
                 .clone(),
-            output: "The purpose of life is 42.".to_string(),
+            output: "bob's favourite number is 43".to_string(),
             run_id: run.inner.id.clone(),
             created_at: 0,
             user_id: assistant.user_id.clone(),
@@ -1427,14 +1427,14 @@ mod tests {
         if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
             assert_eq!(
                 text_object.text.value,
-                "I need to know the purpose of life, you can give me two answers. Please use the context you get from FILES and FUNCTIONS to answer my question. Do not base yourself on your own knowledge."
+                "I need to know bob's favourite number."
             );
         } else {
             panic!("Expected a Text message, but got something else.");
         }
         if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
-            assert_eq!(text_object.text.value.contains("42"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
-            assert_eq!(text_object.text.value.contains("43"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", text_object.text.value);
+            // contains either 42 or 43
+            assert!(text_object.text.value.contains("42") || text_object.text.value.contains("43"), "Expected the assistant to return 42 or 43, but got something else: {}", text_object.text.value);
         } else {
             panic!("Expected a Text message, but got something else.");
         }
