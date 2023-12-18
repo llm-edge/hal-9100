@@ -15,4 +15,6 @@ dotenv = "0.15.0"
 async-openai = "0.17.1"
 serde_json = "1.0"
 uuid = "0.8.2"
+async-recursion = "1.0.5"
+
 

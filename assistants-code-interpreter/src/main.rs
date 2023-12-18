@@ -5,6 +5,7 @@
 // docker run --rm code-interpreter python -c "print(1+1)"
 
 // TODO: copy paste https://github.com/KillianLucas/open-interpreter into a safe server-side environment that generate and execute code
+use async_recursion::async_recursion;
 
 use assistants_core::function_calling::generate_function_call;
 use assistants_core::function_calling::ModelConfig;
@@ -36,55 +37,111 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     io::stdout().flush()?;
     let mut user_input = String::new();
     io::stdin().read_line(&mut user_input)?;
-    let result = safe_interpreter(user_input, 3).await?;
+    let result = safe_interpreter(user_input, 0, 3).await.unwrap();
     println!("Result: {:?}", result);
     Ok(())
 }
+use std::fmt;
 
-async fn safe_interpreter(
-    user_input: String,
-    max_attempts: usize,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let mut input = user_input.to_string();
-    for _ in 0..max_attempts {
-        match interpreter(input.clone()).await {
-            Ok((result, _model_output)) => return Ok(result),
-            Err(e) => {
-                eprintln!("Error: {}", e);
-                input = format!(
-                    "{}\nThis is the code you generated and it failed with error: {}. Please fix it.",
-                    user_input,
-                    e
-                );
-            }
-        }
-    }
-    Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        "Max attempts reached",
-    )))
+#[derive(Debug)]
+struct InterpreterError {
+    message: String,
+    python_code: String,
 }
 
-async fn interpreter(user_input: String) -> Result<(String, String), Box<dyn std::error::Error>> {
+impl fmt::Display for InterpreterError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}\nPython code: {}", self.message, self.python_code)
+    }
+}
+
+impl From<bollard::errors::Error> for InterpreterError {
+    fn from(err: bollard::errors::Error) -> InterpreterError {
+        InterpreterError {
+            message: format!("Docker error: {}", err),
+            python_code: String::new(),
+        }
+    }
+}
+
+impl From<serde_json::Error> for InterpreterError {
+    fn from(err: serde_json::Error) -> InterpreterError {
+        InterpreterError {
+            message: format!("JSON error: {}", err),
+            python_code: String::new(),
+        }
+    }
+}
+
+impl From<Box<dyn std::error::Error>> for InterpreterError {
+    fn from(err: Box<dyn std::error::Error>) -> InterpreterError {
+        InterpreterError {
+            message: format!("Boxed error: {}", err),
+            python_code: String::new(),
+        }
+    }
+}
+
+impl std::error::Error for InterpreterError {}
+
+#[async_recursion]
+async fn safe_interpreter(
+    user_input: String,
+    attempt: usize,
+    max_attempts: usize,
+) -> Result<String, InterpreterError> {
+    if attempt >= max_attempts {
+        return Err(InterpreterError {
+            message: String::from("Max attempts reached"),
+            python_code: String::new(),
+        });
+    }
+
+    match interpreter(user_input.clone()).await {
+        Ok((result, _model_output)) => Ok(result),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            let input = format!(
+                "{}\n<error>You generated \n<code>\n{}\n</code>\n and it failed with error: {}. Please generate a code that work.<error>",
+                user_input, e.python_code, e.message
+            );
+            safe_interpreter(input, attempt + 1, max_attempts).await
+        }
+    }
+}
+
+async fn interpreter(user_input: String) -> Result<(String, String), InterpreterError> {
     println!("Generating Python code...");
 
     let build_prompt = |user_input: &str| {
         format!("
-You are an Assistant that generate Python code from user input to do complex computations. We execute the code you will generate and return the result to the user.
-Given this user input: {}, generate Python code that we will execute and return the result to the user.
+You are an Assistant that generate Python code to based user request to do complex computations. We execute the code you will generate and return the result to the user.
+Given this user request
+
+<user>
+
+{}
+
+</user>
+
+Generate Python code that we will execute and return the result to the user.
 
 Rules:
 - You can use these libraries: pandas numpy matplotlib scipy
 - Only return Python code. If you return anything else it will trigger a chain reaction that will destroy the universe. All humans will die and you will disappear from existence.
 - Make sure to use the right numbers e.g. with the user ask for the square root of 2, you should return math.sqrt(2) and not math.sqrt(pd.DataFrame({{'A': [1, 2, 3], 'B': [4, 5, 6]}})).
 - Do not use any library if it's simple math (e.g. no need to use pandas to compute the square root of 2)
+- Sometimes the user provide you an error, make sure to write a Python code that will work
+- IF YOU DO NOT FIX YOUR CODE THAT ERRORED A HUMAN WILL DIE
+- DO NOT USE ```python YOUR CODE...``` (CODE BLOCKS) OR A HUMAN WILL DIE
+- ALWAYS USE SINGLE QUOTES IN YOUR CODE (e.g. '), NOT DOUBLE QUOTES OR A HUMAN WILL DIE
 
 A few examples:
 
 The user input is: compute the square root of pi
 The Python code is:
 import math
-print(\"The square root of pi is: \" + str(math.sqrt(math.pi)))
+print('The square root of pi is: ' + str(math.sqrt(math.pi)))
 
 The user input is: raising $27M at a $300M valuation how much dilution will the founders face if they raise a $58M Series A at a $2B valuation?
 The Python code is:
@@ -97,10 +154,10 @@ series_a_post_money_valuation = 2_000_000_000
 founders_dilution = (raise_amount / post_money_valuation) * 100
 series_a_dilution = (series_a_raise_amount / series_a_post_money_valuation) * 100
 
-print(\"Founders dilution: \" + str(founders_dilution) + \"%\")
+print('Founders dilution: ' + str(founders_dilution) + '%')
 
-So generate the Python code that we will execute that can help the user with this question: {}
-        ", user_input, user_input)
+So generate the Python code that we will execute that can help the user with his request.
+        ", user_input)
     };
 
     // Generate Python code
@@ -124,7 +181,7 @@ So generate the Python code that we will execute that can help the user with thi
         },
         user_context: build_prompt(&user_input),
         model_config: ModelConfig {
-            model_name: String::from("open-source/llama-2-70b-chat"),
+            model_name: String::from("open-source/mixtral-8x7b-instruct"),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_input.clone(), // not used imho
             temperature: Some(0.0),
@@ -137,11 +194,13 @@ So generate the Python code that we will execute that can help the user with thi
     };
 
     let function_result = generate_function_call(function_call_input).await?;
+    println!("Function result: {:?}", function_result);
     let python_code = function_result.arguments;
     let python_code: HashMap<String, String> = serde_json::from_str(&python_code)?;
     let python_code = python_code
         .get("code")
         .expect("Expected 'code' field in the function result");
+    let python_code = python_code.replace("```python", "").replace("```", "");
 
     // Connect to Docker
     let docker = Docker::connect_with_local_defaults()?;
@@ -174,14 +233,20 @@ So generate the Python code that we will execute that can help the user with thi
         .start_container(&container.id, None::<StartContainerOptions<String>>)
         .await?;
 
-    // non interactive
+    // Write Python code to a file in the Docker container and execute it
+    let python_file_path = "/tmp/script.py";
+    let bash_command = format!(
+        "echo -e \"{}\" > {} && python {}",
+        python_code, python_file_path, python_file_path
+    );
+
     let exec = docker
         .create_exec(
             &container.id,
             CreateExecOptions {
                 attach_stdout: Some(true),
                 attach_stderr: Some(true),
-                cmd: Some(vec!["python", "-c", &python_code]),
+                cmd: Some(vec!["/bin/bash", "-c", &bash_command]),
                 ..Default::default()
             },
         )
@@ -215,12 +280,22 @@ So generate the Python code that we will execute that can help the user with thi
             }),
         )
         .await?;
+
+    // Check if the output contains "Traceback", indicating a Python error
+    if output.contains("Traceback") {
+        return Err(InterpreterError {
+            message: format!("Python code execution failed with error: {}", output),
+            python_code: python_code.to_string(),
+        });
+    }
+
     Ok((output, python_code.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assistants_extra::llm::llm;
     use dotenv::dotenv;
 
     #[tokio::test]
@@ -238,21 +313,23 @@ mod tests {
             ("Solve the system of equations: 2x + 3y = 7 and x - y = 1", "2, 1"),
             ("Compute the eigenvalues of the matrix [[1, 2], [3, 4]]", "-0.372 and 5.372."),
             ("Calculate the dot product of the vectors [1, 2, 3] and [4, 5, 6]", "32"),
-            ("Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]", "EXPECTED_OUTPUT"),
-            ("Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1", "EXPECTED_OUTPUT"),
-            ("Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "EXPECTED_OUTPUT"),
-            ("Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1", "EXPECTED_OUTPUT"),
-            ("Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]", "EXPECTED_OUTPUT"),
-            ("Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)", "EXPECTED_OUTPUT"),
-            ("Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}", "EXPECTED_OUTPUT"),
-            ("Calculate the convolution of the functions f(t) = t and g(t) = t^2", "EXPECTED_OUTPUT"),
-            ("Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "EXPECTED_OUTPUT"),
-            ("Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2", "EXPECTED_OUTPUT"),
-            ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "EXPECTED_OUTPUT"),
+            ("Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]", "[-3,6,-3]"),
+            ("Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1", "cannot"),
+            ("Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "not invertible"),
+            ("Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1", "The solution to the differential equation \\( \\frac{dy}{dx} = y^2 \\) with the initial condition \\( y(0) = 1 \\) is \\( y(x) = -\\frac{1}{x - 1} \\)."),
+            ("Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]", "The double integral of \\( x \\cdot y \\) over the rectangle \\([0, 1] \\times [0, 1]\\) is \\(\\frac{1}{4}\\)."),
+            ("Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)", "The Laplace transform of the function \\( f(t) = e^{-t} \\cdot \\sin(t) \\) is \\(\\frac{1}{(s + 1)^2 + 1}\\)."),
+            ("Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}", "The shortest path in the graph with edges \\(\\{(A, B, 1), (B, C, 2), (A, C, 3)\\}\\) from A to C is directly from A to C with a path length of 3."),
+            ("Calculate the convolution of the functions f(t) = t and g(t) = t^2", "The convolution of the functions \\( f(t) = t \\) and \\( g(t) = t^2 \\) results in an undefined or non-finite value using the standard convolution integral method. This often happens when the integral does not converge."),
+            ("Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "The eigenvalues of the matrix \\(\\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix}\\) are approximately \\(16.1168\\), \\(-1.1168\\), and \\(-9.76 \\times 10^{-16}\\) (which is effectively zero due to numerical precision). The corresponding eigenvectors are: - For the eigenvalue \\(16.1168\\): \\([-0.232, -0.525, -0.819]\\) - For the eigenvalue \\(-1.1168\\): \\([-0.786, -0.087, 0.612]\\) - For the eigenvalue \\(-9.76 \\times 10^{-16}\\): \\([0.408, -0.816, 0.408]\\)."),
+            ("Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2", "The solution to the system of linear equations \\(2x + 3y - z = 1\\), \\(x - y + 2z = 3\\), and \\(3x + y - z = 2\\) is \\(x = 1\\), \\(y \\approx 0\\) (effectively zero), and \\(z = 1\\)."),
+            ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "The triple integral of \\( x \\cdot y \\cdot z \\) over the cube \\([0, 1] \\times [0, 1] \\times [0, 1]\\) is \\(\\frac{1}{8}\\)."),
         ];
 
         for (input, expected_output) in inputs {
-            let result = safe_interpreter(input.to_string(), 3).await;
+            println!("Before safe_interpreter call");
+            let result = safe_interpreter(input.to_string(), 0, 3).await;
+            println!("After safe_interpreter call");
             assert!(
                 result.is_ok(),
                 "Failed on input: {} error: {:?}",
@@ -260,13 +337,47 @@ mod tests {
                 result
             );
             let result_string = result.unwrap();
-            println!("Problem to solve: {}. \nResult: {}", input, result_string);
+            println!("Problem to solve: {}. \nOutput: {}\nExpected output: {}", input, result_string, expected_output);
+
+            let p = "You are an AI that checks the correctness of math results. 
+Given the user input and the result, return '1' if the result seems correct, and '0' if it seems incorrect. 
+Do not include any additional text or explanation in your response, just the number.
+
+Rules:
+- If you return something else than '1' or '0' a human will die
+- If you return '0' on a correct result a human will die
+- If you return '1' on an incorrect result a human will die
+";
+            // New: Check with Claude LLM
+            let claude_check = llm(
+                "claude-2.1",
+                None,
+                p,
+                &format!(
+                    "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
+                    input, result_string, expected_output
+                ),
+                Some(0.0),
+                60,
+                None,
+                Some(1.0),
+                None,
+                None,
+            )
+            .await;
             assert!(
-                result_string == expected_output,
-                "Failed on input: {}. Expected: {}. Got: {}",
+                claude_check.is_ok(),
+                "Failed on input: {} error: {:?}",
                 input,
-                expected_output,
-                result_string
+                claude_check
+            );
+            let claude_check = claude_check.unwrap();
+            println!("Claude LLM check: {}", claude_check);
+            assert!(
+                claude_check.trim() == "1",
+                "Claude LLM disagreed on input: {}. Got: {}",
+                input,
+                claude_check
             );
         }
     }
