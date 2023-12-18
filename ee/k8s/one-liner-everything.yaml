@@ -69,6 +69,16 @@ spec:
             secretKeyRef:
               name: anthropic-api-key
               key: ANTHROPIC_API_KEY
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: model-api-key
+              key: MODEL_API_KEY
+        - name: MODEL_URL
+          valueFrom:
+            secretKeyRef:
+              name: model-url
+              key: MODEL_URL
         readinessProbe:
           exec:
             command:
