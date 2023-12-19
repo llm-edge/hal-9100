@@ -16,6 +16,7 @@ use assistants_core::threads::{create_thread, get_thread};
 use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::llm::llm;
 use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 
@@ -26,6 +27,10 @@ use assistants_core::function_calling::ModelConfig;
 use assistants_core::function_calling::create_function_call;
 
 use assistants_core::runs::get_tool_calls;
+use assistants_core::code_interpreter::safe_interpreter;
+
+use crate::code_interpreter::InterpreterModelConfig;
+use crate::models::SubmittedToolCall;
 
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
@@ -88,6 +93,7 @@ fn build_instructions(
     file_contents: &Vec<String>,
     previous_messages: &str,
     tools: &str,
+    code_output: Option<&str>,
 ) -> String {
     let mut instructions = format!(
         "<instructions>\n{}\n</instructions>\n",
@@ -102,6 +108,10 @@ fn build_instructions(
         instructions += &format!("<tools>\n{}\n</tools>\n", tools);
     }
 
+    if let Some(output) = code_output {
+        instructions += &format!("<math_solution>\n{}\n</math_solution>\n", output);
+    }
+
     instructions += &format!(
         "<previous_messages>\n{}\n</previous_messages>",
         previous_messages
@@ -110,63 +120,24 @@ fn build_instructions(
     instructions
 }
 
-async fn run_assistant_based_on_model(
-    assistant: Assistant,
-    instructions: String,
-) -> Result<String, Box<dyn std::error::Error>> {
-    // Check the model of the assistant
-    if assistant.inner.model.contains("claude") {
-        // Call Anthropic API
-        call_anthropic_api(instructions, 500, None, None, None, None, None, None)
-            .await
-            .map(|res| res.completion)
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
-    } else if assistant.inner.model.contains("gpt") {
-        // Call OpenAI API
-        call_openai_api(instructions, 500, None, None, None, None)
-            .await
-            .map(|res| res.choices[0].message.content.clone())
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
-    } else if assistant.inner.model.contains("/") {
-        // Call Open Source OpenAI API
-        // ! kinda hacky - FastChat thing (weird stuff - want the whole org/model to run cli but then expect the the model thru REST)
-        let model_name = assistant.inner.model.split('/').last().unwrap_or_default();
-        let url = std::env::var("MODEL_URL")
-            .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
-        call_open_source_openai_api(
-            instructions,
-            500,
-            model_name.to_string(),
-            None,
-            None,
-            None,
-            url,
-        )
-        .await
-        .map(|res| res.choices[0].message.content.clone())
-        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
-    } else {
-        // Handle unknown model
-        Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Unknown model",
-        )))
-    }
-}
 
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
     previous_messages: &[Message],
+    run: &Run,
+    tool_calls_db: Vec<SubmittedToolCall>
 ) -> Result<Vec<String>, Box<dyn Error>> {
     // Build the system prompt
     let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
 
 Rules:
-- You only return one of the tools like \"<retrieval>\" or \"<function>\" or both.
+- You only return one of the tools like \"<retrieval>\" or \"<function>\" or \"<code_interpreter>\" or multiple of them
 - Do not return \"tools\"
 - Feel free to use MORE tools rather than LESS
-- The tool names must be one of the tools available e.g. only retrieval or function atm, nothing else OR A HUMAN WILL DIE
+- Tools use snake_case, not camelCase
+- The tool names must be one of the tools available, nothing else OR A HUMAN WILL DIE
 - Your answer must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.
+- If you do not obey a human will die
 
 Example:
 <user>
@@ -210,6 +181,23 @@ Another example:
 
 In this example, the assistant should return \"<function>,<retrieval>\".
 
+Another example:
+<user>
+<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the purpose of life according to the fundamental laws of the universe.\",\"name\":\"compute_purpose_of_life\"},\"name\":\"function\"}
+---
+{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}
+---
+{\"description\":\"useful for performing complex math problems which LLMs are bad at by default\",\"name\":\"code_interpreter\"}</tools>
+
+<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"I need to calculate the square root of 144.\", annotations: [] } })]
+</previous_messages>
+
+<instructions>You help me by using the tools you have.</instructions>
+
+</user>
+
+In this example, the assistant should return \"<code_interpreter>\".
+
 Your answer will be used to use the tool so it must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.";
 
     let tools = assistant.inner.tools.clone();
@@ -219,12 +207,12 @@ Your answer will be used to use the tool so it must be very concise and make sur
         .iter()
         .map(|t| {
             serde_json::to_string(&match t {
-                AssistantTools::Code(_) => json!({"name": "code_interpreter", "description": "useful for complex math problems"}),
+                AssistantTools::Code(_) => json!({"name": "code_interpreter", "description": "useful for performing complex math problems which LLMs are bad at by default. Do not use code_interpreter if it's simple math that you believe a LLM can do (e.g. 1 + 1, 9 * 7, etc.) - Make sure to use code interpreter for more complex math problems"}),
                 AssistantTools::Retrieval(_) => json!({"name": "retrieval", "description": "useful to retrieve information from files"}),
                 AssistantTools::Function(e) => 
                     json!({
                         "name": "function",
-                        "description": "useful to call functions in the user's product, which would provide you later some additional context about the user's problem",
+                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. If there are required actions and the user sent all tool calls required you MUST NOT use \"function\" which has already been used anyway",
                         "function": {
                             "name": e.function.name,
                             "description": e.function.description,
@@ -252,6 +240,22 @@ Your answer will be used to use the tool so it must be very concise and make sur
         assistant.inner.instructions.as_ref().unwrap()
     ));
 
+    // add the run required action to the user prompt
+    if let Some(required_action) = &run.inner.required_action {
+        user_prompt.push_str(&format!(
+            "<required_action>{}</required_action>\n",
+            serde_json::to_string(&required_action).unwrap()
+        ));
+    }
+
+    // add tool calls to the user prompt
+    if !tool_calls_db.is_empty() {
+        user_prompt.push_str(&format!(
+            "<tool_calls>{}</tool_calls>\n",
+            serde_json::to_string(&tool_calls_db).unwrap()
+        ));
+    }
+
     // Call the llm function
     let result = llm(
         &assistant.inner.model,
@@ -263,6 +267,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
         None,      // stop_sequences
         Some(1.0), // top_p
         None,      // top_k
+        None,      // metadata
         None,      // metadata
     )
     .await?;
@@ -279,12 +284,12 @@ Your answer will be used to use the tool so it must be very concise and make sur
         .flat_map(|r| r.split(',').map(|s| s.trim().to_string()))
         .collect::<Vec<String>>();
 
-    // remove non alphanumeric chars
+    // remove non alphanumeric chars and keep underscores
     results = results
         .iter()
         .map(|r| {
             r.chars()
-                .filter(|c| c.is_alphanumeric())
+                .filter(|c| c.is_alphanumeric() || *c == '_')
                 .collect::<String>()
         })
         .collect::<Vec<String>>();
@@ -296,16 +301,80 @@ Your answer will be used to use the tool so it must be very concise and make sur
         .collect::<Vec<_>>())
 }
 
+pub struct RunError {
+    pub message: String,
+    pub run_id: String,
+    pub thread_id: String,
+    pub user_id: String,
+}
+
+impl std::fmt::Display for RunError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::fmt::Debug for RunError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl std::error::Error for RunError {}
+
+pub async fn loop_through_runs(
+    pool: &PgPool,
+    con: &mut redis::aio::Connection,
+) {
+    loop {
+        match try_run_executor(&pool, con).await {
+            Ok(_) => continue,
+            Err(e) => error!("Error: {}", e),
+        }
+    }
+}
+
+pub async fn try_run_executor(
+    pool: &PgPool,
+    con: &mut redis::aio::Connection,
+) -> Result<Run, RunError> {
+    match run_executor(&pool, con).await {
+        Ok(run) => { 
+            info!("Run completed: {:?}", run);
+            Ok(run)
+         }
+        Err(run_error) => {
+            error!("Run error: {}", run_error);
+            let _ = update_run_status(
+                &pool,
+                &run_error.thread_id,
+                &run_error.run_id,
+                RunStatus::Failed,
+                &run_error.user_id,
+                None,
+            )
+            .await;
+            Err(run_error)
+        }
+    }
+}
+
+
 // The function that consume the runs queue and do all the LLM software 3.0 logic
-pub async fn queue_consumer(
+pub async fn run_executor(
     // TODO: split in smaller functions if possible
     pool: &PgPool,
     con: &mut redis::aio::Connection,
-) -> Result<Run, Box<dyn std::error::Error>> {
+) -> Result<Run, RunError> {
     info!("Consuming queue");
     let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
         error!("Redis error: {}", e);
-        sqlx::Error::Configuration(e.into())
+        RunError {
+            message: format!("Redis error: {}", e),
+            run_id: "".to_string(),
+            thread_id: "".to_string(),
+            user_id: "".to_string(),
+        }
     })?;
 
     // Parse the string back into a JSON object
@@ -317,11 +386,21 @@ pub async fn queue_consumer(
     let user_id = ids["user_id"].as_str().unwrap();
 
     info!("Retrieving run");
-    let mut run = get_run(pool, thread_id, run_id, user_id).await?;
+    let mut run = get_run(pool, thread_id, run_id, user_id).await.map_err(|e| RunError {
+        message: format!("Failed to get run: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
 
     info!("Retrieving assistant {:?}", run.inner.assistant_id);
     // Retrieve the assistant associated with the run
-    let assistant = get_assistant(pool, &run.inner.assistant_id.unwrap(), &run.user_id).await?;
+    let assistant = get_assistant(pool, &run.inner.assistant_id.unwrap(), &run.user_id).await.map_err(|e| RunError {
+        message: format!("Failed to get assistant: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
 
     // Update run status to "running"
     run = update_run_status(
@@ -332,26 +411,49 @@ pub async fn queue_consumer(
         &run.user_id,
         None,
     )
-    .await?;
+    .await.map_err(|e| RunError {
+        message: format!("Failed to update run status: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
 
     // Initialize FileStorage
     let file_storage = FileStorage::new().await;
 
     // Retrieve the thread associated with the run
     info!("Retrieving thread {}", run.inner.thread_id);
-    let thread = get_thread(pool, &run.inner.thread_id, &assistant.user_id).await?;
+    let thread = get_thread(pool, &run.inner.thread_id, &assistant.user_id).await.map_err(|e| RunError {
+        message: format!("Failed to get thread: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
 
     // Fetch previous messages from the thread
-    let messages = list_messages(pool, &thread.inner.id, &assistant.user_id).await?;
+    let messages = list_messages(pool, &thread.inner.id, &assistant.user_id).await.map_err(|e| RunError {
+        message: format!("Failed to list messages: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
 
     // Format messages into a string
     let formatted_messages = format_messages(&messages);
     info!("Formatted messages: {}", formatted_messages);
 
     let mut tools = String::new();
-
+    let mut tool_calls_db: Vec<SubmittedToolCall> = vec![];
     // Check if the run has a required action
     if let Some(required_action) = &run.inner.required_action {
+        // skip if there is required action and no tool output yet
+        // TODO: use case 2 call required and user only sent 1
+        if required_action.submit_tool_outputs.tool_calls.is_empty() {
+            info!("Skipping required action because there is no tool output yet");
+            return Ok(run);
+        }
+
+
         // If the required action type is "submit_tool_outputs", fetch the tool calls from the database
         // if required_action.r#type == "submit_tool_outputs" { ! // dont care for now
         info!(
@@ -359,7 +461,7 @@ pub async fn queue_consumer(
             required_action.submit_tool_outputs
         );
         // TODO: if user send just part of the function result and not all should error
-        let tool_calls_db = get_tool_calls(
+        tool_calls_db = get_tool_calls(
             pool,
             required_action
                 .submit_tool_outputs
@@ -368,7 +470,12 @@ pub async fn queue_consumer(
                 .map(|t| t.id.as_str())
                 .collect(),
         )
-        .await?;
+        .await.map_err(|e| RunError {
+            message: format!("Failed to get tool calls: {}", e),
+            run_id: run_id.to_string(),
+            thread_id: thread_id.to_string(),
+            user_id: user_id.to_string(),
+        })?;
 
         // Use the tool call data to build the prompt like Input "functions" Output ""..."" DUMB MODE
         tools = required_action
@@ -386,14 +493,19 @@ pub async fn queue_consumer(
             .join("\n");
 
         info!("Tools: {}", tools);
-        // }
     }
 
     info!("Assistant tools: {:?}", assistant.inner.tools);
     info!("Asking LLM to decide which tool to use");
 
     // Decide which tool to use
-    let tools_decision = decide_tool_with_llm(&assistant, &messages).await?;
+    let mut tools_decision = decide_tool_with_llm(&assistant, &messages, &run, tool_calls_db).await.map_err(|e| RunError {
+        message: format!("Failed to decide tool: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
+
     info!("Tools decision: {:?}", tools_decision);
 
     let mut instructions = build_instructions(
@@ -401,13 +513,16 @@ pub async fn queue_consumer(
         &vec![],
         &formatted_messages,
         &tools,
+        None
     );
 
     let model = assistant.inner.model.clone();
+    let url = std::env::var("MODEL_URL")
+        .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
     // Call create_function_call here
     let model_config = ModelConfig {
-        model_name: model,
-        model_url: None,
+        model_name: model.clone(),
+        model_url: url.clone().into(),
         user_prompt: formatted_messages.clone(), // TODO: assuming this is the user prompt. Should it be just last message? Or more custom?
         temperature: Some(0.0),
         max_tokens_to_sample: 200,
@@ -417,8 +532,20 @@ pub async fn queue_consumer(
         metadata: None,
     };
 
-    // for each tool
+    // Sort the tools_decision so that "function" comes first if present
+    tools_decision.sort_by(|a, b| {
+        if a == "function" {
+            Ordering::Less
+        } else if b == "function" {
+            Ordering::Greater
+        } else {
+            a.cmp(b)
+        }
+    });
+
+    // Iterate over the sorted tools_decision
     for tool_decision in tools_decision {
+
         // TODO: can prob optimise thru parallelism
         match tool_decision.as_str() {
             "function" => {
@@ -437,11 +564,22 @@ pub async fn queue_consumer(
                     &run.user_id,
                     None,
                 )
-                .await?;
+                .await.map_err(|e| RunError {
+                    message: format!("Failed to update run status: {}", e),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                })?;
+
                 info!("Generating function to call");
 
                 let function_results =
-                    create_function_call(&pool, user_id, model_config.clone()).await?;
+                    create_function_call(&pool, user_id, model_config.clone()).await.map_err(|e| RunError {
+                        message: format!("Failed to create function call: {}", e),
+                        run_id: run_id.to_string(),
+                        thread_id: thread_id.to_string(),
+                        user_id: user_id.to_string(),
+                    })?;
 
                 info!("Function results: {:?}", function_results);
                 // If function call requires user action, leave early waiting for more context
@@ -470,7 +608,12 @@ pub async fn queue_consumer(
                             },
                         }),
                     )
-                    .await?;
+                    .await.map_err(|e| RunError {
+                        message: format!("Failed to update run status: {}", e),
+                        run_id: run_id.to_string(),
+                        thread_id: thread_id.to_string(),
+                        user_id: user_id.to_string(),
+                    })?;
                     info!(
                         "Run updated to requires_action with {:?}",
                         run.inner.required_action
@@ -497,24 +640,123 @@ pub async fn queue_consumer(
 
                     // Include the file contents and previous messages in the instructions.
                     instructions = build_instructions(
-                        &run.inner.instructions,
+                        &instructions,
                         &file_contents,
-                        &formatted_messages,
+                        &formatted_messages.clone(),
                         &tools,
+                        None,
                     );
                 }
+            }
+            "code_interpreter" => {
+                // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
+                let code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
+                    model_name: model.clone(),
+                    model_url: url.clone().into(),
+                    max_tokens_to_sample: 400, // TODO configurable somewhere
+                    stop_sequences: None,
+                    top_p: Some(1.0),
+                    top_k: None,
+                    metadata: None,
+                }).await {
+                    Ok(result) => {
+                        // Handle the successful execution of the code
+                        // You might want to store the result or send it back to the user
+                        Some(result)
+                    }
+                    Err(e) => {
+                        // Handle the error from the interpreter
+                        // You might want to log the error or notify the user
+                        
+                        return Err(RunError {
+                            message: format!("Failed to run code: {}", e),
+                            run_id: run_id.to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                        })
+                    }
+                };
+
+                if code_output.is_none() {
+                    return Err(RunError {
+                        message: format!("Failed to run code: no output"),
+                        run_id: run_id.to_string(),
+                        thread_id: thread_id.to_string(),
+                        user_id: user_id.to_string(),
+                    });
+                }
+
+                // Call file retrieval here
+                // Initialize an empty vector to hold all file IDs
+                let mut all_file_ids = Vec::new();
+
+                // If the run has associated file IDs, add them to the list
+                all_file_ids.extend(run.inner.file_ids.iter().cloned());
+
+                // If the assistant has associated file IDs, add them to the list
+                all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
+
+                let mut file_contents: Vec<String> = vec![];
+
+                // Check if the all_file_ids includes any file IDs.
+                if !all_file_ids.is_empty() {
+                    info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                    // Retrieve the contents of each file.
+                    file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
+                }
+
+                // Build instructions with the code output
+                instructions = build_instructions(
+                    &instructions,
+                    &file_contents,
+                    &formatted_messages,
+                    &tools,
+                    code_output.as_deref(),
+                );
             }
             _ => {
                 // Handle unknown tool
                 error!("Unknown tool: {}", tool_decision);
-                // TODO Update run status to "failed"
+                return Err(RunError {
+                    message: format!("Unknown tool: {}", tool_decision),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                });
             }
         }
     }
 
     info!("Calling LLM API with instructions: {}", instructions);
 
-    let result = run_assistant_based_on_model(assistant, instructions).await;
+    // Less prompt is more - just making sure the LLM does not talk too much about his context but rather directly answer the user TODO: (should be configurable)
+    let system_prompt = format!("You are an assistant that help a user based on tools and context you have.
+
+Rules:
+- Do not hallucinate
+- Obey strictly to the user request e.g. in <message> tags - EXTREMELY IMPORTANT
+- Answer directly the user e.g. 'What is the solution to the equation \"x + 2 = 4\"?' You should answer \"x = 2\" even though receiving bunch of context before.
+- Do not add tags in your answer such as <function_calls> etc. nor continue the user sentence. Just answer the user.
+
+These are additional instructions from the user that you must obey absolutely:
+
+{}
+
+", assistant.inner.instructions.as_ref().unwrap_or(&"".to_string()));
+
+    let result = llm(
+        &assistant.inner.model,
+        url.clone().into(),
+        &system_prompt,
+        &instructions,
+        None, // temperature
+        2000, // TODO optional
+        None,      // stop_sequences
+        None, // top_p
+        None,      // top_k
+        None,      // metadata
+        None,      // metadata
+    ).await;
 
     match result {
         Ok(output) => {
@@ -534,7 +776,12 @@ pub async fn queue_consumer(
                 &run.user_id.to_string(),
                 None,
             )
-            .await?;
+            .await.map_err(|e| RunError {
+                message: format!("Failed to add message to thread: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?;
             // Update run status to "completed"
             run = update_run_status(
                 pool,
@@ -544,22 +791,22 @@ pub async fn queue_consumer(
                 user_id,
                 None,
             )
-            .await?;
+            .await.map_err(|e| RunError {
+                message: format!("Failed to update run status: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?;
             Ok(run)
         }
         Err(e) => {
             error!("Assistant model error: {}", e);
-            // Update run status to "failed"
-            run = update_run_status(
-                pool,
-                &thread.inner.id,
-                &run.inner.id,
-                RunStatus::Failed,
-                user_id,
-                None,
-            )
-            .await?;
-            Err(e)
+            Err(RunError {
+                message: format!("Assistant model error: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })
         }
     }
 }
@@ -569,7 +816,7 @@ mod tests {
     use assistants_core::runs::{get_run, run_assistant};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
-        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole,
+        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject,
     };
     use serde_json::json;
     use sqlx::types::Uuid;
@@ -694,7 +941,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore] // TODO: this test is just bad
-    async fn test_queue_consumer() {
+    async fn test_run_executor() {
         let pool = setup().await;
         reset_db(&pool).await;
         let assistant = Assistant {
@@ -750,14 +997,15 @@ mod tests {
         assert!(run.is_ok());
 
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, &mut con).await;
+        let result = try_run_executor(&pool, &mut con).await;
 
         // Check the result
         assert!(
             result.is_ok(),
-            "queue_consumer failed: {}",
+            "try_run_executor failed: {}",
             result.unwrap_err()
         );
+
 
         // Fetch the run from the database and check its status
         let run = get_run(
@@ -781,7 +1029,7 @@ mod tests {
         let previous_messages =
             "<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n";
         let instructions =
-            build_instructions(original_instructions, &file_contents, previous_messages, "");
+            build_instructions(original_instructions, &file_contents, previous_messages, "", None);
         let expected_instructions = "<instructions>\nSolve the equation.\n</instructions>\n<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n\n</previous_messages>";
         assert_eq!(instructions, expected_instructions);
     }
@@ -895,7 +1143,7 @@ mod tests {
 
         // 6. Run the queue consumer
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, &mut con).await;
+        let result = try_run_executor(&pool, &mut con).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1011,109 +1259,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_assistant_based_on_model() {
-        setup().await;
-        let assistant_claude = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "claude-2.1".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let assistant_gpt = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "gpt".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let assistant_open_source = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "open-source/llama-2-70b-chat".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let assistant_unknown = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "unknown".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-
-        let instructions = "Test instructions".to_string();
-
-        let result_claude =
-            run_assistant_based_on_model(assistant_claude, instructions.clone()).await;
-        assert!(result_claude.is_ok());
-
-        let result_gpt = run_assistant_based_on_model(assistant_gpt, instructions.clone()).await;
-        assert!(result_gpt.is_ok());
-
-        // ! annoying - need to deploy some model somewhere i guess or run the llm in the ci :)
-        // let result_open_source = run_assistant_based_on_model(assistant_open_source, instructions.clone()).await;
-        // assert!(result_open_source.is_ok());
-
-        let result_unknown = run_assistant_based_on_model(assistant_unknown, instructions).await;
-        assert!(
-            matches!(result_unknown, Err(e) if e.downcast_ref::<std::io::Error>().unwrap().kind() == std::io::ErrorKind::InvalidInput)
-        );
-    }
-
-    #[tokio::test]
     async fn test_decide_tool_with_llm_anthropic() {
         setup().await;
         let mut functions = ChatCompletionFunctions {
@@ -1179,11 +1324,64 @@ mod tests {
             user_id: "".to_string(),
         }];
         // Call the function
-        let result = decide_tool_with_llm(&assistant, &previous_messages).await;
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
         let mut result = result.unwrap();
         // Check if the result is one of the expected tools
         let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
         assert_eq!(result.sort(), expected_tools.sort());
+    }
+
+
+    #[tokio::test]
+    async fn test_decide_tool_with_llm_code_interpreter() {
+        setup().await;
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![AssistantTools::Code(AssistantToolsCode {
+                    r#type: "code_interpreter".to_string(),
+                })],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let previous_messages = vec![Message {
+            inner: MessageObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                thread_id: "".to_string(),
+                role: MessageRole::User,
+                content: vec![MessageContent::Text(MessageContentTextObject {
+                    r#type: "text".to_string(),
+                    text: TextData {
+                        value: "I need to calculate the square root of 144.".to_string(),
+                        annotations: vec![],
+                    },
+                })],
+                assistant_id: None,
+                run_id: None,
+                file_ids: vec![],
+                metadata: None,
+            },
+            user_id: "".to_string(),
+        }];
+
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+
+        let result = result.unwrap();
+        assert_eq!(result, vec!["code_interpreter"]);
     }
 
     #[tokio::test]
@@ -1253,7 +1451,7 @@ mod tests {
         std::env::set_var("MODEL_URL", "https://api.perplexity.ai/chat/completions");
 
         // Call the decide_tool_with_llm function using the open-source LLM
-        let result = decide_tool_with_llm(&assistant, &previous_messages).await;
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
 
         let mut result = result.unwrap();
         // Check if the result is one of the expected tools
@@ -1357,7 +1555,7 @@ mod tests {
 
         // 9. Run the queue consumer
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, &mut con).await;
+        let result = try_run_executor(&pool, &mut con).await;
 
         // 10. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1401,7 +1599,7 @@ mod tests {
 
         // 13. Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool, &mut con).await;
+        let result = try_run_executor(&pool, &mut con).await;
 
         // 14. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1441,5 +1639,362 @@ mod tests {
 
         assert_eq!(messages[1].inner.role, MessageRole::Assistant);
 
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_code_interpreter() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+    
+        // 1. Create an Assistant
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a code interpreter. Execute code snippets."
+                        .to_string(),
+                ),
+                name: Some("Code Interpreter".to_string()),
+                tools: vec![AssistantTools::Code(AssistantToolsCode {
+                    r#type: "code_interpreter".to_string(),
+                })],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+    
+        // 2. Create a Thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+    
+        // 3. Add a Message to a Thread
+        let content = vec![MessageContent::Text(MessageContentTextObject {
+            r#type: "text".to_string(),
+            text: TextData {
+                value: "Calculate the square root of 144.".to_string(),
+                annotations: vec![],
+            },
+        })];
+        let message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            content,
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+    
+        // 4. Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, "Please execute the code snippet.", assistant.user_id.as_str(), con).await.unwrap();
+    
+        // 5. Check the result
+        assert_eq!(run.inner.status, RunStatus::Queued);
+    
+        // 6. Run the queue consumer
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+    
+        // 7. Check the result
+        assert!(result.is_ok(), "{:?}", result);
+    
+        // 8. Fetch the run from the database and check its status
+        let run = get_run(
+            &pool,
+            &thread.inner.id,
+            &result.unwrap().inner.id,
+            &assistant.user_id,
+        )
+        .await
+        .unwrap();
+        assert_eq!(run.inner.status, RunStatus::Completed);
+    
+        // 9. Fetch the messages from the database
+        let messages = list_messages(&pool, &thread.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+    
+        // 10. Check the messages
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].inner.role, MessageRole::User);
+        if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
+            assert_eq!(
+                text_object.text.value,
+                "Calculate the square root of 144."
+            );
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+    
+        assert_eq!(messages[1].inner.role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
+            // check it contains 12
+            assert!(text_object.text.value.contains("12"), "Expected the assistant to return 12, but got something else {}", text_object.text.value);
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_code_interpreter_with_file() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        let file_storage = FileStorage::new().await;
+
+        // 1. Create a temporary file.
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+        let startups = ["StartupA", "StartupB", "StartupC", "StartupD", "StartupE"];
+        let revenues = [500000, 300000, 750000, 600000, 450000];
+        let capital_raised = [1000000, 2000000, 1500000, 2500000, 3000000];
+        let growth_rates = [0.2, 0.3, 0.1, 0.25, 0.15];
+        let funding_rounds = ["Series A", "Series B", "Seed", "Series C", "Series A"];
+        let investors = ["InvestorX", "InvestorY", "InvestorZ", "InvestorX", "InvestorY"];
+
+        writeln!(temp_file, "Startup,Revenue,CapitalRaised,GrowthRate,FundingRound,Investor").unwrap();
+        for i in 0..startups.len() {
+            writeln!(temp_file, "{},{},{},{},{},{}", startups[i], revenues[i], capital_raised[i], growth_rates[i], funding_rounds[i], investors[i]).unwrap();
+        }
+
+        // 2. Get the path of the temporary file.
+        let temp_file_path = temp_file.path();
+
+        // 3. Upload the temporary file
+        let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
+
+        // 4. Create an Assistant with function calling tool
+        let file_id_clone = file_id.clone();
+        
+        // 1. Create an Assistant
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a VC copilot. Write and run code to answer questions about startups investment."
+                        .to_string(),
+                ),
+                name: Some("Code Interpreter".to_string()),
+                tools: vec![AssistantTools::Code(AssistantToolsCode {
+                    r#type: "code_interpreter".to_string(),
+                })],
+                model: "open-source/mixtral-8x7b-instruct".to_string(),
+                file_ids: vec![file_id_clone.to_string()], // Add file ID here
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        // 2. Create a Thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // 3. Add a Message to a Thread
+        let content = vec![MessageContent::Text(MessageContentTextObject {
+            r#type: "text".to_string(),
+            text: TextData {
+                value: format!("I have $100M to invest in a startup before I go to the beach sip a cocktail, which startup should I invest in? Please only answer the startup name, nothing else, VERY IMPORTANT."),
+                annotations: vec![],
+            },
+        })];
+        let message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            content,
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // 4. Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, 
+            "Please help me make more money.",
+             assistant.user_id.as_str(), con).await.unwrap();
+
+        // 5. Check the result
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // 6. Run the queue consumer
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        // 7. Check the result
+        assert!(result.is_ok(), "{:?}", result);
+
+        // 8. Fetch the run from the database and check its status
+        let run = get_run(
+            &pool,
+            &thread.inner.id,
+            &result.unwrap().inner.id,
+            &assistant.user_id,
+        )
+        .await
+        .unwrap();
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+        // 9. Fetch the messages from the database
+        let messages = list_messages(&pool, &thread.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // 10. Check the messages
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].inner.role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
+            assert!(text_object.text.value.contains("StartupE"), "Expected the assistant to return StartupE, but got something else {}", text_object.text.value);
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+        // Here you should check the assistant's response. This will depend on the actual content of your CSV file.
+    }
+
+    #[tokio::test]
+    async fn test_decide_tool_with_llm_no_function_after_tool_call() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![AssistantTools::Function(AssistantToolsFunction {
+                    r#type: "function".to_string(),
+                    function: ChatCompletionFunctions {
+                        description: Some("A calculator function".to_string()),
+                        name: "calculator".to_string(),
+                        parameters: json!({
+                            "type": "object",
+                            "properties": {
+                                "a": {
+                                    "type": "number",
+                                    "description": "The first number."
+                                },
+                                "b": {
+                                    "type": "number",
+                                    "description": "The second number."
+                                }
+                            }
+                        }),
+                    },
+                })],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let previous_messages = vec![Message {
+            inner: MessageObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                thread_id: "".to_string(),
+                role: MessageRole::User,
+                content: vec![MessageContent::Text(MessageContentTextObject {
+                    r#type: "text".to_string(),
+                    text: TextData {
+                        value: "I need to calculate something.".to_string(),
+                        annotations: vec![],
+                    },
+                })],
+                assistant_id: None,
+                run_id: None,
+                file_ids: vec![],
+                metadata: None,
+            },
+            user_id: "".to_string(),
+        }];
+
+        let mut run = Run::default();
+        run.inner.required_action = Some(RequiredAction {
+            r#type: "type_value".to_string(),
+            submit_tool_outputs: SubmitToolOutputs {
+                tool_calls: vec![RunToolCallObject {
+                    id: "tool_call_id".to_string(),
+                    r#type: "function".to_string(),
+                    function: FunctionCall {
+                        name: "calculator".to_string(),
+                        arguments: serde_json::to_string(&json!({
+                            "a": 1,
+                            "b": 2,
+                        })).unwrap(),
+                    },
+                }],
+            },
+        });
+
+        // create assistant
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        // Create a Thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+        .await
+        .unwrap();
+
+        // Add a Message to a Thread
+        let content = vec![MessageContent::Text(MessageContentTextObject {
+            r#type: "text".to_string(),
+            text: TextData {
+                value: "I need to calculate something.".to_string(),
+                annotations: vec![],
+            },
+        })];
+        let message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            content,
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, 
+            "Please help me calculate something.",
+            assistant.user_id.as_str(), con).await.unwrap();
+
+
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, vec![]).await;
+
+        let result = result.unwrap();
+        println!("{:?}", result);
+        assert!(!result.contains(&"function".to_string()));
     }
 }

@@ -132,3 +132,7 @@ docker-run-remote: ## Run remote Docker image of Assistants plus the databases
 	@docker exec -it pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
 	@docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
 	docker run --platform linux/arm64 --env-file .env -p 8080:8080 ghcr.io/stellar-amenities/assistants/assistants:latest
+
+clean-js:
+	rm -rf node_modules package-lock.json package.json
+

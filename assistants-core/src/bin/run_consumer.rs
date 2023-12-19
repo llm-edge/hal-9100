@@ -4,15 +4,17 @@
 // run the consumer:
 // cargo run --package assistants-core --bin run_consumer
 
-use assistants_core::assistant::queue_consumer;
+use assistants_core::assistant::{loop_through_runs, try_run_executor};
+use env_logger;
+use log::{error, info};
 use sqlx::postgres::PgPoolOptions;
 use tokio;
-use env_logger;
-use log::{info, error};
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder().filter_level(log::LevelFilter::Info).init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
     // Set up your database connection pool
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -24,9 +26,8 @@ async fn main() {
     let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
     let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_async_connection().await.unwrap();
-    
-    info!("Starting consumer");
 
+    info!("Starting consumer");
 
     let ascii_art = r"
     ___           ___           ___                       ___           ___           ___           ___           ___           ___     
@@ -53,13 +54,7 @@ async fn main() {
     
     ";
 
-    info!("{}", ascii_art);
+    info!("{}", &ascii_art);
 
-    // Spawn the queue consumer as a separate async task
-    // tokio::spawn(async move {
-    loop {
-        queue_consumer(&pool, &mut con).await;
-    }
-    // });
+    loop_through_runs(&pool, &mut con).await;
 }
-

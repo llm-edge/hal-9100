@@ -1,18 +1,14 @@
 use assistants_core::models::Function;
 use assistants_extra::llm::llm;
-use async_openai::types::ChatCompletionFunctionCall;
 use async_openai::types::ChatCompletionFunctions;
 use async_openai::types::FunctionCall;
-use core::future::Future;
 use log::error;
 use log::info;
-use regex::Regex;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::to_value;
-use serde_json::Value;
 use sqlx::types::Uuid;
 use sqlx::PgPool;
+use std::fmt;
 use std::{collections::HashMap, error::Error, pin::Pin};
 
 use crate::models::FunctionCallInput;
@@ -55,11 +51,15 @@ impl ModelConfig {
     }
 }
 
-pub async fn register_function(pool: &PgPool, function: Function) -> Result<String, sqlx::Error> {
-    let parameters_json = to_value(&function.inner.parameters)
-        .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+pub async fn register_function(
+    pool: &PgPool,
+    function: Function,
+) -> Result<String, FunctionCallError> {
+    let parameters_json = to_value(&function.inner.parameters).map_err(|e| {
+        FunctionCallError::Other(format!("Failed to convert parameters to JSON: {}", e))
+    })?;
     let user_id = Uuid::parse_str(&function.user_id)
-        .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+        .map_err(|e| FunctionCallError::Other(format!("Failed to parse user_id: {}", e)))?;
     let row = sqlx::query!(
         r#"
         INSERT INTO functions (user_id, name, description, parameters)
@@ -72,7 +72,8 @@ pub async fn register_function(pool: &PgPool, function: Function) -> Result<Stri
         &parameters_json,
     )
     .fetch_one(pool)
-    .await?;
+    .await
+    .map_err(|e| FunctionCallError::SqlxError(e))?;
 
     Ok(row.id.clone().to_string())
 }
@@ -88,9 +89,9 @@ Rules:
 - The arguments must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
 - The arguments must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
 - **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
-- If the function has no arguments, then you can simply provide the function name (e.g. { \"name\": \"function_name\" }). It can still be a valid function call that provide useful information.
+- If the function has no arguments, you don't need to provide the function arguments (e.g. { \"name\": \"function_name\" }).
 - CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELSE
-- IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
+- **IMPORTANT**: IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
 - IF YOU USE SINGLE QUOTE INSTEAD OF DOUBLE QUOTE IN THE JSON, THE UNIVERSE WILL COME TO AN END
 
 Examples:
@@ -128,15 +129,29 @@ In this case, the LLM simply returned the exact same input as output, which is n
 
 Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.";
 
-fn extract_first_json(string: &str) -> Option<&str> {
-    let re = Regex::new(r"\{.*?\}").unwrap();
-    re.find(string).map(|m| m.as_str())
+#[derive(Debug)]
+pub enum FunctionCallError {
+    JsonError(serde_json::Error),
+    SqlxError(sqlx::Error),
+    Other(String),
 }
+
+impl fmt::Display for FunctionCallError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FunctionCallError::JsonError(e) => write!(f, "JSON error: {}", e),
+            FunctionCallError::SqlxError(e) => write!(f, "SQLx error: {}", e),
+            FunctionCallError::Other(e) => write!(f, "Other error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for FunctionCallError {}
 
 // Pure function to generate a function call
 pub async fn generate_function_call(
     input: FunctionCallInput,
-) -> Result<FunctionCall, Box<dyn Error>> {
+) -> Result<FunctionCall, FunctionCallError> {
     let prompt_data = serde_json::json!({
         "function": {
             "name": input.function.inner.name,
@@ -150,7 +165,7 @@ pub async fn generate_function_call(
         Ok(json_string) => json_string,
         Err(e) => {
             error!("Failed to convert to JSON: {}", e);
-            return Err(e.into());
+            return Err(FunctionCallError::JsonError(e));
         }
     };
     info!("Generating function call with prompt: {}", prompt);
@@ -160,7 +175,7 @@ pub async fn generate_function_call(
         CREATE_FUNCTION_CALL_SYSTEM,
         &prompt,
         input.model_config.temperature,
-        input.model_config.max_tokens_to_sample,
+        -1,
         input
             .model_config
             .stop_sequences
@@ -169,13 +184,17 @@ pub async fn generate_function_call(
         input.model_config.top_p,
         input.model_config.top_k,
         None,
+        None,
     )
     .await
     {
         Ok(res) => res,
         Err(err) => {
             error!("Failed to call llm: {}", err);
-            return Err(err.into());
+            return Err(FunctionCallError::Other(format!(
+                "Failed to call llm: {}",
+                err
+            )));
         }
     };
 
@@ -186,11 +205,11 @@ pub async fn generate_function_call(
     let result = match result {
         Ok(result) => (
             result.get("name").unwrap().to_string(),
-            result.get("arguments").unwrap().to_string(),
+            result.get("arguments").unwrap_or(&json!({})).to_string(),
         ),
         Err(e) => {
             error!("Failed to parse result: {}", e);
-            return Err(e.into());
+            return Err(FunctionCallError::JsonError(e));
         }
     };
     info!("Function call generated: {:?}", result);

@@ -4,7 +4,6 @@
 
 // docker run --rm code-interpreter python -c "print(1+1)"
 
-// TODO: copy paste https://github.com/KillianLucas/open-interpreter into a safe server-side environment that generate and execute code
 use async_recursion::async_recursion;
 
 use assistants_core::function_calling::generate_function_call;
@@ -29,22 +28,13 @@ use uuid::Uuid;
 
 // TODO: later optimise stuff like: run docker container in the background, use a pool of docker containers, etc.
 // TODO: latr run multiple interpreters in parallel and use llm to take best output or smthing.
+// TODO: latr annotations
+// TODO: multi step - e.g. generate code, execute, then give result to next llm call, etc. LLM decide how many iterations it wants to do.
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Get user input
-    print!("Enter your question: ");
-    io::stdout().flush()?;
-    let mut user_input = String::new();
-    io::stdin().read_line(&mut user_input)?;
-    let result = safe_interpreter(user_input, 0, 3).await.unwrap();
-    println!("Result: {:?}", result);
-    Ok(())
-}
 use std::fmt;
 
 #[derive(Debug)]
-struct InterpreterError {
+pub struct InterpreterError {
     message: String,
     python_code: String,
 }
@@ -73,22 +63,27 @@ impl From<serde_json::Error> for InterpreterError {
     }
 }
 
-impl From<Box<dyn std::error::Error>> for InterpreterError {
-    fn from(err: Box<dyn std::error::Error>) -> InterpreterError {
-        InterpreterError {
-            message: format!("Boxed error: {}", err),
-            python_code: String::new(),
-        }
-    }
-}
+
 
 impl std::error::Error for InterpreterError {}
 
+#[derive(Clone, Debug)]
+pub struct InterpreterModelConfig {
+    pub model_name: String,
+    pub model_url: Option<String>,
+    pub max_tokens_to_sample: i32,
+    pub stop_sequences: Option<Vec<String>>,
+    pub top_p: Option<f32>,
+    pub top_k: Option<i32>,
+    pub metadata: Option<HashMap<String, String>>,
+}
+
 #[async_recursion]
-async fn safe_interpreter(
+pub async fn safe_interpreter(
     user_input: String,
     attempt: usize,
     max_attempts: usize,
+    model_config: InterpreterModelConfig,
 ) -> Result<String, InterpreterError> {
     if attempt >= max_attempts {
         return Err(InterpreterError {
@@ -97,20 +92,23 @@ async fn safe_interpreter(
         });
     }
 
-    match interpreter(user_input.clone()).await {
+    match interpreter(user_input.clone(), model_config.clone()).await {
         Ok((result, _model_output)) => Ok(result),
         Err(e) => {
             eprintln!("Error: {}", e);
             let input = format!(
-                "{}\n<error>You generated \n<code>\n{}\n</code>\n and it failed with error: {}. Please generate a code that work.<error>",
+                "{}\n<error>You generated \n<code>\n{}\n</code>\n and it failed with error: {}. Please generate a DIFFERENT code that works.<error>",
                 user_input, e.python_code, e.message
             );
-            safe_interpreter(input, attempt + 1, max_attempts).await
+            safe_interpreter(input, attempt + 1, max_attempts, model_config.clone()).await
         }
     }
 }
 
-async fn interpreter(user_input: String) -> Result<(String, String), InterpreterError> {
+async fn interpreter(
+    user_input: String,
+    model_config: InterpreterModelConfig,
+) -> Result<(String, String), InterpreterError> {
     println!("Generating Python code...");
 
     let build_prompt = |user_input: &str| {
@@ -132,9 +130,13 @@ Rules:
 - Make sure to use the right numbers e.g. with the user ask for the square root of 2, you should return math.sqrt(2) and not math.sqrt(pd.DataFrame({{'A': [1, 2, 3], 'B': [4, 5, 6]}})).
 - Do not use any library if it's simple math (e.g. no need to use pandas to compute the square root of 2)
 - Sometimes the user provide you an error, make sure to write a Python code that will work
-- IF YOU DO NOT FIX YOUR CODE THAT ERRORED A HUMAN WILL DIE
+- IF YOU DO NOT FIX YOUR CODE THAT ERRORED A HUMAN WILL DIE. DO NOT GENERATE THE SAME CODE THAT PREVIOUSLY FAILED
 - DO NOT USE ```python YOUR CODE...``` (CODE BLOCKS) OR A HUMAN WILL DIE
 - ALWAYS USE SINGLE QUOTES IN YOUR CODE (e.g. '), NOT DOUBLE QUOTES OR A HUMAN WILL DIE
+- Always try to simplify the math problem you're given by generating code that will compute simpler numbers. Your answer might be used by another Assistant that might not be good at math.
+- Be extra careful with escaping, this is wrong for example: import pandas as pd\\nprices = pd.read\\_csv('prices.csv')\\nprice\\_with\\_highest\\_demand = startups['demand'].idxmax()\\nprint(price\\_with\\_highest\\_demand)
+- Make sure to use existing files, by default there is no files written on disk. DO NOT TRY TO READ FILES. YOU DONT HAVE ANY FILES. DO NOT DO THINGS LIKE: pd.read_csv('startups.csv')
+- Make sure to surround strings by single quotes, e.g. don't do this: print(Hello world) but do this: print('Hello world')
 
 A few examples:
 
@@ -157,7 +159,13 @@ series_a_dilution = (series_a_raise_amount / series_a_post_money_valuation) * 10
 print('Founders dilution: ' + str(founders_dilution) + '%')
 
 So generate the Python code that we will execute that can help the user with his request.
-        ", user_input)
+
+<user>
+
+{}
+
+</user>
+        ", user_input, user_input)
     };
 
     // Generate Python code
@@ -181,19 +189,24 @@ So generate the Python code that we will execute that can help the user with his
         },
         user_context: build_prompt(&user_input),
         model_config: ModelConfig {
-            model_name: String::from("open-source/mixtral-8x7b-instruct"),
-            model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_input.clone(), // not used imho
             temperature: Some(0.0),
-            max_tokens_to_sample: 200,
-            stop_sequences: None,
-            top_p: Some(1.0),
-            top_k: None,
-            metadata: None,
+            model_name: model_config.model_name,
+            model_url: model_config.model_url,
+            max_tokens_to_sample: model_config.max_tokens_to_sample, // TODO should compute max based on prompt using tiktoken
+            stop_sequences: model_config.stop_sequences,
+            top_p: model_config.top_p,
+            top_k: model_config.top_k,
+            metadata: model_config.metadata,
         },
     };
 
-    let function_result = generate_function_call(function_call_input).await?;
+    let function_result = generate_function_call(function_call_input)
+        .await
+        .map_err(|e| InterpreterError {
+            message: format!("Failed to generate Python code at function call: {}", e),
+            python_code: String::new(),
+        })?;
     println!("Function result: {:?}", function_result);
     let python_code = function_result.arguments;
     let python_code: HashMap<String, String> = serde_json::from_str(&python_code)?;
@@ -299,7 +312,6 @@ mod tests {
     use dotenv::dotenv;
 
     #[tokio::test]
-    #[ignore]
     async fn test_interpreter() {
         dotenv().ok();
 
@@ -327,9 +339,21 @@ mod tests {
         ];
 
         for (input, expected_output) in inputs {
-            println!("Before safe_interpreter call");
-            let result = safe_interpreter(input.to_string(), 0, 3).await;
-            println!("After safe_interpreter call");
+            let result = safe_interpreter(
+                input.to_string(),
+                0,
+                3,
+                InterpreterModelConfig {
+                    model_name: "open-source/mixtral-8x7b-instruct".to_string(),
+                    model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
+                    max_tokens_to_sample: 100,
+                    stop_sequences: None,
+                    top_p: None,
+                    top_k: None,
+                    metadata: None,
+                },
+            )
+            .await;
             assert!(
                 result.is_ok(),
                 "Failed on input: {} error: {:?}",
@@ -337,7 +361,10 @@ mod tests {
                 result
             );
             let result_string = result.unwrap();
-            println!("Problem to solve: {}. \nOutput: {}\nExpected output: {}", input, result_string, expected_output);
+            println!(
+                "Problem to solve: {}. \nOutput: {}\nExpected output: {}",
+                input, result_string, expected_output
+            );
 
             let p = "You are an AI that checks the correctness of math results. 
 Given the user input and the result, return '1' if the result seems correct, and '0' if it seems incorrect. 
@@ -361,6 +388,7 @@ Rules:
                 60,
                 None,
                 Some(1.0),
+                None,
                 None,
                 None,
             )

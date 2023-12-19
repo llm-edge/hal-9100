@@ -19,7 +19,6 @@ sqlx = { version = "0.7.3", features = ["macros", "postgres", "runtime-async-std
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
-assistants-extra = { path = "../assistants-extra" }
 bytes = "1.0"
 rusty-s3 = "0.5.0"
 url = "2.2.2"
@@ -31,6 +30,14 @@ regex = "1.5.4"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 async-openai = "0.17.1"
+
+# code interpreter
+bollard = "0.10.1"
+async-recursion = "1.0.5"
+
+# extra 
+assistants-extra = { path = "../assistants-extra" }
+
 
 [build-dependencies]
 syn = "1"

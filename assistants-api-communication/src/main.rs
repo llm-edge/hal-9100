@@ -207,13 +207,15 @@ async fn upload_file_handler(
     let mut purpose = String::new();
     let mut content_type = String::new();
 
-    while let Some(field) = multipart.next_field().await.unwrap() {
+    while let Some(mut field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
 
         if name == "file" {
             content_type = field.content_type().unwrap_or("text/plain").to_string();
             println!("Content type: {:?}", content_type);
-            file_data = field.bytes().await.unwrap().to_vec();
+            while let Some(chunk) = field.chunk().await.unwrap() {
+                file_data.extend_from_slice(&chunk);
+            }
         } else if name == "purpose" {
             purpose = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
         }
@@ -259,7 +261,7 @@ async fn upload_file_handler(
 mod tests {
     use super::*;
     use assistants_api_communication::runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest};
-    use assistants_core::assistant::queue_consumer;
+    use assistants_core::assistant::try_run_executor;
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, CreateAssistantRequest,
@@ -619,6 +621,37 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_upload_csv_file_handler() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        let boundary = "------------------------14737809831466499882746641449";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"startup_data.csv\"\r\nContent-Type: text/csv\r\n\r\nStartup,Revenue,CapitalRaised,GrowthRate,FundingRound,Investor\nStartupA,500000,1000000,0.2,Series A,InvestorX\nStartupB,600000,1500000,0.3,Series B,InvestorY\nStartupC,700000,2000000,0.4,Series C,InvestorZ\nStartupD,800000,2500000,0.5,Series D,InvestorW\nStartupE,900000,3000000,0.6,Series E,InvestorV\r\n--{boundary}--\r\n",
+            boundary = boundary
+        );
+
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/files")
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={}", boundary),
+            )
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "{:?}",
+            hyper::body::to_bytes(response.into_body()).await.unwrap()
+        );
     }
 
     #[tokio::test]
@@ -1246,7 +1279,7 @@ mod tests {
         // 4. Add a Message to a Thread
         let message = CreateMessageRequest {
             role: "user".to_string(),
-            content: "I need to solve the equation `3x + 11 = 14`. Can you help me?".to_string(),
+            content: "I need to solve the equation `3x + 11 = 14`. Can you help me? Do not use code interpreter".to_string(),
             file_ids: None,
             metadata: None,
         };
@@ -1297,7 +1330,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool_clone, &mut con).await;
+        let result = try_run_executor(&pool_clone, &mut con).await;
 
         // 7. Check the result
         assert!(
@@ -1351,7 +1384,7 @@ mod tests {
         if let MessageContent::Text(m) = &messages.data[0].content[0] {
             assert_eq!(
                 m.text.value,
-                "I need to solve the equation `3x + 11 = 14`. Can you help me?"
+                "I need to solve the equation `3x + 11 = 14`. Can you help me? Do not use code interpreter"
             );
         } else {
             panic!("The first message should be a text message");
@@ -1800,76 +1833,6 @@ mod tests {
         assert_eq!(runs[0].instructions, "Test instructions");
     }
 
-    // #[tokio::test] // TODO: gotta create tool_calls etc. annoying but got a test end to end covering this anyway
-    // async fn test_submit_tool_outputs_handler() {
-    //     let app_state = setup().await;
-    //     let app = app(app_state);
-
-    //     // create thread and run
-    //     let response = app
-    //         .clone()
-    //         .oneshot(
-    //             Request::builder()
-    //                 .method(http::Method::POST)
-    //                 .uri("/threads")
-    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-    //                 .body(Body::empty())
-    //                 .unwrap(),
-    //         )
-    //         .await
-    //         .unwrap();
-
-    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    //     let thread: Thread = serde_json::from_slice(&body).unwrap();
-
-    //     let run_input = RunInput {
-    //         assistant_id: 1,
-    //         instructions: "Test instructions".to_string(),
-    //     };
-    //     let response = app
-    //         .clone()
-    //         .oneshot(
-    //             Request::builder()
-    //                 .method(http::Method::POST)
-    //                 .uri(format!("/threads/{}/runs", thread.id))
-    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-    //                 .body(Body::from(serde_json::to_vec(&run_input).unwrap()))
-    //                 .unwrap(),
-    //         )
-    //         .await
-    //         .unwrap();
-
-    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    //     let run: Run = serde_json::from_slice(&body).unwrap();
-
-    //     let tool_outputs = vec![ApiSubmittedToolCall {
-    //         tool_call_id: "abcd".to_string(),
-    //         output: "42".to_string(),
-    //     }];
-
-    //     let request = SubmitToolOutputsRequest { tool_outputs };
-
-    //     let response = app
-    //         .oneshot(
-    //             Request::builder()
-    //                 .method(http::Method::POST)
-    //                 .uri(format!(
-    //                     "/threads/{}/runs/{}/submit_tool_outputs",
-    //                     thread.id, run.id
-    //                 ))
-    //                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-    //                 .body(Body::from(serde_json::to_vec(&request).unwrap()))
-    //                 .unwrap(),
-    //         )
-    //         .await
-    //         .unwrap();
-
-    //     assert_eq!(response.status(), StatusCode::OK);
-
-    //     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    //     let run: Run = serde_json::from_slice(&body).unwrap();
-    //     assert_eq!(run.instructions, "Test instructions");
-    // }
     #[tokio::test]
     async fn test_api_end_to_end_function_calling_plus_retrieval() {
         // Setup
@@ -2017,7 +1980,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool_clone, &mut con).await;
+        let result = try_run_executor(&pool_clone, &mut con).await;
 
         assert!(
             result.is_ok(),
@@ -2073,7 +2036,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let mut con = client.get_async_connection().await.unwrap();
-        let result = queue_consumer(&pool_clone, &mut con).await;
+        let result = try_run_executor(&pool_clone, &mut con).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app
@@ -2118,5 +2081,244 @@ mod tests {
         // TODO: it works but claude is just bad
         // assert_eq!(messages[1].content[0].text.value.contains("43"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
         // assert_eq!(messages[1].content[0].text.value.contains("42"), true, "The assistant should have retrieved the ultimate truth of the universe. Instead, it retrieved: {}", messages[1].content[0].text.value);
+    }
+
+    // This function should test that given 3 tools, it should require function call to get more specific context and use code interpreter to simplify the context
+    #[tokio::test]
+    #[ignore] // TODO: this test is highly nonderministic and using the experimental code interpreter. Should make it more deterministic in the future.
+    async fn test_end_to_end_function_retrieval_code_interpreter() {
+        // Setup
+        let app_state = setup().await;
+        let app = app(app_state.clone());
+        let pool_clone = app_state.pool.clone();
+
+        // 1. Upload a file
+        let boundary = "------------------------14737809831466499882746641449";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"startup_data.csv\"\r\nContent-Type: text/csv\r\n\r\nStartup,Revenue,CapitalRaised,GrowthRate,FundingRound,Investor\nStartupA,500000,1000000,0.2,Series A,InvestorX\nStartupB,600000,1500000,0.3,Series B,InvestorY\nStartupC,700000,2000000,0.4,Series C,InvestorZ\nStartupD,800000,2500000,0.5,Series D,InvestorW\nStartupE,900000,3000000,0.6,Series E,InvestorV\r\n--{boundary}--\r\n",
+            boundary = boundary
+        );
+
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/files")
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={}", boundary),
+            )
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body: Value = serde_json::from_slice(&body).unwrap();
+        let file_id = body["file_id"].as_str().unwrap().to_string();
+
+        // 2. Create an Assistant with function, retrieval, and code interpreter tools
+        let assistant = json!({
+            "instructions": "You are a VC copilot. Write and run code to answer questions about startups investment.",
+            "name": "VC Copilot",
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "description": "A function that provides the VC's capital. Make sure to call this function if the user wants to invest but you don't know his capital.",
+                        "name": "get_vc_capital",
+                        "parameters": {
+                            "type": "object",
+                        }
+                    }
+                },
+                {
+                    "type": "retrieval"
+                },
+                {
+                    "type": "code_interpreter"
+                }
+            ],
+            "model": "mistralai/mixtral-8x7b-instruct",
+            "file_ids": [file_id]
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        // 3. Create a Thread
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: ThreadObject = serde_json::from_slice(&body).unwrap();
+
+        // 4. Add a Message to a Thread
+        let message = json!({
+            "role": "user",
+            "content": "Which startup should I invest in? Please crunch the data using code interpreter into simpler numbers"
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/messages", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(message.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // 5. Run the Assistant
+        let run_input = json!({
+            "assistant_id": assistant.id,
+            "instructions": "You help me."
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(run_input.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        // 6. Check the run status
+        assert_eq!(run.status, RunStatus::Queued);
+
+        // 7. Run the queue consumer
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool_clone, &mut con).await;
+
+        let run = result.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::RequiresAction);
+
+        // 9. Submit tool outputs
+        let tool_outputs = vec![ApiSubmittedToolCall {
+            tool_call_id: run
+                .inner
+                .required_action
+                .unwrap()
+                .submit_tool_outputs
+                .tool_calls[0]
+                .id
+                .clone(),
+            output: "I have $10k to $1b to invest bro".to_string(),
+        }];
+
+        let request = SubmitToolOutputsRequest { tool_outputs };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!(
+                        "/threads/{}/runs/{}/submit_tool_outputs",
+                        thread.id, run.inner.id
+                    ))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&request).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "{:?}",
+            hyper::body::to_bytes(response.into_body()).await.unwrap()
+        );
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool_clone, &mut con).await;
+
+        assert!(
+            result.is_ok(),
+            "The queue consumer should have run successfully. Instead, it returned: {:?}",
+            result
+        );
+        let run = result.unwrap();
+        assert_eq!(run.inner.status, RunStatus::Completed, "{:?}", run);
+
+        // 10. Fetch the messages from the database
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/messages", thread.id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let messages: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
+
+        // 11. Check the assistant's response
+
+        assert_eq!(messages.data.len(), 2);
+        assert_eq!(messages.data[1].role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages.data[1].content[0] {
+            assert!(
+                text_object.text.value.contains("StartupA"),
+                "The assistant should have recommended StartupA. Instead, it said: {}",
+                text_object.text.value
+            );
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
     }
 }

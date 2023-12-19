@@ -14,7 +14,7 @@ futures = "0.3"
 bytes = "1.0"
 log = "0.4"
 async-openai = "0.17.1"
-
+tiktoken-rs = "0.5.7"
 [dev-dependencies]
 dotenv = "0.15.0"
 httpmock = { version = "0.6", features = ["standalone"] }

@@ -7,6 +7,15 @@ It is more of a public utility that we hope will be useful to many people and co
 
 [Join the Discord Server!](https://discord.gg/XMetBW3zCG).
 
+## Principles
+
+- **Less prompt is more**. The API user should have as much control over the prompts and we should hard code as little as possible.
+- **Follow strictly OpenAI API**. We should rarely deviate or add to the API. We should only do so when it is clear that the API is lacking.
+- Rely on **open source projects that survived the test of time**.
+- Rely on **cloud native** technologies that survived the test of time.
+- **Standalone and edge ready**. The API should be able to run on a Raspberry Pi for example.
+- **Test as much as possible**. We should have a high test coverage.
+
 ## Current Stack
 
 ### Infra

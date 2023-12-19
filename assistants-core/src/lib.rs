@@ -9,4 +9,5 @@ pub mod assistants;
 pub mod threads; 
 pub mod messages;
 pub mod runs;
-pub mod function_calling; // TODO
+pub mod function_calling;
+pub mod code_interpreter; 

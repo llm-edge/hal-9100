@@ -41,12 +41,15 @@ Get started in less than a minute through GitHub Codespaces:
 - [2023/29/11] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
 ## Key Features
-- [ ] **Code Interpreter**: Runs Python code in a sandboxed environment. (Soon! We're working on it!)
+- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (Beta)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
 - [x] **Function Calling**: Defines and executes custom functions.
 - [x] **File Handling**: Supports a range of file formats.
-  - [x] pdf, text files
-  - [ ] images, videos, etc. (We're working on it!)
+- [ ] **Multimodal**: Supports audio, images, and text.
+  - [ ] image audio text 
+  - [ ] audio text
+  - [ ] image text (soon)
+  - [x] text
 
 ## What can you build with Assistants?
 

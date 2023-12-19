@@ -5,6 +5,7 @@ use assistants_extra::openai::{
 use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
+use tiktoken_rs::p50k_base;
 
 pub async fn llm(
     model_name: &str,
@@ -12,11 +13,12 @@ pub async fn llm(
     system_prompt: &str,
     user_prompt: &str,
     temperature: Option<f32>,
-    max_tokens_to_sample: i32,
+    mut max_tokens_to_sample: i32,
     stop_sequences: Option<Vec<String>>,
     top_p: Option<f32>,
     top_k: Option<i32>,
     metadata: Option<HashMap<String, String>>,
+    context_size: Option<i32>,
 ) -> Result<String, Box<dyn Error>> {
     let messages = vec![
         Message {
@@ -28,12 +30,19 @@ pub async fn llm(
             content: user_prompt.to_string(),
         },
     ];
+
     if model_name.contains("claude") {
         let instructions = format!(
             "<system>\n{}\n</system>\n<user>\n{}\n</user>",
             system_prompt, user_prompt
         );
         info!("Calling Claude API with instructions: {}", instructions);
+        // if max_tokens_to_sample == -1 we just use maximum length based on current prompt
+        if max_tokens_to_sample == -1 {
+            let bpe = p50k_base().unwrap();
+            let tokens = bpe.encode_with_special_tokens(&instructions);
+            max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
+        }
 
         call_anthropic_api(
             instructions,
@@ -53,6 +62,11 @@ pub async fn llm(
         })
     } else if model_name.contains("gpt") {
         info!("Calling OpenAI API with messages: {:?}", messages);
+        if max_tokens_to_sample == -1 {
+            let bpe = p50k_base().unwrap();
+            let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
+            max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
+        }
         call_openai_api_with_messages(
             messages,
             max_tokens_to_sample,
@@ -78,6 +92,12 @@ pub async fn llm(
             "Calling Open Source LLM through OpenAI API with messages: {:?}",
             messages
         );
+        if max_tokens_to_sample == -1 {
+            let bpe = p50k_base().unwrap();
+            let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
+            max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
+            println!("max_tokens_to_sample: {}", max_tokens_to_sample);
+        }
         call_open_source_openai_api_with_messages(
             messages,
             max_tokens_to_sample,
@@ -122,6 +142,7 @@ mod tests {
             Some(1.0),
             None,
             None,
+            None,
         )
         .await;
         assert!(result.is_ok());
@@ -142,6 +163,7 @@ mod tests {
             Some(1.0),
             None,
             None,
+            None,
         )
         .await;
         assert!(result.is_ok());
@@ -160,6 +182,7 @@ mod tests {
             60,
             None,
             Some(1.0),
+            None,
             None,
             None,
         )

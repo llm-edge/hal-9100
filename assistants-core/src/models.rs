@@ -1,6 +1,7 @@
 use assistants_extra::anthropic;
 use async_openai::types::{
-    AssistantObject, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, ThreadObject,
+    AssistantObject, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, RunStatus,
+    ThreadObject,
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
@@ -87,6 +88,34 @@ impl From<assistants_core::models::Message> for async_openai::types::MessageObje
 pub struct Run {
     pub inner: RunObject,
     pub user_id: String,
+}
+
+impl Default for Run {
+    fn default() -> Self {
+        Self {
+            inner: RunObject {
+                id: Uuid::new_v4().to_string(),
+                object: String::new(),
+                created_at: 0,
+                instructions: String::new(),
+                thread_id: Uuid::new_v4().to_string(),
+                assistant_id: Some(Uuid::new_v4().to_string()),
+                status: RunStatus::Queued,
+                last_error: None,
+                expires_at: Some(0),
+                started_at: Some(0),
+                cancelled_at: None,
+                failed_at: None,
+                completed_at: None,
+                model: String::new(),
+                tools: Vec::new(),
+                file_ids: Vec::new(),
+                required_action: None,
+                metadata: None,
+            },
+            user_id: String::new(),
+        }
+    }
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
