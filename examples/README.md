@@ -51,7 +51,7 @@ Now that you've got your feet wet with the Open Source Assistants API, it's time
 
 For those interested in self-hosting, take a look at the [Self-Hosting Guide](./ee/k8s/README.md) in the `./ee/k8s/` directory. It provides detailed instructions on how to set up and manage your own instance.
 
-If you're looking for inspiration on what to build next, check out the [IDEAS.md](./examples/IDEAS.md) file in the `examples` directory. It contains a list of project ideas that leverage the power of the Open Source Assistants API, ranging from AI-powered personal budgeting apps to language learning apps, health trackers, and more.
+If you're looking for inspiration on what to build next, check out the [IDEAS.md](./IDEAS.md) file in the `examples` directory. It contains a list of project ideas that leverage the power of the Open Source Assistants API, ranging from AI-powered personal budgeting apps to language learning apps, health trackers, and more.
 
 You can also explore the OpenAI Examples for a wider range of applications and to understand how to leverage the full power of the API.
 
