@@ -212,7 +212,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
                 AssistantTools::Function(e) => 
                     json!({
                         "name": "function",
-                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. If there are required actions and the user sent all tool calls required you MUST NOT use \"function\" which has already been used anyway",
+                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. IMPORTANT: If there are <required_action> and the user sent all <tool_calls> required already you MUST NOT use \"function\" again which has already been used anyway",
                         "function": {
                             "name": e.function.name,
                             "description": e.function.description,
@@ -813,7 +813,7 @@ These are additional instructions from the user that you must obey absolutely:
 
 #[cfg(test)]
 mod tests {
-    use assistants_core::runs::{get_run, run_assistant};
+    use assistants_core::runs::{get_run, create_run_and_produce_to_executor_queue};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject,
@@ -939,86 +939,6 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
-    #[ignore] // TODO: this test is just bad
-    async fn test_run_executor() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let assistant = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "claude-2.1".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let assistant = create_assistant(&pool, &assistant).await.unwrap();
-        println!("assistant: {:?}", assistant);
-        let thread = create_thread(&pool, &Uuid::default().to_string())
-            .await
-            .unwrap(); // Create a new thread
-        let content = vec![MessageContent::Text(MessageContentTextObject {
-            r#type: "text".to_string(),
-            text: TextData {
-                value: "Hello world".to_string(),
-                annotations: vec![],
-            },
-        })];
-        let message = add_message_to_thread(
-            &pool,
-            &thread.inner.id,
-            MessageRole::User,
-            content,
-            &Uuid::default().to_string(),
-            None,
-        )
-        .await; // Use the id of the new thread
-        assert!(message.is_ok());
-        let run = create_run(&pool, &thread.inner.id,& assistant.inner.id, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", &assistant.user_id).await;
-
-        // Get Redis URL from environment variable
-        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-        let client = redis::Client::open(redis_url).unwrap();
-        let con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, "Human: Please address the user as Jane Doe. The user has a premium account. Assistant:", &assistant.user_id, con).await;
-
-        assert!(run.is_ok());
-
-        let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
-
-        // Check the result
-        assert!(
-            result.is_ok(),
-            "try_run_executor failed: {}",
-            result.unwrap_err()
-        );
-
-
-        // Fetch the run from the database and check its status
-        let run = get_run(
-            &pool,
-            &thread.inner.id,
-            &result.unwrap().inner.id,
-            &assistant.user_id,
-        )
-        .await
-        .unwrap();
-        assert_eq!(run.inner.status, RunStatus::Completed);
-    }
-
     #[test]
     fn test_build_instructions() {
         let original_instructions = "Solve the equation.";
@@ -1136,7 +1056,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, "Please solve the equation according to the ultimate dogmatic truth of the files JUST FUCKING READ THE FILE.", assistant.user_id.as_str(), con).await.unwrap();
+        let run = create_run_and_produce_to_executor_queue(&pool, &thread.inner.id, &assistant.inner.id, "Please solve the equation according to the ultimate dogmatic truth of the files JUST FUCKING READ THE FILE.", assistant.user_id.as_str(), con).await.unwrap();
 
         // 5. Check the result
         assert_eq!(run.inner.status, RunStatus::Queued);
@@ -1539,7 +1459,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(
+        let run = create_run_and_produce_to_executor_queue(
             &pool,
             &thread.inner.id,
             &assistant.inner.id,
@@ -1642,7 +1562,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // TODO: until fixed CI docker thing
     async fn test_end_to_end_code_interpreter() {
         // Setup
         let pool = setup().await;
@@ -1700,7 +1619,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, "Please execute the code snippet.", assistant.user_id.as_str(), con).await.unwrap();
+        let run = create_run_and_produce_to_executor_queue(&pool, &thread.inner.id, &assistant.inner.id, "Please execute the code snippet.", assistant.user_id.as_str(), con).await.unwrap();
     
         // 5. Check the result
         assert_eq!(run.inner.status, RunStatus::Queued);
@@ -1750,7 +1669,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // TODO: until fixed CI docker thing
     async fn test_end_to_end_code_interpreter_with_file() {
         // Setup
         let pool = setup().await;
@@ -1833,7 +1751,7 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, 
+        let run = create_run_and_produce_to_executor_queue(&pool, &thread.inner.id, &assistant.inner.id, 
             "Please help me make more money.",
              assistant.user_id.as_str(), con).await.unwrap();
 
@@ -1875,7 +1793,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore] // TODO: working on making this more deterministic
     async fn test_decide_tool_with_llm_no_function_after_tool_call() {
         let pool = setup().await;
         reset_db(&pool).await;
@@ -1907,7 +1824,7 @@ mod tests {
                         }),
                     },
                 })],
-                model: "claude-2.1".to_string(),
+                model: "open-source/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1938,24 +1855,6 @@ mod tests {
             },
             user_id: "".to_string(),
         }];
-
-        let mut run = Run::default();
-        run.inner.required_action = Some(RequiredAction {
-            r#type: "type_value".to_string(),
-            submit_tool_outputs: SubmitToolOutputs {
-                tool_calls: vec![RunToolCallObject {
-                    id: "tool_call_id".to_string(),
-                    r#type: "function".to_string(),
-                    function: FunctionCall {
-                        name: "calculator".to_string(),
-                        arguments: serde_json::to_string(&json!({
-                            "a": 1,
-                            "b": 2,
-                        })).unwrap(),
-                    },
-                }],
-            },
-        });
 
         // create assistant
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
@@ -1989,12 +1888,63 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let run = run_assistant(&pool, &thread.inner.id, &assistant.inner.id, 
-            "Please help me calculate something.",
-            assistant.user_id.as_str(), con).await.unwrap();
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me calculate something. Use the function tool.",
+            assistant.user_id.as_str(), 
+            con
+        ).await.unwrap();
 
 
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, vec![]).await;
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        // Check the result
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // After running the assistant and checking the result
+        assert_eq!(run.inner.status, RunStatus::RequiresAction);
+
+        // Submit tool outputs
+        let tool_outputs = vec![SubmittedToolCall {
+            id: run
+                .inner
+                .required_action
+                .unwrap()
+                .submit_tool_outputs
+                .tool_calls[0]
+                .id
+                .clone(),
+            output: "output_value".to_string(),
+            run_id: run.inner.id.clone(),
+            created_at: 0,
+            user_id: assistant.user_id.clone(),
+        }];
+        let con = client.get_async_connection().await.unwrap();
+
+        submit_tool_outputs(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            assistant.user_id.clone().as_str(),
+            tool_outputs.clone(),
+            con,
+        )
+        .await
+        .unwrap();
+
+        let run = get_run(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            &assistant.user_id,
+        ).await.unwrap();
+
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone()).await;
 
         let result = result.unwrap();
         println!("{:?}", result);

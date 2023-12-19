@@ -63,8 +63,6 @@ impl From<serde_json::Error> for InterpreterError {
     }
 }
 
-
-
 impl std::error::Error for InterpreterError {}
 
 #[derive(Clone, Debug)]
@@ -222,7 +220,7 @@ So generate the Python code that we will execute that can help the user with his
 
     // Create Docker container
     let config = Config {
-        image: Some("code-interpreter"), // TODO @ci.yml update docker img
+        image: Some("ghcr.io/stellar-amenities/assistants/assistants-code-interpreter:latest"),
         host_config: Some(HostConfig {
             auto_remove: Some(true),
             ..Default::default()
@@ -312,7 +310,6 @@ mod tests {
     use dotenv::dotenv;
 
     #[tokio::test]
-    #[ignore] // TODO: until fixed CI docker thing
     async fn test_interpreter() {
         dotenv().ok();
 

@@ -127,7 +127,7 @@ pub async fn submit_tool_outputs(
     Ok(updated_run)
 }
 
-pub async fn run_assistant(
+pub async fn create_run_and_produce_to_executor_queue(
     pool: &PgPool,
     thread_id: &str,
     assistant_id: &str,
@@ -726,7 +726,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_run_assistant() {
+    async fn test_create_run_and_produce_to_executor_queue() {
         let pool = setup().await;
         reset_db(&pool).await;
         let assistant = Assistant {
@@ -745,11 +745,13 @@ mod tests {
                 file_ids: vec![],
                 metadata: None,
             },
-            user_id: Uuid::default().to_string()
+            user_id: Uuid::default().to_string(),
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap(); // Create a new thread
         println!("thread: {:?}", thread);
 
         // Get Redis URL from environment variable
@@ -757,7 +759,7 @@ mod tests {
         let client = redis::Client::open(redis_url).unwrap();
         let con = client.get_async_connection().await.unwrap();
 
-        let result = run_assistant(
+        let result = create_run_and_produce_to_executor_queue(
             &pool,
             &thread.inner.id,
             &assistant.inner.id,
@@ -824,13 +826,15 @@ mod tests {
         .await
         .unwrap();
 
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap(); // Create a new thread
         let run = create_run(
             &pool,
             &thread.inner.id,
             &assistant.inner.id, // assistant_id
             "Please address the user as Jane Doe. The user has a premium account.",
-            &Uuid::default().to_string() // user_id
+            &Uuid::default().to_string(), // user_id
         )
         .await
         .unwrap();
@@ -866,7 +870,9 @@ mod tests {
         reset_db(&pool).await;
 
         // create run and thread and assistant
-        let thread = create_thread(&pool, &Uuid::default().to_string()).await.unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap(); // Create a new thread
         let assistant = create_assistant(
             &pool,
             &Assistant {
@@ -895,7 +901,7 @@ mod tests {
             &thread.inner.id,
             &assistant.inner.id, // assistant_id
             "Please address the user as Jane Doe. The user has a premium account.",
-            &Uuid::default().to_string()
+            &Uuid::default().to_string(),
         )
         .await
         .unwrap();

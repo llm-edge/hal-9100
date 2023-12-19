@@ -150,7 +150,7 @@ impl Default for Assistant {
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct SubmittedToolCall {
     // TODO asnyc openai models?
     pub id: String,

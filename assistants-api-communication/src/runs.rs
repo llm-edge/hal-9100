@@ -3,7 +3,8 @@
 use assistants_api_communication::models::AppState;
 use assistants_core::models::{Run, SubmittedToolCall};
 use assistants_core::runs::{
-    create_run, delete_run, get_run, list_runs, run_assistant, submit_tool_outputs, update_run,
+    create_run, create_run_and_produce_to_executor_queue, delete_run, get_run, list_runs,
+    submit_tool_outputs, update_run,
 };
 use async_openai::types::{CreateRunRequest, ModifyRunRequest, RunObject};
 use axum::{
@@ -69,7 +70,7 @@ pub async fn create_run_handler(
     let client = redis::Client::open(redis_url).unwrap();
     let con = client.get_async_connection().await.unwrap();
     let user_id = Uuid::default().to_string();
-    let run = run_assistant(
+    let run = create_run_and_produce_to_executor_queue(
         &app_state.pool,
         &thread_id,
         &run_input.assistant_id,
@@ -101,7 +102,6 @@ pub async fn update_run_handler(
     State(app_state): State<AppState>,
     Json(run_input): Json<ModifyRunRequest>,
 ) -> Result<JsonResponse<RunObject>, (StatusCode, String)> {
-
     let run = update_run(
         &app_state.pool,
         &thread_id,
@@ -112,7 +112,7 @@ pub async fn update_run_handler(
             .into_iter()
             .map(|(k, v)| (k, v.to_string()))
             .collect(),
-            &Uuid::default().to_string(),
+        &Uuid::default().to_string(),
     )
     .await;
     match run {
@@ -125,7 +125,13 @@ pub async fn delete_run_handler(
     Path((thread_id, run_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<()>, (StatusCode, String)> {
-    let result = delete_run(&app_state.pool, &thread_id, &run_id, &Uuid::default().to_string()).await;
+    let result = delete_run(
+        &app_state.pool,
+        &thread_id,
+        &run_id,
+        &Uuid::default().to_string(),
+    )
+    .await;
     match result {
         Ok(_) => Ok(JsonResponse(())),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),

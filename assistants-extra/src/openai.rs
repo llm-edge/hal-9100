@@ -22,7 +22,7 @@ pub struct ApiErrorResponse {
     pub error: ApiErrorDetail,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,

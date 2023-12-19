@@ -6,7 +6,8 @@ use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use tiktoken_rs::p50k_base;
-
+// TODO async backoff
+// TODO unsure if worthwhile to use async openai here due to nonopenai llms
 pub async fn llm(
     model_name: &str,
     model_url: Option<String>,
