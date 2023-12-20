@@ -1,9 +1,9 @@
+use log::debug;
 use reqwest::header::InvalidHeaderValue;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
-use log::debug;
-use std::collections::HashMap; 
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -117,12 +117,19 @@ pub async fn call_anthropic_api_stream(
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
 
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
-    body.insert("model", serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())));
+    body.insert(
+        "model",
+        serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())),
+    );
     body.insert("prompt", serde_json::json!(prompt));
-    body.insert("max_tokens_to_sample", serde_json::json!(max_tokens_to_sample));
+    body.insert(
+        "max_tokens_to_sample",
+        serde_json::json!(max_tokens_to_sample),
+    );
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
     body.insert("stream", serde_json::json!(true));
-    
+    headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+
     if let Some(stop_sequences) = stop_sequences {
         body.insert("stop_sequences", serde_json::json!(stop_sequences));
     }
@@ -157,14 +164,21 @@ pub async fn call_anthropic_api(
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
-
+    // https://docs.anthropic.com/claude/reference/versioning
+    headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
-    body.insert("model", serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())));
+    body.insert(
+        "model",
+        serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())),
+    );
     body.insert("prompt", serde_json::json!(prompt));
-    body.insert("max_tokens_to_sample", serde_json::json!(max_tokens_to_sample));
+    body.insert(
+        "max_tokens_to_sample",
+        serde_json::json!(max_tokens_to_sample),
+    );
     body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
     body.insert("stream", serde_json::json!(false));
-    
+
     if let Some(stop_sequences) = stop_sequences {
         body.insert("stop_sequences", serde_json::json!(stop_sequences));
     }
@@ -177,7 +191,6 @@ pub async fn call_anthropic_api(
     if let Some(metadata) = metadata {
         body.insert("metadata", serde_json::json!(metadata));
     }
-    
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
@@ -201,7 +214,6 @@ pub async fn call_anthropic_api(
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,7 +230,17 @@ mod tests {
         let top_k = Some(1);
         let metadata = Some(HashMap::new());
 
-        let result = call_anthropic_api(prompt, max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await;
+        let result = call_anthropic_api(
+            prompt,
+            max_tokens_to_sample,
+            model,
+            temperature,
+            stop_sequences,
+            top_p,
+            top_k,
+            metadata,
+        )
+        .await;
 
         match result {
             Ok(response) => {
@@ -243,11 +265,21 @@ mod tests {
         let top_k = Some(1);
         let metadata = Some(HashMap::new());
 
-        let bytes = call_anthropic_api_stream(prompt, max_tokens_to_sample, model, temperature, stop_sequences, top_p, top_k, metadata).await.expect("API call failed");
-        for chunk in bytes.chunks(1024) { // process in chunks of 1024 bytes
+        let bytes = call_anthropic_api_stream(
+            prompt,
+            max_tokens_to_sample,
+            model,
+            temperature,
+            stop_sequences,
+            top_p,
+            top_k,
+            metadata,
+        )
+        .await
+        .expect("API call failed");
+        for chunk in bytes.chunks(1024) {
+            // process in chunks of 1024 bytes
             println!("Received data: {:?}", chunk);
         }
     }
 }
-
-
