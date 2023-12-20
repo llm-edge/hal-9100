@@ -14,6 +14,7 @@ use axum::{
     response::Json as JsonResponse,
 };
 
+use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 
@@ -70,6 +71,7 @@ pub async fn create_run_handler(
     let client = redis::Client::open(redis_url).unwrap();
     let con = client.get_async_connection().await.unwrap();
     let user_id = Uuid::default().to_string();
+    println!("thread_id: {}", thread_id);
     let run = create_run_and_produce_to_executor_queue(
         &app_state.pool,
         &thread_id,
@@ -81,7 +83,19 @@ pub async fn create_run_handler(
     .await;
     match run {
         Ok(run) => Ok(JsonResponse(run.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            error!("Error creating run: {}", e);
+            if let sqlx::Error::Database(db_err) = &e {
+                if let Some(constraint) = db_err.constraint() {
+                    if constraint == "runs_assistant_id_fkey" {
+                        return Err((StatusCode::BAD_REQUEST, "Invalid assistant_id did you create this assistant beforehand? Check https://platform.openai.com/docs/api-reference/assistants/createAssistant".to_string()));
+                    } else if constraint == "runs_thread_id_fkey" {
+                        return Err((StatusCode::BAD_REQUEST, "Invalid thread_id did you create this thread beforehand? Check https://platform.openai.com/docs/api-reference/threads/createThread".to_string()));
+                    }
+                }
+            }
+            Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+        }
     }
 }
 
@@ -146,5 +160,84 @@ pub async fn list_runs_handler(
     match runs {
         Ok(runs) => Ok(JsonResponse(runs.into_iter().map(|r| r.inner).collect())),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assistants_core::file_storage::FileStorage;
+    use async_openai::types::CreateRunRequest;
+    use axum::body::Body;
+    use axum::http::{self, Request};
+    use axum::response::Response;
+    use axum::routing::post;
+    use axum::Router;
+    use dotenv::dotenv;
+    use hyper::StatusCode;
+    use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
+    use std::convert::Infallible;
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tower::{Service, ServiceExt};
+    use tower_http::trace::TraceLayer;
+
+    async fn setup() -> AppState {
+        dotenv().ok();
+
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .idle_timeout(Duration::from_secs(3))
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        AppState {
+            pool: Arc::new(pool),
+            file_storage: Arc::new(FileStorage::new().await),
+            // Add other AppState fields here
+        }
+    }
+
+    fn app(app_state: AppState) -> Router {
+        Router::new()
+            .route("/threads/:thread_id/runs", post(create_run_handler))
+            // Add other routes here
+            .layer(TraceLayer::new_for_http())
+            .with_state(app_state)
+    }
+
+    #[tokio::test]
+    async fn test_create_run_handler_invalid_thread_id() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        let run_input = json!({
+            "assistant_id": "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d9", // this assistant_id does not exist
+            "instructions": "Hello, World!",
+        });
+
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/threads/a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8/runs") // replace with your endpoint
+            .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(Body::from(json!(run_input).to_string()))
+            .unwrap();
+
+        let response = app.clone().oneshot(request).await.unwrap();
+
+        assert_eq!(
+            response.status(),
+            StatusCode::BAD_REQUEST,
+            "response: {:?}",
+            hyper::body::to_bytes(response.into_body()).await.unwrap()
+        );
+        let txt = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        // Error: database run creation failed. Violation: "runs_thread_id_fkey" foreign key constraint on "runs" table.
+
+        // assert!(
+        //     txt.contains("Invalid thread_id. Was the thread created prior to this?".as_bytes())
+        // );
     }
 }

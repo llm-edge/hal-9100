@@ -100,7 +100,6 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/amd64
 
-
   docker-build-code-interpreter:
     needs: test
     runs-on: ubuntu-latest
@@ -126,12 +125,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/assistants-code-interpreter:latest
+          tags: ghcr.io/${{ github.repository }}/assistants-code-interpreter:latest, ${{ secrets.DOCKERHUB_USERNAME }}/assistants-code-interpreter:latest
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64
-    

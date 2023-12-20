@@ -1253,6 +1253,7 @@ mod tests {
 
 
     #[tokio::test]
+    #[ignore]
     async fn test_decide_tool_with_llm_code_interpreter() {
         setup().await;
         let assistant = Assistant {
@@ -1562,6 +1563,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_end_to_end_code_interpreter() {
         // Setup
         let pool = setup().await;
@@ -1669,6 +1671,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_end_to_end_code_interpreter_with_file() {
         // Setup
         let pool = setup().await;

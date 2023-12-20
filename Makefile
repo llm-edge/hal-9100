@@ -121,8 +121,12 @@ dev-all: reboot
 	@$(MAKE) -j2 consumer server
 
 ## Build the Docker image for the code interpreter
-docker-build-code-interpreter: ## Build the Docker image for the code interpreter
-	docker build -f docker/Dockerfile.code-interpreter -t code-interpreter .
+docker-build-code-interpreter-amd64: ## Build the Docker image for the code interpreter for Linux amd64
+	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 .
+
+docker-push-code-interpreter-amd64: ## Push the Docker image for the code interpreter to DockerHub for Linux amd64
+	docker tag code-interpreter-amd64:latest louis030195/assistants-code-interpreter:latest
+	docker push louis030195/assistants-code-interpreter:latest
 
 ## Run remote Docker image of Assistants plus the databases
 docker-run-remote: ## Run remote Docker image of Assistants plus the databases

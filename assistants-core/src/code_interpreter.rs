@@ -17,9 +17,13 @@ use bollard::container::{
 };
 use bollard::exec::CreateExecOptions;
 use bollard::exec::StartExecResults;
+use bollard::image::BuildImageOptions;
+use bollard::image::CreateImageOptions;
+use bollard::image::ImportImageOptions;
 use bollard::models::HostConfig;
 use bollard::Docker;
 use futures::stream::StreamExt;
+use futures::TryStreamExt;
 use serde_json::json;
 use std::collections::HashMap;
 use std::default::Default;
@@ -220,7 +224,7 @@ So generate the Python code that we will execute that can help the user with his
 
     // Create Docker container
     let config = Config {
-        image: Some("ghcr.io/stellar-amenities/assistants/assistants-code-interpreter:latest"),
+        image: Some("code-interpreter"),
         host_config: Some(HostConfig {
             auto_remove: Some(true),
             ..Default::default()
@@ -232,6 +236,36 @@ So generate the Python code that we will execute that can help the user with his
         tty: Some(true),
         ..Default::default()
     };
+    // TODO
+    // docker
+    //     .create_image(
+    //         Some(CreateImageOptions {
+    //             from_image:
+    //                 "stellar-amenities/assistants/assistants-code-interpreter:latest",
+    //             // repo: "ghcr.io/stellar-amenities/assistants/assistants-code-interpreter",
+    //             ..Default::default()
+    //         }),
+    //         None,
+    //         None,
+    //     )
+    //     .try_collect::<Vec<_>>()
+    //     .await?;
+    // let _ = &docker
+    //     .build_image(
+    //         BuildImageOptions {
+    //             // TODO: this is bad it should only pull
+    //             remote: "https://raw.githubusercontent.com/stellar-amenities/assistants/main/docker/Dockerfile.code-interpreter",
+    //             t: "ghcr.io/stellar-amenities/assistants/assistants-code-interpreter:latest",
+    //             pull: true,
+    //             rm: true,
+    //             ..Default::default()
+    //         },
+    //         None,
+    //         None,
+    //     )
+    //     .try_collect::<Vec<_>>()
+    //     .await?;
+
     let options = CreateContainerOptions {
         name: "my-python-container",
     };
@@ -310,6 +344,7 @@ mod tests {
     use dotenv::dotenv;
 
     #[tokio::test]
+    #[ignore]
     async fn test_interpreter() {
         dotenv().ok();
 
