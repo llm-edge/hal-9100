@@ -6,9 +6,11 @@ use log::error;
 use log::info;
 use serde_json::json;
 use serde_json::to_value;
+use serde_json::Value;
 use sqlx::types::Uuid;
 use sqlx::PgPool;
 use std::fmt;
+use std::io::ErrorKind;
 use std::{collections::HashMap, error::Error, pin::Pin};
 
 use crate::models::FunctionCallInput;
@@ -198,28 +200,43 @@ pub async fn generate_function_call(
         }
     };
 
-    // parse the result
-    info!("Parsing result: {}", result);
-
-    let result: Result<serde_json::Value, serde_json::Error> = serde_json::from_str(&result);
-    let result = match result {
-        Ok(result) => (
-            result.get("name").unwrap().to_string(),
-            result.get("arguments").unwrap_or(&json!({})).to_string(),
-        ),
-        Err(e) => {
-            error!("Failed to parse result: {}", e);
-            return Err(FunctionCallError::JsonError(e));
-        }
-    };
-    info!("Function call generated: {:?}", result);
-
-    Ok(FunctionCall {
-        name: result.0.trim_matches('\"').to_string(),
-        arguments: result.1,
+    string_to_function_call(&result).map_err(|e| {
+        error!("Failed to convert to JSON: {}", e);
+        e
     })
 }
 
+pub fn string_to_function_call(s: &str) -> Result<FunctionCall, FunctionCallError> {
+    let start = s.find('{');
+    let end = s.rfind('}');
+
+    if let (Some(start), Some(end)) = (start, end) {
+        let json_str = &s[start..=end];
+        let json_val: Result<Value, _> = serde_json::from_str(json_str);
+
+        match json_val {
+            Ok(json) => {
+                if let Some(name) = json.get("name") {
+                    let name = name.to_string();
+                    let arguments = json.get("arguments").unwrap_or(&json!({})).to_string();
+                    Ok(FunctionCall {
+                        name: name.trim_matches('\"').to_string(),
+                        arguments,
+                    })
+                } else {
+                    Err(FunctionCallError::Other(
+                        "No 'name' property found in the JSON".to_string(),
+                    ))
+                }
+            }
+            Err(e) => Err(FunctionCallError::JsonError(e)),
+        }
+    } else {
+        Err(FunctionCallError::Other(
+            "No valid JSON found in the string".to_string(),
+        ))
+    }
+}
 // Function to handle database operations
 pub async fn create_function_call(
     pool: &PgPool,
@@ -594,7 +611,7 @@ mod tests {
         let user_context = String::from("Give me a weather report for Toronto, Canada.");
 
         let model_config = ModelConfig {
-            model_name: String::from("open-source/mixtral-8x7b-instruct"),
+            model_name: String::from("mistralai/mixtral-8x7b-instruct"),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
@@ -623,5 +640,46 @@ mod tests {
             }
             Err(e) => panic!("Function call failed: {:?}", e),
         }
+    }
+
+    #[test]
+    fn test_string_to_function_call() {
+        // Case 1: Valid JSON embedded within non-JSON content
+        let input = "Some non-JSON content...\
+                     {\"name\": \"calculator\", \"arguments\": {\"a\": 5, \"b\": 3}}\
+                     More non-JSON content...";
+        let result = string_to_function_call(input).unwrap();
+        assert_eq!(result.name, "calculator");
+        assert_eq!(result.arguments, "{\"a\":5,\"b\":3}");
+        println!("passed case 1");
+        // Case 2: String with no valid JSON
+        let input = "This string has no valid JSON";
+        let result = string_to_function_call(input);
+        assert!(result.is_err(), "Expected error, but got {:?}", result);
+        println!("passed case 2");
+        // Case 3: JSON object without 'name' property
+        let input = "{\"arguments\": {\"a\": 5, \"b\": 3}}";
+        let result = string_to_function_call(input);
+        assert!(result.is_err(), "Expected error, but got {:?}", result);
+        println!("passed case 3");
+        // Case 4: JSON object without 'arguments' property
+        let input = "{\"name\": \"calculator\"}";
+        let result = string_to_function_call(input).unwrap();
+        assert_eq!(result.name, "calculator");
+        assert_eq!(result.arguments, "{}");
+        println!("passed case 4");
+        // Case 5: JSON object with extra properties
+        let input = "{\"name\": \"calculator\", \"arguments\": {\"a\": 5, \"b\": 3}, \"extra\": \"property\"}";
+        let result = string_to_function_call(input).unwrap();
+        assert_eq!(
+            result.name, "calculator",
+            "Expected name to be 'calculator', but got {}",
+            result.name
+        );
+        assert_eq!(
+            result.arguments, "{\"a\":5,\"b\":3}",
+            "Expected arguments to be {{\"a\":5,\"b\":3}}, but got {}",
+            result.arguments
+        );
     }
 }

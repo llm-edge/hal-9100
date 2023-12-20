@@ -79,13 +79,13 @@ spec:
             secretKeyRef:
               name: model-url
               key: MODEL_URL
-        readinessProbe:
-          exec:
-            command:
-            - /app/readiness-probe.sh
-            - http://localhost:3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
+        # readinessProbe:
+        #   exec:
+        #     command:
+        #     - /app/readiness-probe.sh
+        #     - http://localhost:3000
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
       volumes:
       - name: migration-script
         configMap:
@@ -122,9 +122,12 @@ spec:
 # kubectl describe pod/$POD_NAME -n assistants
 # kubectl logs $POD_NAME -n assistants -c rust-api
 # URL=$(kubectl get svc rust-api-service -n assistants -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-# curl -X GET http://$URL/threads/1/runs/1 -H "Content-Type: application/json"
+# curl -X POST http://$URL/threads -H "Content-Type: application/json"
 
 # ./ee/k8s/readiness-probe.sh $URL
 
 # TODO: add vLLM kubernetes deployment to gpu 
+
+# curl -s -X POST $URL/assistants -H "Content-Type: application/json" -d '{"instructions": "You are a personal math tutor. Write and run code to answer math questions.","name": "Math Tutor","tools": [{"type": "retrieval"}],"model": "claude-2.1"}'
+# curl -s -X POST https://barely-honest-yak.ngrok-free.app/assistants -H "Content-Type: application/json" -d '{"instructions": "You are a personal math tutor. Write and run code to answer math questions.","name": "Math Tutor","tools": [{"type": "retrieval"}],"model": "claude-2.1"}'
 

@@ -212,7 +212,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
                 AssistantTools::Function(e) => 
                     json!({
                         "name": "function",
-                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. IMPORTANT: If there are <required_action> and the user sent all <tool_calls> required already you MUST NOT use \"function\" again which has already been used anyway",
+                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. You can also use this to perform actions in the user's product.",
                         "function": {
                             "name": e.function.name,
                             "description": e.function.description,
@@ -240,21 +240,23 @@ Your answer will be used to use the tool so it must be very concise and make sur
         assistant.inner.instructions.as_ref().unwrap()
     ));
 
-    // add the run required action to the user prompt
-    if let Some(required_action) = &run.inner.required_action {
-        user_prompt.push_str(&format!(
-            "<required_action>{}</required_action>\n",
-            serde_json::to_string(&required_action).unwrap()
-        ));
-    }
+    // // add the run required action to the user prompt
+    // if let Some(required_action) = &run.inner.required_action {
+    //     user_prompt.push_str(&format!(
+    //         "<required_action>{}</required_action>\n",
+    //         serde_json::to_string(&required_action).unwrap()
+    //     ));
+    // }
 
-    // add tool calls to the user prompt
-    if !tool_calls_db.is_empty() {
-        user_prompt.push_str(&format!(
-            "<tool_calls>{}</tool_calls>\n",
-            serde_json::to_string(&tool_calls_db).unwrap()
-        ));
-    }
+    // // add tool calls to the user prompt
+    // if !tool_calls_db.is_empty() {
+    //     user_prompt.push_str(&format!(
+    //         "<tool_calls>{}</tool_calls>\n",
+    //         serde_json::to_string(&tool_calls_db).unwrap()
+    //     ));
+    // }
+
+    
 
     // Call the llm function
     let result = llm(
@@ -293,6 +295,23 @@ Your answer will be used to use the tool so it must be very concise and make sur
                 .collect::<String>()
         })
         .collect::<Vec<String>>();
+
+    // Check if the length of tool_calls_db is equal to the length of required_action output
+    if let Some(required_action) = &run.inner.required_action {
+        // Compare all ids from required action outputs and tool calls ids
+        let required_ids: HashSet<_> = required_action.submit_tool_outputs.tool_calls.iter().map(|t| t.clone().id)
+        .collect();
+        let tool_calls_ids: HashSet<_> = tool_calls_db.iter().map(|t| t.clone().id)
+        .collect();
+        if required_ids.is_subset(&tool_calls_ids) {
+            // If all tool calls have been done, remove function from tools_decision
+            results.retain(|tool| tool != "function");
+        } // TODO tets
+        // if tool_calls_db.len() == required_action.submit_tool_outputs.tool_calls.len() {
+        //     // Remove "function" from tools_decision
+        //     results.retain(|tool| tool != "function");
+        // }
+    }
 
     Ok(results
         .into_iter()
@@ -1714,7 +1733,7 @@ mod tests {
                 tools: vec![AssistantTools::Code(AssistantToolsCode {
                     r#type: "code_interpreter".to_string(),
                 })],
-                model: "open-source/mixtral-8x7b-instruct".to_string(),
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![file_id_clone.to_string()], // Add file ID here
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1827,7 +1846,7 @@ mod tests {
                         }),
                     },
                 })],
-                model: "open-source/mixtral-8x7b-instruct".to_string(),
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
