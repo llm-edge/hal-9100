@@ -112,7 +112,10 @@ jobs:
           toolchain: stable
           target: aarch64-apple-darwin
           override: true
-          
+
+      - name: Install Docker
+        run: |
+          brew install docker colima
 
       - name: Start Docker containers
         run: |
@@ -127,7 +130,7 @@ jobs:
         run: |
           cargo build --release --bin run_consumer
           cargo build --release --bin assistants-api-communication
-      
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -149,7 +152,6 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/assistants:latest
           file: docker/Dockerfile
           platforms: linux/arm64
-
 
   docker-build-code-interpreter:
     needs: test
