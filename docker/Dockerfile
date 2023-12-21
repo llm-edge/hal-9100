@@ -16,7 +16,8 @@ COPY . /app
 # RUN cargo build --release --bin assistants-api-communication
 
 # Start a new stage to create a lean final image
-FROM debian:bookworm-slim
+# FROM debian:bookworm-slim # HACK: for architecture stuff
+FROM rust:bookworm
 
 RUN apt-get update && apt-get install -y libssl-dev openssl curl
 
