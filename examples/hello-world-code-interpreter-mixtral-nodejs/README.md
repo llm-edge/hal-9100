@@ -23,7 +23,7 @@ We will use Perplexity API to get started quickly with an LLM but you can run th
 
 1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key.
 2. Install OpenAI SDK: `npm i openai`
-3. You need to build the code interpreter sandbox: `docker build -f docker/Dockerfile.code-interpreter -t code-interpreter .`
+3. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 ## Setup
 

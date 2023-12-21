@@ -219,12 +219,23 @@ So generate the Python code that we will execute that can help the user with his
 
     // Connect to Docker
     let docker = Docker::connect_with_local_defaults()?;
-
-    println!("Creating Docker container...");
+    // Pull the image from GHCR
+    docker
+        .create_image(
+            Some(CreateImageOptions {
+                from_image:
+                    "louis030195/assistants-code-interpreter:latest",
+                ..Default::default()
+            }),
+            None,
+            None,
+        )
+        .try_collect::<Vec<_>>()
+        .await?;
 
     // Create Docker container
     let config = Config {
-        image: Some("code-interpreter"),
+        image: Some("louis030195/assistants-code-interpreter:latest"),
         host_config: Some(HostConfig {
             auto_remove: Some(true),
             ..Default::default()
@@ -236,35 +247,7 @@ So generate the Python code that we will execute that can help the user with his
         tty: Some(true),
         ..Default::default()
     };
-    // TODO
-    // docker
-    //     .create_image(
-    //         Some(CreateImageOptions {
-    //             from_image:
-    //                 "stellar-amenities/assistants/assistants-code-interpreter:latest",
-    //             // repo: "ghcr.io/stellar-amenities/assistants/assistants-code-interpreter",
-    //             ..Default::default()
-    //         }),
-    //         None,
-    //         None,
-    //     )
-    //     .try_collect::<Vec<_>>()
-    //     .await?;
-    // let _ = &docker
-    //     .build_image(
-    //         BuildImageOptions {
-    //             // TODO: this is bad it should only pull
-    //             remote: "https://raw.githubusercontent.com/stellar-amenities/assistants/main/docker/Dockerfile.code-interpreter",
-    //             t: "ghcr.io/stellar-amenities/assistants/assistants-code-interpreter:latest",
-    //             pull: true,
-    //             rm: true,
-    //             ..Default::default()
-    //         },
-    //         None,
-    //         None,
-    //     )
-    //     .try_collect::<Vec<_>>()
-    //     .await?;
+
 
     let options = CreateContainerOptions {
         name: "my-python-container",
