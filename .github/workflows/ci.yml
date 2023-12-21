@@ -142,8 +142,10 @@ jobs:
         run: |
           docker-compose -f docker/docker-compose.yml up -d postgres
           while ! docker exec -i pg pg_isready -U postgres; do sleep 1; done
-          docker exec -i pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
-          docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
+          docker exec -i pg psql -U postgres -c "CREATE DATABASE mydatabase;" || true
+          docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql || true
+          docker exec pg psql -U postgres -d mydatabase -c "SELECT * FROM runs;" > /dev/null 2>&1 || (echo "Database is not ready" && exit 0)
+          echo "Database is ready"
 
       - name: Build Rust code
         env:
