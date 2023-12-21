@@ -10,16 +10,16 @@ services:
       POSTGRES_DB: mydatabase
     ports:
       - 5432:5432
-    command: postgres
-    # TODO
-    # volumes:
-    #   - ./pg-healthcheck.sh:/pg-healthcheck.sh
-    # healthcheck:
-    #   test: ["CMD-SHELL", "/healthcheck.sh"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 20s
+    command: postgres -c 'max_connections=250'
+    volumes:
+      - ../assistants-core/src/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
+      - ./pg-healthcheck.sh:/pg-healthcheck.sh
+    healthcheck:
+      test: ["CMD-SHELL", "/pg-healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
   redis:
     container_name: redis 
     image: redis
@@ -50,7 +50,6 @@ services:
   assistants:
     container_name: assistants
     image: ghcr.io/stellar-amenities/assistants/assistants:latest
-    platform: linux/arm64
     ports:
       - 8080:8080
     depends_on:
@@ -59,4 +58,6 @@ services:
       - minio
     profiles:
       - api
-  
+    env_file:
+      - ../.env.example
+      - ../.env

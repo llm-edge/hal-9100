@@ -37,9 +37,6 @@ jobs:
       - name: Start Docker containers
         run: |
           docker-compose -f docker/docker-compose.yml up -d
-          while ! docker exec -i pg pg_isready -U postgres; do sleep 1; done
-          docker exec -i pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
-          docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
 
       - name: Run tests
         env:
@@ -70,9 +67,6 @@ jobs:
       - name: Start Docker containers
         run: |
           docker-compose -f docker/docker-compose.yml up -d postgres
-          while ! docker exec -i pg pg_isready -U postgres; do sleep 1; done
-          docker exec -i pg psql -U postgres -c "CREATE DATABASE mydatabase;" > /dev/null 2>&1 || echo "Database already exists"
-          docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql > /dev/null 2>&1 || echo "Migrations already applied"
 
       - name: Build Rust code
         env:
@@ -120,7 +114,7 @@ jobs:
         run: |
           brew install docker docker-compose
           colima start
-          
+
           # For testcontainers to find the Colima socket
           # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
           sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
@@ -141,11 +135,6 @@ jobs:
       - name: Start Docker containers
         run: |
           docker-compose -f docker/docker-compose.yml up -d postgres
-          while ! docker exec -i pg pg_isready -U postgres; do sleep 1; done
-          docker exec -i pg psql -U postgres -c "CREATE DATABASE mydatabase;" || true
-          docker exec -i pg psql -U postgres -d mydatabase < assistants-core/src/migrations.sql || true
-          docker exec pg psql -U postgres -d mydatabase -c "SELECT * FROM runs;" > /dev/null 2>&1 || (echo "Database is not ready" && exit 0)
-          echo "Database is ready"
 
       - name: Build Rust code
         env:
