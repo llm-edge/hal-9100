@@ -6,12 +6,14 @@ on:
       - "**.rs"
       - "**.toml"
       - "**/workflows/**.yml"
+      - "**/docker/**"
     branches: [main]
   pull_request:
     paths:
       - "**.rs"
       - "**.toml"
       - "**/workflows/**.yml"
+      - "**/docker/**"
     branches: [main]
   workflow_dispatch:
 
@@ -101,7 +103,7 @@ jobs:
 
   docker-build-mac:
     needs: test
-    runs-on: macos-latest
+    runs-on: macos-13-xlarge
     steps:
       - uses: actions/checkout@v2
       - name: Setup Rust
