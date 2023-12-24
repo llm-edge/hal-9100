@@ -51,8 +51,6 @@ Run the [quickstart](./examples/quickstart.js):
 node examples/quickstart.js
 ```
 
-Or using `ollama`, check the [docker-compose.yml](./docker/docker-compose.yml) file for more information.
-
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
 - **No Hidden Costs**: Absolutely free. Seriously, no strings attached.

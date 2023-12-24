@@ -37,35 +37,6 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
-
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
-    ports:
-      - 11434:11434
-    profiles:
-      - ollama
-    volumes:
-      - $HOME/.ollama/models:/usr/share/ollama/.ollama/models
-
-  ollama-runner:
-    container_name: ollama-runner
-    image: docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: |
-      sh -c "
-      while ! docker exec ollama true 2>/dev/null; do
-        echo 'Waiting for ollama...'
-        sleep 1
-      done
-      echo 'Ollama is ready, running command...'
-      docker exec ollama ollama run phi
-      "
-    depends_on:
-      - ollama
-    profiles:
-      - ollama
   
   assistants:
     container_name: assistants
