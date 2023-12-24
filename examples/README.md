@@ -4,22 +4,30 @@ This guide demonstrates how to use the Open Source Assistants API to create an a
 
 Function calling is a more precise and automatic way to provide context to an LLM than retrieval.
 
-## Prerequisites
-
-We will use Perplexity API to get started quickly with an LLM but you can run this example with any LLM.
-
-1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key.
-2. Install OpenAI SDK: `npm i openai`
-
 ## Setup
 
-1. Start Postgres, Redis, Minio, and the server: `make reboot && make all`. This will take a few seconds.
+```bash
+git clone https://github.com/stellar-amenities/assistants
+cd assistants
+cp .env.example .env
+```
 
-## Running the example
+To get started quickly, let's use Perplexity API.
+Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
 
-Run the [example](./examples/quickstart.js) using Node.js: `node ./examples/quickstart.js`
+Install OpenAI SDK: `npm i openai`
 
-You should see at the end:
+Start the infra:
+
+```bash
+docker-compose --profile api -f docker/docker-compose.yml up -d
+```
+
+Run the [quickstart](./examples/quickstart.js):
+
+```bash
+node examples/quickstart.js
+```
 
 >The current temperature in San Francisco is 68 degrees Fahrenheit.
 
