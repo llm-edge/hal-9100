@@ -8,7 +8,6 @@ COPY assistants-api-communication /app/assistants-api-communication
 COPY assistants-core /app/assistants-core
 COPY assistants-extra /app/assistants-extra
 COPY Cargo.toml /app/Cargo.toml
-COPY Cargo.lock /app/Cargo.lock
 COPY .sqlx /app/.sqlx
 
 ENV SQLX_OFFLINE true
