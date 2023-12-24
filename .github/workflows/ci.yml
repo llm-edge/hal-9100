@@ -61,11 +61,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -80,6 +75,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -88,6 +91,13 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/assistants:latest
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   docker-build-code-interpreter:
     needs: test
