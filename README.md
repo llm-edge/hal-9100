@@ -45,7 +45,7 @@ Start the infra:
 docker-compose --profile api -f docker/docker-compose.yml up -d
 ```
 
-Run the quickstart:
+Run the [quickstart](./examples/quickstart.js):
 
 ```bash
 node examples/quickstart.js
