@@ -1,4 +1,3 @@
-# ! This does not run the Rust server (only db, queue, storage)
 version: '3.8'
 services:
   postgres:
@@ -41,22 +40,56 @@ services:
 
   ollama:
     image: ollama/ollama
+    container_name: ollama
     ports:
       - 11434:11434
-    command: ["serve", "phi"]
     profiles:
-      - api
+      - ollama
+    volumes:
+      - $HOME/.ollama/models:/usr/share/ollama/.ollama/models
 
+  ollama-runner:
+    container_name: ollama-runner
+    image: docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      sh -c "
+      while ! docker exec ollama true 2>/dev/null; do
+        echo 'Waiting for ollama...'
+        sleep 1
+      done
+      echo 'Ollama is ready, running command...'
+      docker exec ollama ollama run phi
+      "
+    depends_on:
+      - ollama
+    profiles:
+      - ollama
+  
   assistants:
     container_name: assistants
     image: ghcr.io/stellar-amenities/assistants/assistants:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
-      - 8080:8080
+      - 3000:3000
     depends_on:
       - postgres
       - redis
       - minio
     profiles:
       - api
+    environment:
+      - DATABASE_URL=postgres://postgres:secret@postgres/mydatabase
+      - S3_ENDPOINT=http://minio:9000
+      - REDIS_URL=redis://redis
     env_file:
       - ../.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

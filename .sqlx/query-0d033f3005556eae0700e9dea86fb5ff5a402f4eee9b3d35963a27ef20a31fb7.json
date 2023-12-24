@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM messages WHERE id::text = $1 AND thread_id::text = $2 AND user_id::text = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d033f3005556eae0700e9dea86fb5ff5a402f4eee9b3d35963a27ef20a31fb7"
+}

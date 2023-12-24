@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM assistants WHERE id::text = $1 AND user_id::text = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8db41774e240aefb728af804e76fa4ee8347b6d70b20945e0983fc867bdf8373"
+}

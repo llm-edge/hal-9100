@@ -1,0 +1,133 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE runs\n        SET metadata = $1\n        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4\n        RETURNING *\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "object",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "assistant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "required_action",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_error",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "started_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "cancelled_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "failed_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "completed_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "instructions",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "tools",
+        "type_info": "JsonbArray"
+      },
+      {
+        "ordinal": 16,
+        "name": "file_ids",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 17,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 18,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "158e3a91d36bde11a0cbf37c4d5d6daf0e9ef86ef1a029477caf2cbae6a56c76"
+}

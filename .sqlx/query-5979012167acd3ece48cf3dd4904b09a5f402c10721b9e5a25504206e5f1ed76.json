@@ -1,0 +1,85 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE messages SET metadata = $1\n        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4\n        RETURNING *\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "object",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "role",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "content",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "assistant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "run_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "file_ids",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5979012167acd3ece48cf3dd4904b09a5f402c10721b9e5a25504206e5f1ed76"
+}

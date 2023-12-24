@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM runs\n        WHERE id::text = $1\n        AND thread_id::text = $2\n        AND user_id::text = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "22b5d723ed215d96212dc769bf2c6fa3065eaa3cba8b3a439aa32ab134f9d698"
+}

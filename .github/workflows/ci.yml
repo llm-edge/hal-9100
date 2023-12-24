@@ -67,18 +67,6 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Start Docker containers
-        run: |
-          cp .env.example .env
-          docker-compose -f docker/docker-compose.yml up -d postgres
-
-      - name: Build Rust code
-        env:
-          DATABASE_URL: postgres://postgres:secret@localhost:5432/mydatabase
-        run: |
-          cargo build --release --bin run_consumer
-          cargo build --release --bin assistants-api-communication
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -99,63 +87,7 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}/assistants:latest
           file: docker/Dockerfile
-          platforms: linux/amd64
-
-  docker-build-mac:
-    needs: test
-    runs-on: macos-13-xlarge
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: aarch64-apple-darwin
-          override: true
-
-      - name: Setup docker (missing on MacOS)
-        if: runner.os == 'macos'
-        run: |
-          brew install docker docker-compose
-          colima start
-
-          # For testcontainers to find the Colima socket
-          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
-          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start Docker containers
-        run: |
-          cp .env.example .env
-          docker-compose -f docker/docker-compose.yml up -d postgres
-
-      - name: Build Rust code
-        env:
-          DATABASE_URL: postgres://postgres:secret@localhost:5432/mydatabase
-        run: |
-          cargo build --release --bin run_consumer
-          cargo build --release --bin assistants-api-communication
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ github.repository }}/assistants:latest
-          file: docker/Dockerfile
-          platforms: linux/arm64, linux/arm64/v8
+          platforms: linux/amd64,linux/arm64,linux/arm64/v8
 
   docker-build-code-interpreter:
     needs: test

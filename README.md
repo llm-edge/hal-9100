@@ -26,6 +26,32 @@ Get started in less than a minute through GitHub Codespaces:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants?quickstart=1)
 
+Or:
+
+```bash
+git clone https://github.com/stellar-amenities/assistants
+cd assistants
+cp .env.example .env
+```
+
+To get started quickly, let's use Perplexity API.
+Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
+
+Install OpenAI SDK: `npm i openai`
+
+Start the infra:
+
+```bash
+docker-compose --profile api -f docker/docker-compose.yml up -d
+```
+
+Run the quickstart:
+
+```bash
+node examples/quickstart.js
+```
+
+Or using `ollama`, check the [docker-compose.yml](./docker/docker-compose.yml) file for more information.
 
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
