@@ -39,6 +39,9 @@ async-recursion = "1.0.5"
 assistants-extra = { path = "../assistants-extra" }
 
 
+tiktoken-rs = "0.5.7"
+
+
 [build-dependencies]
 syn = "1"
 

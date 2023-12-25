@@ -5,12 +5,16 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Drop existing tables
 DROP TABLE IF EXISTS assistants;
 DROP TABLE IF EXISTS threads;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS functions;
+DROP TABLE IF EXISTS tool_calls;
+DROP TABLE IF EXISTS chunks;
 
 -- Create assistants table
 CREATE TABLE assistants (
@@ -93,3 +97,17 @@ CREATE TABLE tool_calls (
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())),
     user_id UUID
 );
+
+-- Create chunks table
+CREATE TABLE chunks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sequence INT NOT NULL,
+    data TEXT NOT NULL,
+    file_id TEXT NOT NULL, -- file storage name in S3
+    start_index INT NOT NULL,
+    end_index INT NOT NULL,
+    metadata JSONB,
+    -- embedding VECTOR(8192), -- hardcoded atm https://huggingface.co/jinaai/jina-embeddings-v2-base-en
+    created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))
+);
+-- TODO index 

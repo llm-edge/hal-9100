@@ -4,7 +4,7 @@
 // run the consumer:
 // cargo run --package assistants-core --bin run_consumer
 
-use assistants_core::assistant::{loop_through_runs, try_run_executor};
+use assistants_core::executor::{loop_through_runs, try_run_executor};
 use env_logger;
 use log::{error, info};
 use sqlx::postgres::PgPoolOptions;

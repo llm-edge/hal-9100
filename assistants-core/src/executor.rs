@@ -19,7 +19,7 @@ use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-
+use tiktoken_rs::p50k_base;
 use assistants_core::runs::{get_run, update_run, update_run_status};
 
 use assistants_core::function_calling::ModelConfig;
@@ -29,48 +29,14 @@ use assistants_core::function_calling::create_function_call;
 use assistants_core::runs::get_tool_calls;
 use assistants_core::code_interpreter::safe_interpreter;
 
-use crate::code_interpreter::InterpreterModelConfig;
-use crate::models::SubmittedToolCall;
+use assistants_core::code_interpreter::InterpreterModelConfig;
+use assistants_core::models::SubmittedToolCall;
 
-// TODO: kinda dirty function could be better
-// This function retrieves file contents given a list of file_ids
-async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &FileStorage) -> Vec<String> {
-    info!("Retrieving file contents for file_ids: {:?}", file_ids);
-    let mut file_contents = Vec::new();
-    for file_id in file_ids {
-        let file_string_content = match file_storage.retrieve_file(file_id).await {
-            Ok(file_byte_content) => {
-                // info!("Retrieved file from storage: {:?}", file_byte_content);
-                // Check if the file is a PDF
-                if file_id.ends_with(".pdf") {
-                    // If it's a PDF, extract the text
-                    match pdf_mem_to_text(&file_byte_content) {
-                        Ok(text) => text,
-                        Err(e) => {
-                            error!("Failed to extract text from PDF: {}", e);
-                            continue;
-                        }
-                    }
-                } else {
-                    // If it's not a PDF, use the content as is (bytes to string)
-                    match String::from_utf8(file_byte_content.to_vec()) {
-                        Ok(text) => text,
-                        Err(e) => {
-                            error!("Failed to convert bytes to string: {}", e);
-                            continue;
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to retrieve file: {}", e);
-                continue; // Skip this iteration and move to the next file
-            }
-        };
-        file_contents.push(file_string_content);
-    }
-    file_contents
-}
+use assistants_core::retrieval::retrieve_file_contents;
+
+use crate::models::Chunk;
+use crate::retrieval::generate_queries_and_fetch_chunks;
+
 
 // This function formats the messages into a string
 fn format_messages(messages: &Vec<Message>) -> String {
@@ -87,39 +53,87 @@ fn format_messages(messages: &Vec<Message>) -> String {
     formatted_messages
 }
 
-// This function builds the instructions given the original instructions, file contents, and previous messages
+/// Builds the instructions for the assistant.
+///
+/// This function takes several arguments, constructs parts of the instructions separately, and then
+/// combines them into the final instructions string based on their priority and the context size limit.
+///
+/// # Arguments
+///
+/// * `original_instructions` - The original instructions string.
+/// * `file_contents` - A vector of strings representing the file contents.
+/// * `previous_messages` - A string representing the previous messages.
+/// * `tools` - A string representing the tools.
+/// * `code_output` - An optional string representing the code output.
+/// * `context_size` - The context size limit for the language model.
+/// * `retrieval_chunks` - A vector of strings representing the retrieval chunks.
+///
+/// # Returns
+///
+/// * A string representing the final instructions for the assistant.
+///
+/// # Note
+///
+/// The function uses the `tiktoken_rs` library to count the tokens in the instructions.
+/// The parts of the instructions are added to the final instructions string based on their priority.
+/// The order of priority (from highest to lowest) is: original instructions, tools, code output,
+/// previous messages, file contents, and retrieval chunks.
+/// If a part doesn't fit within the context size limit, it is not added to the final instructions.
 fn build_instructions(
     original_instructions: &str,
     file_contents: &Vec<String>,
     previous_messages: &str,
     tools: &str,
     code_output: Option<&str>,
+    retrieval_chunks: &Vec<String>,
+    context_size: Option<usize>,
 ) -> String {
-    let mut instructions = format!(
-        "<instructions>\n{}\n</instructions>\n",
-        original_instructions
-    );
+    let bpe = p50k_base().unwrap();
 
-    if !file_contents.is_empty() {
-        instructions += &format!("<file>\n{:?}\n</file>\n", file_contents);
+    // if context_size is None, use env var or default to 4096
+    let context_size = context_size.unwrap_or_else(|| {
+        std::env::var("MODEL_CONTEXT_SIZE")
+            .unwrap_or_else(|_| "4096".to_string())
+            .parse::<usize>()
+            .unwrap_or(4096)
+    });
+
+    // Build each part of the instructions
+    let instructions_part = format!("<instructions>\n{}\n</instructions>\n", original_instructions);
+    let file_contents_part = format!("<file>\n{:?}\n</file>\n", file_contents);
+    let retrieval_chunks_part = format!("<chunk>\n{:?}\n</chunk>\n", retrieval_chunks);
+    let tools_part = format!("<tools>\n{}\n</tools>\n", tools);
+    let code_output_part = match code_output {
+        Some(output) => format!("<math_solution>\n{}\n</math_solution>\n", output),
+        None => String::new(),
+    };
+    let previous_messages_part = format!("<previous_messages>\n{}\n</previous_messages>", previous_messages);
+
+    // Initialize the final instructions with the highest priority part
+    let mut final_instructions = instructions_part;
+
+    // List of other parts ordered by priority
+    let mut other_parts = [tools_part, previous_messages_part, code_output_part, file_contents_part.clone(), retrieval_chunks_part.clone()];
+    // TODO: probably this could be made customisable if someone has a usecase where code is very important for example
+
+    // Add other parts to the final instructions if they fit in the context limit
+    for part in &other_parts {
+        let part_tokens = bpe.encode_with_special_tokens(part).len();
+        let final_instructions_tokens = bpe.encode_with_special_tokens(&final_instructions).len();
+
+        if final_instructions_tokens + part_tokens <= context_size {
+            // If file_contents_part is already in final_instructions, do not add retrieval_chunks_part
+            if part == &retrieval_chunks_part && final_instructions.contains(&retrieval_chunks_part) {
+                continue;
+            }
+            final_instructions += part;
+        } else {
+            break;
+        }
     }
 
-    if !tools.is_empty() {
-        instructions += &format!("<tools>\n{}\n</tools>\n", tools);
-    }
-
-    if let Some(output) = code_output {
-        instructions += &format!("<math_solution>\n{}\n</math_solution>\n", output);
-    }
-
-    instructions += &format!(
-        "<previous_messages>\n{}\n</previous_messages>",
-        previous_messages
-    );
-
-    instructions
+    final_instructions
 }
-
 
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
@@ -532,6 +546,8 @@ pub async fn run_executor(
         &vec![],
         &formatted_messages,
         &tools,
+        None,
+        &vec![],
         None
     );
 
@@ -561,6 +577,9 @@ pub async fn run_executor(
             a.cmp(b)
         }
     });
+
+    let mut retrieval_files: Vec<String> = vec![];
+    let mut retrieval_chunks: Vec<Chunk> = vec![];
 
     // Iterate over the sorted tools_decision
     for tool_decision in tools_decision {
@@ -652,27 +671,54 @@ pub async fn run_executor(
                 all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
 
                 // Check if the all_file_ids includes any file IDs.
-                if !all_file_ids.is_empty() {
-                    info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
-                    // Retrieve the contents of each file.
-                    let file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
-
-                    // Include the file contents and previous messages in the instructions.
-                    instructions = build_instructions(
-                        &instructions,
-                        &file_contents,
-                        &formatted_messages.clone(),
-                        &tools,
-                        None,
-                    );
+                if all_file_ids.is_empty() { 
+                    break;
                 }
+                info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                // Retrieve the contents of each file.
+                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                
+                let formatted_messages_clone = formatted_messages.clone();
+                let retrieval_chunks_future = generate_queries_and_fetch_chunks(
+                    &pool,
+                    &formatted_messages_clone,
+                    &assistant.inner.model,
+                );
+                
+                let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
+
+                retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
+                    // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
+                    error!("Failed to retrieve chunks: {}", e);
+                    vec![]
+                });
+
+                // Include the file contents and previous messages in the instructions.
+                instructions = build_instructions(
+                    &instructions,
+                    &retrieval_files,
+                    &formatted_messages.clone(),
+                    &tools,
+                    None,
+                    &retrieval_chunks.iter().map(|c| 
+                        serde_json::to_string(&json!({
+                            "data": c.data,
+                            "sequence": c.sequence,
+                            "start_index": c.start_index,
+                            "end_index": c.end_index,
+                            "metadata": c.metadata,
+                        })).unwrap()
+                    ).collect::<Vec<String>>(),
+                    None
+                );
+                
             }
             "code_interpreter" => {
                 // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
                 let code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
                     model_name: model.clone(),
                     model_url: url.clone().into(),
-                    max_tokens_to_sample: 400, // TODO configurable somewhere
+                    max_tokens_to_sample: -1,
                     stop_sequences: None,
                     top_p: Some(1.0),
                     top_k: None,
@@ -715,22 +761,47 @@ pub async fn run_executor(
                 // If the assistant has associated file IDs, add them to the list
                 all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
 
-                let mut file_contents: Vec<String> = vec![];
 
                 // Check if the all_file_ids includes any file IDs.
-                if !all_file_ids.is_empty() {
-                    info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
-                    // Retrieve the contents of each file.
-                    file_contents = retrieve_file_contents(&all_file_ids, &file_storage).await;
+                if all_file_ids.is_empty() {
+                    break;
                 }
+                info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                // Retrieve the contents of each file.
+                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                
+                let formatted_messages_clone = formatted_messages.clone();
+                let retrieval_chunks_future = generate_queries_and_fetch_chunks(
+                    &pool,
+                    &formatted_messages_clone,
+                    &assistant.inner.model,
+                );
+                
+                let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
+
+                retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
+                    // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
+                    error!("Failed to retrieve chunks: {}", e);
+                    vec![]
+                });
 
                 // Build instructions with the code output
                 instructions = build_instructions(
                     &instructions,
-                    &file_contents,
+                    &retrieval_files,
                     &formatted_messages,
                     &tools,
                     code_output.as_deref(),
+                    &retrieval_chunks.iter().map(|c| 
+                        serde_json::to_string(&json!({
+                            "data": c.data,
+                            "sequence": c.sequence,
+                            "start_index": c.start_index,
+                            "end_index": c.end_index,
+                            "metadata": c.metadata,
+                        })).unwrap()
+                    ).collect::<Vec<String>>(),
+                    None
                 );
             }
             _ => {
@@ -958,48 +1029,49 @@ mod tests {
         assert!(result.is_ok());
     }
 
+
+
     #[test]
-    fn test_build_instructions() {
-        let original_instructions = "Solve the equation.";
-        let file_contents = vec!["File 1 content", "File 2 content"]
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
-        let previous_messages =
-            "<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n";
-        let instructions =
-            build_instructions(original_instructions, &file_contents, previous_messages, "", None);
-        let expected_instructions = "<instructions>\nSolve the equation.\n</instructions>\n<file>\n[\"File 1 content\", \"File 2 content\"]\n</file>\n<previous_messages>\n<message>\n{\"role\": \"user\", \"content\": \"Hello, assistant!\"}\n</message>\n\n</previous_messages>";
-        assert_eq!(instructions, expected_instructions);
-    }
+    fn test_build_instructions_context_limit() {
+        let original_instructions = "Solve the quadratic equation x^2 + 5x + 6 = 0.";
+        let file_contents = vec![
+            "# Python script to solve quadratic equations\nimport cmath\ndef solve_quadratic(a, b, c):\n    # calculate the discriminant\n    d = (b**2) - (4*a*c)\n    # find two solutions\n    sol1 = (-b-cmath.sqrt(d))/(2*a)\n    sol2 = (-b+cmath.sqrt(d))/(2*a)\n    return sol1, sol2\n".to_string(),
+            "# Another Python script\nprint('Hello, world!')\n".to_string(),
+        ];
+        let previous_messages = "<message>\n{\"role\": \"user\", \"content\": \"Can you solve a quadratic equation for me?\"}\n</message>\n<message>\n{\"role\": \"assistant\", \"content\": \"Sure, I can help with that. What's the equation?\"}\n</message>\n";
+        let tools = "code_interpreter";
+        let code_output = Some("The solutions are (-2+0j) and (-3+0j)");
+        let context_size = 200; // Set a realistic context size
+        let retrieval_chunks = vec![
+            "Here's a chunk of text retrieved from a large document...".to_string(),
+            "And here's another chunk of text...".to_string(),
+        ];
+    
+        let instructions = build_instructions(
+            original_instructions,
+            &file_contents,
+            previous_messages,
+            tools,
+            code_output,
+            &retrieval_chunks,
+            Some(context_size),
+        );
+    
+        // Use tiktoken to count tokens
+        let bpe = p50k_base().unwrap();
+        let tokens = bpe.encode_with_special_tokens(&instructions);
+    
+        // Check that the instructions do not exceed the context limit
+        assert!(tokens.len() <= context_size, "The instructions exceed the context limit");
+    
+        // Check that the instructions contain the most important parts
+        assert!(instructions.contains(original_instructions), "The instructions do not contain the original instructions");
+        assert!(instructions.contains(tools), "The instructions do not contain the tools");
+        assert!(instructions.contains(previous_messages), "The instructions do not contain the previous messages");
 
-    #[tokio::test]
-    async fn test_retrieve_file_contents() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-
-        // Create a temporary file.
-        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "Hello, world!").unwrap();
-
-        // Get the path of the temporary file.
-        let temp_file_path = temp_file.path();
-
-        // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
-
-        // Upload the file.
-        let file_id = fs.upload_file(&temp_file_path).await.unwrap();
-
-        // Retrieve the file.
-        let file_id_clone = file_id.clone();
-        let file_contents = retrieve_file_contents(&vec![file_id], &fs).await;
-
-        // Check that the retrieval was successful and the content is correct.
-        assert_eq!(file_contents, vec!["Hello, world!\n"]);
-
-        // Delete the file.
-        fs.delete_file(&file_id_clone).await.unwrap();
+        // Check that the instructions do not contain the less important parts
+        assert!(!instructions.contains(&file_contents[0]), "The instructions contain the file contents");
+        assert!(!instructions.contains(&retrieval_chunks[0]), "The instructions contain the retrieval chunks");
     }
 
     #[tokio::test]
@@ -1032,7 +1104,7 @@ mod tests {
                 tools: vec![AssistantTools::Retrieval(AssistantToolsRetrieval {
                     r#type: "retrieval".to_string(),
                 })],
-                model: "claude-2.1".to_string(),
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1117,7 +1189,7 @@ mod tests {
 
         assert_eq!(messages[1].inner.role, MessageRole::Assistant);
         if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
-            assert!(text_object.text.value.contains("43"), "Expected the assistant to return 43, but got something else.");
+            assert!(text_object.text.value.contains("43"), "Expected the assistant to return 43, but got something else {:?}", text_object.text.value);
         } else {
             panic!("Expected a Text message, but got something else.");
         }
@@ -1151,50 +1223,6 @@ mod tests {
 
         // Delete the file locally
         std::fs::remove_file("sample.pdf").unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_retrieve_file_contents_pdf() {
-        setup().await;
-        // Setup
-        let file_storage = FileStorage::new().await;
-
-        let url = "https://arxiv.org/pdf/2311.10122.pdf";
-        let client = reqwest::Client::builder()
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-            .build()
-            .unwrap();
-        let response = client.get(url).send().await.unwrap();
-
-        let bytes = response.bytes().await.unwrap();
-        let mut out = tokio::fs::File::create("2311.10122.pdf").await.unwrap();
-        out.write_all(&bytes).await.unwrap();
-        out.sync_all().await.unwrap(); // Ensure all bytes are written to the file
-
-        let file_path = file_storage
-            .upload_file(std::path::Path::new("2311.10122.pdf"))
-            .await
-            .unwrap();
-
-        // Retrieve the file contents
-        let file_contents =
-            retrieve_file_contents(&vec![String::from(file_path)], &file_storage).await;
-
-        // Check the file contents
-        assert!(
-            file_contents[0].contains("Abstract"),
-            "The PDF content should contain the word 'Abstract'. Instead, it contains: {}",
-            file_contents[0]
-        );
-        // Check got the end of the pdf too!
-        assert!(
-            file_contents[0].contains("For Image Understanding As shown in Fig"),
-            "The PDF content should contain the word 'Abstract'. Instead, it contains: {}",
-            file_contents[0]
-        );
-
-        // Delete the file locally
-        std::fs::remove_file("2311.10122.pdf").unwrap();
     }
 
     #[tokio::test]

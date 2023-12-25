@@ -1,18 +1,18 @@
-use rusty_s3::actions::{DeleteObject, GetObject, PutObject, S3Action, CreateBucket};
+use bytes::Bytes;
+use log::{info, warn};
+use reqwest;
+use rusty_s3::actions::{CreateBucket, DeleteObject, GetObject, PutObject, S3Action};
+use rusty_s3::UrlStyle;
 use rusty_s3::{Bucket, Credentials};
 use std::env;
 use std::path::Path;
+use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use rusty_s3::UrlStyle;
-use std::time::Duration;
 use url::Url;
-use reqwest;
 use uuid;
-use bytes::Bytes;
 
 const ONE_HOUR: Duration = Duration::from_secs(3600);
-
 
 pub struct FileStorage {
     bucket: Bucket,
@@ -21,7 +21,8 @@ pub struct FileStorage {
 
 impl FileStorage {
     pub async fn new() -> Self {
-        let endpoint = Url::parse(&env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set")).unwrap();
+        let endpoint =
+            Url::parse(&env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set")).unwrap();
         let access_key = env::var("S3_ACCESS_KEY").expect("S3_ACCESS_KEY must be set");
         let secret_key = env::var("S3_SECRET_KEY").expect("S3_SECRET_KEY must be set");
         let bucket_name = env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
@@ -37,26 +38,36 @@ impl FileStorage {
         match client.put(signed_url).send().await {
             Ok(response) => {
                 if response.status().is_success() {
-                    println!("Bucket created successfully");
+                    info!("Bucket created successfully");
                 } else if response.status() == 409 {
-                    println!("Bucket already exists");
+                    warn!("Bucket already exists");
                 } else {
-                    panic!("Unexpected error when creating bucket: {:?}", response.status());
+                    panic!(
+                        "Unexpected error when creating bucket: {:?}",
+                        response.status()
+                    );
                 }
-            },
+            }
             Err(e) => panic!("Failed to send request: {:?}", e),
         }
 
-        Self { bucket, credentials }
+        Self {
+            bucket,
+            credentials,
+        }
     }
 
-    pub async fn upload_file(&self, file_path: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let extension = file_path.extension()
+    pub async fn upload_file(
+        &self,
+        file_path: &Path,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let extension = file_path
+            .extension()
             .and_then(std::ffi::OsStr::to_str)
             .unwrap_or("");
         let file_name = format!("{}.{}", uuid::Uuid::new_v4(), extension);
         let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_name);
-    
+
         let mut file = match File::open(file_path).await {
             Ok(file) => file,
             Err(e) => return Err(Box::new(e)),
@@ -65,9 +76,9 @@ impl FileStorage {
         if let Err(e) = file.read_to_end(&mut buffer).await {
             return Err(Box::new(e));
         }
-    
+
         let signed_url = put.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
-    
+
         // You can then use this signed URL to upload the file to S3 using an HTTP client
         let client = reqwest::Client::new();
         let response = match client.put(signed_url).body(buffer).send().await {
@@ -82,11 +93,15 @@ impl FileStorage {
         Ok(file_name.to_owned())
     }
 
-    pub async fn retrieve_file(&self, object_name: &str) -> Result<Bytes, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn retrieve_file(
+        &self,
+        object_name: &str,
+    ) -> Result<Bytes, Box<dyn std::error::Error + Send + Sync>> {
         let mut get = GetObject::new(&self.bucket, Some(&self.credentials), object_name);
-        get.query_mut().insert("response-cache-control", "no-cache, no-store");
+        get.query_mut()
+            .insert("response-cache-control", "no-cache, no-store");
         let signed_url = get.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
-    
+
         // You can then use this signed URL to retrieve the file from S3 using an HTTP client
         let client = reqwest::Client::new();
         let response = client.get(signed_url).send().await?.error_for_status()?;
@@ -94,14 +109,17 @@ impl FileStorage {
         Ok(response.bytes().await?)
     }
 
-    pub async fn delete_file(&self, object_name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn delete_file(
+        &self,
+        object_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let delete = DeleteObject::new(&self.bucket, Some(&self.credentials), object_name);
         let signed_url = delete.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
-    
+
         // You can then use this signed URL to delete the file from S3 using an HTTP client
         let client = reqwest::Client::new();
         let response = client.delete(signed_url).send().await?.error_for_status()?;
-    
+
         Ok(())
     }
 }
@@ -124,7 +142,10 @@ mod tests {
                 std::env::set_var("S3_SECRET_KEY", "minioadmin");
                 std::env::set_var("S3_BUCKET_NAME", "mybucket");
                 std::env::set_var("REDIS_URL", "redis://localhost:6379");
-                std::env::set_var("DATABASE_URL", "postgres://postgres:secret@localhost:5432/mydatabase");
+                std::env::set_var(
+                    "DATABASE_URL",
+                    "postgres://postgres:secret@localhost:5432/mydatabase",
+                );
             }
         }
     }
@@ -160,7 +181,6 @@ mod tests {
         // Clean up the temporary directory.
         dir.close().unwrap();
     }
-
 
     #[tokio::test]
     async fn test_retrieve_file() {

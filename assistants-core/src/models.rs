@@ -173,3 +173,24 @@ pub struct FunctionCallInput {
     pub user_context: String,
     pub model_config: ModelConfig,
 }
+
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+pub struct Chunk {
+    pub id: Uuid,
+    pub sequence: i32,
+    pub data: String,
+    pub file_id: String,
+    pub start_index: i32,
+    pub end_index: i32,
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
+    // pub embedding: Option<Vec<f32>>,
+    pub created_at: i32,
+}
+
+pub struct PartialChunk {
+    pub sequence: i32,
+    pub data: String,
+    pub start_index: i32,
+    pub end_index: i32,
+}
+
