@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT * FROM chunks WHERE file_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sequence",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_index",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "end_index",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "5d8de99a2cb6fe27c44fa23f63d728263ecefe9e27668ca358bef84ce859f3c8"
+}
