@@ -1,8 +1,6 @@
 # Deploying Assistants to Kubernetes
 
-If you want to run this, please DM @louis030195 (Discord, Twitter, etc.). He will help you instantly.
-
-At the moment the simplest way to deploy Assistants is on Kubernetes.
+To deploy Assistants to Kubernetes, simply run the `deploy.sh` script provided in this directory. The script will prompt you to enter necessary environment variables such as `ANTHROPIC_API_KEY`, `MODEL_URL`, and `MODEL_API_KEY` if they are not already set.
 
 First, you need to deploy an LLM. 
 For more detailed instructions on deploying a Mistral LLM, check out their documentation: [Mistral Deployment Documentation](https://docs.mistral.ai/self-deployment/overview).
@@ -14,17 +12,9 @@ Then you can deploy Assistants to Kubernetes:
 # Create a new namespace for your assistants
 kubectl create namespace assistants 
 
-# Create a secret for the model URL, extracting it from your .env file
-kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep MODEL_URL .env | head -n 1 | cut -d '=' -f2) -n assistants
-
-# If your LLM requires an API key, create a secret for it, again extracting from your .env file
-kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep MODEL_API_KEY .env | head -n 1 | cut -d '=' -f2) -n assistants
-
-# Create a ConfigMap for the migration script
-kubectl create configmap migration-script --from-file=assistants-core/src/migrations.sql -n assistants
-
-# Apply the Kubernetes configurations defined in your YAML file
-kubectl apply -f ee/k8s/one-liner-everything.yaml -n assistants 
+```
+./deploy.sh
+``` 
 ```
 
 ## Useful debugging commands
