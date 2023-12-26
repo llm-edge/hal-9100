@@ -3,6 +3,7 @@ services:
   postgres:
     container_name: pg
     image: postgres
+    # image: ankane/pgvector
     restart: always
     environment:
       POSTGRES_PASSWORD: secret

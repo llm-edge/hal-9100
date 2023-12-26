@@ -5,7 +5,7 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
--- CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Drop existing tables
 DROP TABLE IF EXISTS assistants;
@@ -110,4 +110,7 @@ CREATE TABLE chunks (
     -- embedding VECTOR(8192), -- hardcoded atm https://huggingface.co/jinaai/jina-embeddings-v2-base-en
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))
 );
--- TODO index 
+-- CREATE INDEX ON chunks USING hnsw (embedding vector_l2_ops);
+-- CREATE INDEX ON chunks USING hnsw (embedding vector_ip_ops);
+-- CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
+

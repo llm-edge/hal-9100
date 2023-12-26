@@ -252,25 +252,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
     user_prompt.push_str(&format!(
         "<instructions>{}</instructions>\n",
         assistant.inner.instructions.as_ref().unwrap()
-    ));
-
-    // // add the run required action to the user prompt
-    // if let Some(required_action) = &run.inner.required_action {
-    //     user_prompt.push_str(&format!(
-    //         "<required_action>{}</required_action>\n",
-    //         serde_json::to_string(&required_action).unwrap()
-    //     ));
-    // }
-
-    // // add tool calls to the user prompt
-    // if !tool_calls_db.is_empty() {
-    //     user_prompt.push_str(&format!(
-    //         "<tool_calls>{}</tool_calls>\n",
-    //         serde_json::to_string(&tool_calls_db).unwrap()
-    //     ));
-    // }
-
-    
+    ));    
 
     // Call the llm function
     let result = llm(
@@ -320,11 +302,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
         if required_ids.is_subset(&tool_calls_ids) {
             // If all tool calls have been done, remove function from tools_decision
             results.retain(|tool| tool != "function");
-        } // TODO tets
-        // if tool_calls_db.len() == required_action.submit_tool_outputs.tool_calls.len() {
-        //     // Remove "function" from tools_decision
-        //     results.retain(|tool| tool != "function");
-        // }
+        } 
     }
 
     Ok(results
