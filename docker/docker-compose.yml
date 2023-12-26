@@ -42,9 +42,6 @@ services:
   assistants:
     container_name: assistants
     image: ghcr.io/stellar-amenities/assistants/assistants:latest
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
     ports:
       - 3000:3000
     depends_on:
