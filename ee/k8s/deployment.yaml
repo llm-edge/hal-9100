@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistants
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assistants
+  template:
+    metadata:
+      labels:
+        app: assistants
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          value: secret
+        - name: POSTGRES_DB
+          value: mydatabase
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: migration-script
+          mountPath: /docker-entrypoint-initdb.d/migrations.sql
+          subPath: migrations.sql
+
+      - name: redis
+        image: redis
+        ports:
+        - containerPort: 6379
+
+      - name: minio
+        image: minio/minio
+        env:
+        - name: MINIO_ROOT_USER
+          value: minioadmin
+        - name: MINIO_ROOT_PASSWORD
+          value: minioadmin
+        ports:
+        - containerPort: 9000
+        - containerPort: 9001
+        args:
+        - server
+        - /data
+        - --console-address
+        - ":9001"
+
+      - name: rust-api
+        image: ghcr.io/stellar-amenities/assistants/assistants:latest
+        imagePullPolicy: Always # for dev
+        env:
+        - name: DATABASE_URL
+          value: postgres://postgres:secret@localhost:5432/mydatabase
+        - name: REDIS_URL
+          value: redis://localhost/
+        - name: S3_ENDPOINT
+          value: http://localhost:9000
+        - name: S3_ACCESS_KEY
+          value: minioadmin
+        - name: S3_SECRET_KEY
+          value: minioadmin
+        - name: S3_BUCKET_NAME
+          value: mybucket
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anthropic-api-key
+              key: ANTHROPIC_API_KEY
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: model-api-key
+              key: MODEL_API_KEY
+        - name: MODEL_URL
+          valueFrom:
+            secretKeyRef:
+              name: model-url
+              key: MODEL_URL
+      volumes:
+      - name: migration-script
+        configMap:
+          name: migration-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-api-service
+spec:
+  selector:
+    app: assistants
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
