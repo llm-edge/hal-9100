@@ -51,6 +51,30 @@ Run the [quickstart](./examples/quickstart.js):
 node examples/quickstart.js
 ```
 
+## Deployment
+
+You can deploy Assistants API to your own infrastructure using Kubernetes, Render, or Railway.
+
+### Kubernetes
+
+Please follow [this documentation](https://github.com/stellar-amenities/assistants/blob/main/ee/k8s/README.md).
+
+### Render
+
+To deploy to Render, you need to have a Render account and the Render CLI installed. Then, run the `deploy_render.sh` script:
+
+```bash
+./deploy_render.sh
+```
+
+### Railway
+
+To deploy to Railway, you need to have a Railway account and the Railway CLI installed. Then, run the `deploy_railway.sh` script:
+
+```bash
+./deploy_railway.sh
+```
+
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
 - **No Hidden Costs**: Absolutely free. Seriously, no strings attached.
