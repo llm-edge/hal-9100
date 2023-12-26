@@ -67,7 +67,7 @@ check: ## Check db/queue content
 	
 ## Build the Docker image for the code interpreter
 docker-build-code-interpreter-amd64: ## Build the Docker image for the code interpreter for Linux amd64
-	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 .
+	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 --build-arg BUILDKIT_INLINE_CACHE=1 .
 
 docker-push-code-interpreter-amd64: ## Push the Docker image for the code interpreter to DockerHub for Linux amd64
 	docker tag code-interpreter-amd64:latest louis030195/assistants-code-interpreter:latest
