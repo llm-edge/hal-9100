@@ -24,7 +24,7 @@ kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep 
 kubectl create configmap migration-script --from-file=assistants-core/src/migrations.sql -n assistants
 
 # Apply the Kubernetes configurations defined in your YAML file
-kubectl apply -f ee/k8s/one-liner-everything.yaml -n assistants 
+make kubernetes-deploy-assistants 
 ```
 
 ## Useful debugging commands
