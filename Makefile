@@ -24,7 +24,7 @@ help:
 
 ## Docker compose up
 docker: ## Run docker compose up
-	docker-compose -f docker/docker-compose.yml up -d
+	kubectl apply -f ee/k8s/one-liner-everything.yaml -n assistants # Deploy the Assistants API to Kubernetes using the provided configuration file
 	@echo "Waiting for the infra to be ready..."
 	@while ! docker exec -it pg pg_isready -U postgres > /dev/null 2>&1; do sleep 1; done
 	@echo "Database is up and running"
