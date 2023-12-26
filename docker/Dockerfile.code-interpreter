@@ -1,2 +1,5 @@
 FROM python:3.8
-RUN pip install pandas numpy matplotlib scipy
+RUN pip install pandas
+RUN pip install numpy
+RUN pip install matplotlib
+RUN pip install scipy
