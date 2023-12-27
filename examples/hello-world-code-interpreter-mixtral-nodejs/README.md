@@ -27,7 +27,7 @@ We will use Perplexity API to get started quickly with an LLM but you can run th
 
 ## Setup
 
-1. Start Postgres, Redis, Minio, and the server: `make reboot && make all`. This will take a few seconds.
+1. Start the infra: `docker-compose --profile api -f docker/docker-compose.yml up -d`
 
 ## Running the example
 
@@ -77,8 +77,8 @@ Remember, the only limit is your imagination. Happy coding!
 ## Troubleshooting
 
 If you run into any issues, here's what you can do:
-- Restart the infrastructure: `make reboot`
-- Restart the API server: `make all`
+- Clean the database: `make reboot`
+- Restart the infrastructure: `docker-compose --profile api -f docker/docker-compose.yml up -d`
 
 If you still run into issues, please contact @louis030195 on [Discord](https://discord.gg/XMetBW3zCG).
 Or book a call [here](https://cal.com/louis030195/unleash-llms). 

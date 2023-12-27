@@ -64,16 +64,18 @@ pub async fn upload_file_handler(
     info!("Uploaded file: {:?}", file_id);
 
     // Inside upload_file_handler function, after writing the file data to the temporary file
-    let file_data_str = String::from_utf8(file_data.clone()).unwrap();
-    split_and_insert(
-        &app_state.pool,
-        &file_data_str,
-        100, // TODO
-        &file_id,
-        None,
-    )
-    .await
-    .unwrap();
+    if content_type.starts_with("text/") {
+        let file_data_str = String::from_utf8(file_data.clone()).unwrap();
+        split_and_insert(
+            &app_state.pool,
+            &file_data_str,
+            100, // TODO
+            &file_id,
+            None,
+        )
+        .await
+        .unwrap();
+    }
 
     Ok(JsonResponse(json!({
         "status": "success",
@@ -99,6 +101,7 @@ mod tests {
     use sqlx::{postgres::PgPoolOptions, PgPool};
     use std::{sync::Arc, time::Duration};
     use tower::ServiceExt;
+    use tower_http::limit::RequestBodyLimitLayer;
     async fn setup() -> AppState {
         dotenv().ok();
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -120,6 +123,8 @@ mod tests {
         // Define your routes here
         Router::new()
             .route("/files", post(upload_file_handler))
+            .layer(DefaultBodyLimit::disable())
+            .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024))
             .with_state(app_state)
     }
     #[tokio::test]
@@ -130,6 +135,40 @@ mod tests {
         let body = format!(
             "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\r\nTest file content\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
             boundary = boundary
+        );
+
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/files")
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={}", boundary),
+            )
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_upload_pdf_file_handler_pdf_base64() {
+        let app_state = setup().await;
+        let app = app(app_state);
+        let boundary = "------------------------14737809831466499882746641449";
+
+        // Download a PDF file and convert it to base64
+        let response = reqwest::get("https://arxiv.org/pdf/2311.10122.pdf")
+            .await
+            .unwrap();
+        let file_data = response.bytes().await.unwrap();
+        let file_data_base64 = base64::encode(&file_data);
+
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.pdf\"\r\n\r\n{file_data}\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
+            boundary = boundary,
+            file_data = file_data_base64
         );
 
         let request = Request::builder()

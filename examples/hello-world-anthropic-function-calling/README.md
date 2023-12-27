@@ -23,10 +23,7 @@ Function calling allows you to describe functions to the Assistants and have it 
 1. **Start the server**
 
 ```bash
-# This will start postgres, redis, minio
-make reboot
-# This will start the API server
-make all
+docker-compose --profile api -f docker/docker-compose.yml up -d
 ```
 
 2. **Create an Assistant** 

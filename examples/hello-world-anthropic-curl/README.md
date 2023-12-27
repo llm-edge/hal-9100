@@ -19,10 +19,7 @@ S3_BUCKET_NAME=mybucket
 1. **Start the server**
 
 ```bash
-# This will start postgres, redis, minio
-make reboot
-# This will start the API server
-make all
+docker-compose --profile api -f docker/docker-compose.yml up -d
 ```
 
 2. **Create an Assistant** 
