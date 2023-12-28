@@ -1,0 +1,118 @@
+[
+  {
+    "test_case": "Solving a math equation",
+    "steps": [
+      {
+        "endpoint": "http://localhost:3000/assistants",
+        "method": "POST",
+        "request": {
+          "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
+          "model": "mistralai/mistral-7b-instruct",
+          "name": "Math Tutor",
+          "tools": [
+            {
+              "type": "retrieval"
+            }
+          ]
+        },
+        "expected_response": {
+          "id": "<ASSISTANT_ID>",
+          "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
+          "model": "mistralai/mistral-7b-instruct",
+          "name": "Math Tutor",
+          "tools": [
+            {
+              "type": "retrieval"
+            }
+          ]
+        },
+        "score": null,
+        "start_time": 1703798019,
+        "end_time": 1703798023,
+        "duration": 4
+      },
+      {
+        "endpoint": "http://localhost:3000/threads",
+        "method": "POST",
+        "request": {},
+        "expected_response": {
+          "id": "<THREAD_ID>"
+        },
+        "score": 3.0,
+        "start_time": 1703798023,
+        "end_time": 1703798024,
+        "duration": 1
+      },
+      {
+        "endpoint": "http://localhost:3000/threads/82e64032-8e3e-43ac-8c07-8aeb8031d8f4/messages",
+        "method": "POST",
+        "request": {
+          "content": "I need to solve the equation 3x + 11 = 14. Can you help me?",
+          "role": "user"
+        },
+        "expected_response": {
+          "content": [
+            {
+              "text": {
+                "annotations": [],
+                "value": "I need to solve the equation 3x + 11 = 14. Can you help me?"
+              },
+              "type": "text"
+            }
+          ],
+          "id": "<MESSAGE_ID>",
+          "role": "user",
+          "thread_id": "<THREAD_ID>"
+        },
+        "score": 5.0,
+        "start_time": 1703798024,
+        "end_time": 1703798026,
+        "duration": 2
+      },
+      {
+        "endpoint": "http://localhost:3000/threads/82e64032-8e3e-43ac-8c07-8aeb8031d8f4/runs",
+        "method": "POST",
+        "request": {
+          "assistant_id": "b16ceb9f-9b9a-42bf-9a02-b9714afb8feb",
+          "instructions": "Please solve the equation."
+        },
+        "expected_response": {
+          "assistant_id": "<ASSISTANT_ID>",
+          "id": "<RUN_ID>",
+          "instructions": "Please solve the equation.",
+          "status": "running",
+          "thread_id": "<THREAD_ID>"
+        },
+        "score": 3.0,
+        "start_time": 1703798026,
+        "end_time": 1703798036,
+        "duration": 10
+      },
+      {
+        "endpoint": "http://localhost:3000/threads/82e64032-8e3e-43ac-8c07-8aeb8031d8f4/messages",
+        "method": "GET",
+        "request": {},
+        "expected_response": [
+          {
+            "content": [
+              {
+                "text": {
+                  "annotations": [],
+                  "value": "To solve the equation 3x + 11 = 14, we need to isolate the variable x. Here's the step-by-step reasoning:\n\n1. Our goal is to find the value of x that makes the equation true.\n2. First, let's subtract 11 from both sides of the equation to isolate the term with the variable (3x) on one side:\n   3x + 11 - 11 = 14 - 11\n   \n   This simplifies to:\n   3x = 3\n\n3. Now, divide both sides of the equation by 3 to get the value of x:\n   (3x) / 3 = 3 / 3\n\n   This simplifies to:\n   x = 1\n\nSo the solution to the equation is x = 1."
+                },
+                "type": "text"
+              }
+            ],
+            "id": "<MESSAGE_ID>",
+            "role": "assistant",
+            "thread_id": "<THREAD_ID>"
+          }
+        ],
+        "score": 3.0,
+        "start_time": 1703798036,
+        "end_time": 1703798057,
+        "duration": 21
+      }
+    ]
+  }
+]

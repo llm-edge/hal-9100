@@ -112,7 +112,7 @@ curl -X POST http://localhost:3000/threads/1/messages \
     "role": "user",
     "content": [
         {
-            "r#type": "user",
+            "type": "user",
             "text": {
                 "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                 "annotations": []
@@ -208,7 +208,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "user",
         "content": [
             {
-                "r#type": "user",
+                "type": "user",
                 "text": {
                     "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                     "annotations": []

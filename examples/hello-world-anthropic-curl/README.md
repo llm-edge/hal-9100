@@ -72,7 +72,7 @@ curl -X POST http://localhost:3000/threads/1/messages \
     "role": "user",
     "content": [
         {
-            "r#type": "user",
+            "type": "user",
             "text": {
                 "value": "I need to solve the equation 3x + 11 = 14. Can you help me?",
                 "annotations": []
@@ -187,7 +187,7 @@ curl http://localhost:3000/threads/1/messages \
         "role": "assistant",
         "content": [
             {
-                "r#type": "text",
+                "type": "text",
                 "text": {
                     "value": " Unfortunately I do not have enough context to solve the equation. Please provide the full equation you would like me to solve, and I will do my best to assist you in solving it. Some examples of helpful context that would allow me to solve an equation are:\n\n- Specifying the full equation, including all variables, numbers, and mathematical operators (+, - , /, , =, etc)\n- Providing any constraints or requirements on the variables\n- Specifying the desired form of the solution",
                     "annotations": []
