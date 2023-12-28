@@ -1,6 +1,10 @@
 [
     {
         "test_case": "Solving a math equation",
+        "models": [
+            "mistralai/mistral-7b-instruct",
+            "openai/gpt-3.5-turbo-1106"
+        ],
         "steps": [
             {
                 "endpoint": "http://localhost:3000/assistants",
@@ -13,7 +17,7 @@
                             "type": "retrieval"
                         }
                     ],
-                    "model": "mistralai/mistral-7b-instruct"
+                    "model": "model_id"
                 },
                 "expected_response": {
                     "id": "<ASSISTANT_ID>",
