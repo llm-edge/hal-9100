@@ -59,6 +59,7 @@ node examples/quickstart.js
 - **OpenAI Compatibility**: Love OpenAI's API? We play nice with that too.
 - **Simplicity**: Easy setup, no steep learning curve.
 - **Non-woke style**: Get rid of OpenAI Woke/Brainwashed/PC models.
+- **Unleashed code interpreter**: OpenAI Code interpreter is not allowed to do other things than processing data (e.g. cannot do web scrapping, etc.). This one is unleashed.
 
 ## What's Cooking? – Latest News
 
@@ -67,7 +68,7 @@ node examples/quickstart.js
 - [2023/29/11] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
 ## Key Features
-- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (Beta)
+- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (beta)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
 - [x] **Function Calling**: Defines and executes custom functions.
 - [x] **File Handling**: Supports a range of file formats.
