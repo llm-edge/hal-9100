@@ -58,6 +58,7 @@ node examples/quickstart.js
 - **Offline Capabilities**: Perfect for edge cases or internet-free zones.
 - **OpenAI Compatibility**: Love OpenAI's API? We play nice with that too.
 - **Simplicity**: Easy setup, no steep learning curve.
+- **Non-woke style**: Get rid of OpenAI Woke/Brainwashed/PC models.
 
 ## What's Cooking? – Latest News
 
