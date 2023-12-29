@@ -179,6 +179,8 @@ Rules:
                     end_time: end_time,
                     duration: duration,
                 });
+
+                
             }
             scored_test_cases
                 .entry(model.to_string())
@@ -217,6 +219,7 @@ Rules:
 }
 
 // docker-compose -f docker/docker-compose.yml --profile api up
+// cargo run --package assistants-benches --bin assistants-benches
 
 #[tokio::main]
 async fn main() {

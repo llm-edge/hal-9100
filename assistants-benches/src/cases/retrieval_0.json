@@ -3,7 +3,9 @@
         "test_case": "Solving a math equation",
         "models": [
             "mistralai/mistral-7b-instruct",
-            "openai/gpt-3.5-turbo-1106"
+            "mistralai/mixtral-8x7b-instruct",
+            "openai/gpt-3.5-turbo-1106",
+            "anthropic/claude-2.1"
         ],
         "steps": [
             {
@@ -22,7 +24,7 @@
                 "expected_response": {
                     "id": "<ASSISTANT_ID>",
                     "name": "Math Tutor",
-                    "model": "mistralai/mistral-7b-instruct",
+                    "model": "<MODEL_ID>",
                     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
                     "tools": [
                         {
