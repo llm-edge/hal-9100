@@ -360,6 +360,9 @@ pub async fn try_run_executor(
          }
         Err(run_error) => {
             error!("Run error: {}", run_error);
+            let mut last_run_error = HashMap::new();
+            last_run_error.insert("code".to_string(), "server_error".to_string());
+            last_run_error.insert("message".to_string(), run_error.message.clone());
             let _ = update_run_status(
                 &pool,
                 &run_error.thread_id,
@@ -367,6 +370,8 @@ pub async fn try_run_executor(
                 RunStatus::Failed,
                 &run_error.user_id,
                 None,
+                // https://platform.openai.com/docs/api-reference/runs/object#runs/object-last_error
+                Some(last_run_error),
             )
             .await;
             Err(run_error)
@@ -424,6 +429,7 @@ pub async fn run_executor(
         &run.inner.id,
         RunStatus::InProgress,
         &run.user_id,
+        None,
         None,
     )
     .await.map_err(|e| RunError {
@@ -583,6 +589,7 @@ pub async fn run_executor(
                     RunStatus::Queued,
                     &run.user_id,
                     None,
+        None,
                 )
                 .await.map_err(|e| RunError {
                     message: format!("Failed to update run status: {}", e),
@@ -627,6 +634,7 @@ pub async fn run_executor(
                                     .collect::<Vec<RunToolCallObject>>(),
                             },
                         }),
+                        None
                     )
                     .await.map_err(|e| RunError {
                         message: format!("Failed to update run status: {}", e),
@@ -862,6 +870,7 @@ These are additional instructions from the user that you must obey absolutely:
                 RunStatus::Completed,
                 user_id,
                 None,
+                None
             )
             .await.map_err(|e| RunError {
                 message: format!("Failed to update run status: {}", e),

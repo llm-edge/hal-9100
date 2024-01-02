@@ -121,8 +121,16 @@ pub async fn submit_tool_outputs(
         .await
         .map_err(|e| sqlx::Error::Configuration(e.into()))?;
 
-    let updated_run =
-        update_run_status(pool, thread_id, run_id, RunStatus::Queued, user_id, None).await?;
+    let updated_run = update_run_status(
+        pool,
+        thread_id,
+        run_id,
+        RunStatus::Queued,
+        user_id,
+        None,
+        None,
+    )
+    .await?;
 
     Ok(updated_run)
 }
@@ -170,6 +178,7 @@ pub async fn create_run_and_produce_to_executor_queue(
         &run.inner.id,
         RunStatus::Queued,
         &run.user_id,
+        None,
         None,
     )
     .await?;
@@ -440,12 +449,13 @@ pub async fn update_run_status(
     status: RunStatus,
     user_id: &str,
     required_action: Option<RequiredAction>,
+    last_error: Option<HashMap<String, String>>,
 ) -> Result<Run, sqlx::Error> {
     info!("Updating run for run_id: {}", run_id);
     let row = sqlx::query!(
         r#"
         UPDATE runs
-        SET status = $1, required_action = COALESCE($5, required_action)
+        SET status = $1, required_action = COALESCE($5, required_action), last_error = COALESCE($6, last_error), failed_at = COALESCE($7, failed_at)
         WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4
         RETURNING *
         "#,
@@ -465,6 +475,8 @@ pub async fn update_run_status(
         required_action
             .clone()
             .map(|ra| serde_json::to_value(ra).unwrap()),
+        last_error.clone().map(|le| serde_json::to_value(le).unwrap()),
+        last_error.map(|_| chrono::Utc::now().naive_utc().timestamp() as i32),
     )
     .fetch_one(pool)
     .await
@@ -685,6 +697,7 @@ pub async fn list_runs(
 #[cfg(test)]
 mod tests {
     use crate::assistants::create_assistant;
+    use crate::executor::try_run_executor;
     use crate::models::Assistant;
     use crate::threads::create_thread;
 
@@ -850,6 +863,7 @@ mod tests {
             RunStatus::Queued,
             &Uuid::default().to_string(), // user_id
             required_action,
+            None,
         )
         .await
         .unwrap();
@@ -937,5 +951,63 @@ mod tests {
         .await;
         // shuould be Err(Configuration("Run is not in status requires_action"))
         assert!(!result.is_ok(), "should be Err");
+    }
+
+    #[tokio::test]
+    #[ignore] // TODO: finish this test
+    async fn test_create_run_failure() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+        // Create assistant
+        let assistant = create_assistant(
+            &pool,
+            &Assistant {
+                inner: AssistantObject {
+                    id: "".to_string(),
+                    object: "".to_string(),
+                    created_at: 0,
+                    name: Some("Math Tutor".to_string()),
+                    description: None,
+                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    instructions: Some(
+                        "You are a personal math tutor. Write and run code to answer math questions."
+                            .to_string(),
+                    ),
+                    tools: vec![],
+                    file_ids: vec![],
+                    metadata: None,
+                },
+                user_id: Uuid::default().to_string(),
+            }
+        )
+        .await
+        .unwrap();
+
+        // Create thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Create run with invalid assistant_id to trigger failure
+        let result = create_run(
+            &pool,
+            &thread.inner.id,
+            &assistant.inner.id,
+            // very long string to fail llm
+            "Please address the user as Jane Doe. The user has a premium account."
+                .repeat(100)
+                .as_str(),
+            &Uuid::default().to_string(),
+        )
+        .await;
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+
+        let result = try_run_executor(&pool, &mut con).await;
+        assert!(result.is_ok());
+
+        println!("result: {:?}", result);
     }
 }
