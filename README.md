@@ -112,11 +112,11 @@ Please follow [this documentation](https://github.com/stellar-amenities/assistan
 <details>
 <summary>Which LLM API can I use?</summary>
 
-Examples of LLM APIs that does not support OpenAI API-like:
-- ollama
+Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
+- [ollama](https://github.com/stellar-amenities/assistants/issues/24)
 - [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
 
-Examples of LLM APIs that does support OpenAI API-like:
+Examples of LLM APIs that does support OpenAI API-like, that you can use:
 - [FastChat (good if you have a mac)](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
 - [Perplexity API](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
