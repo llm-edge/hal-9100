@@ -51,6 +51,29 @@ Run the [quickstart](./examples/quickstart.js):
 node examples/quickstart.js
 ```
 
+## Table of contents
+
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#why-open-source-assistants-api">Why Open Source Assistants API?</a></li>
+    <li><a href="#whats-cooking-latest-news">What's Cooking? – Latest News</a></li>
+    <li><a href="#key-features">Key Features</a></li>
+    <li><a href="#what-can-you-build-with-assistants">What Can You Build with Assistants?</a></li>
+    <li><a href="#join-the-movement">Join the Movement</a></li>
+    <li><a href="#deployment">Deployment</a></li>
+    <li><a href="#faq">FAQ</a></li>
+      <ul>
+        <li><a href="#which-llm-api-can-i-use">Which LLM API can I use?</a></li>
+        <li><a href="#whats-the-difference-with-langchain">What's the difference with LangChain?</a></li>
+        <li><a href="#are-you-related-to-openai">Are you related to OpenAI?</a></li>
+        <li><a href="#i-dont-use-assistants-api-can-i-use-this">I don't use Assistants API. Can I use this?</a></li>
+        <li><a href="#does-the-assistants-api-support-audio-and-images">Does the Assistants API support audio and images?</a></li>
+      </ul>
+  </ol>
+</details>
+
+
 ## Why Open Source Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
 - **No Hidden Costs**: Absolutely free. Seriously, no strings attached.
@@ -92,6 +115,22 @@ node examples/quickstart.js
 Please follow [this documentation](https://github.com/stellar-amenities/assistants/blob/main/ee/k8s/README.md).
 
 ## FAQ
+
+<details>
+<summary>Which LLM API can I use?</summary>
+
+Examples of LLM APIs that does not support OpenAI API-like:
+- ollama
+- [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
+
+Examples of LLM APIs that does support OpenAI API-like:
+- [FastChat (good if you have a mac)](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-mistral-curl)
+- [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
+- [Perplexity API](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
+- Mistral API
+- anyscale
+- together ai
+</details>
 
 <details>
 <summary>What's the difference with LangChain?</summary>
