@@ -63,13 +63,6 @@ node examples/quickstart.js
     <li><a href="#join-the-movement">Join the Movement</a></li>
     <li><a href="#deployment">Deployment</a></li>
     <li><a href="#faq">FAQ</a></li>
-      <ul>
-        <li><a href="#which-llm-api-can-i-use">Which LLM API can I use?</a></li>
-        <li><a href="#whats-the-difference-with-langchain">What's the difference with LangChain?</a></li>
-        <li><a href="#are-you-related-to-openai">Are you related to OpenAI?</a></li>
-        <li><a href="#i-dont-use-assistants-api-can-i-use-this">I don't use Assistants API. Can I use this?</a></li>
-        <li><a href="#does-the-assistants-api-support-audio-and-images">Does the Assistants API support audio and images?</a></li>
-      </ul>
   </ol>
 </details>
 
