@@ -13,7 +13,7 @@ async function getCurrentWeather(location) {
 async function createAssistant() {
     const assistant = await openai.beta.assistants.create({
         instructions: "You are a weather bot. Use the provided functions to answer questions.",
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: "gpt-3.5-turbo-1106",
         name: "Weather Bot",
         tools: [{
             "type": "function",
@@ -31,14 +31,14 @@ async function createAssistant() {
             }
         }]
     });
-    console.log(JSON.stringify(assistant, null, 2));
+    console.log("CREATING ASSISTANT: ",JSON.stringify(assistant, null, 2));
     return assistant;
 }
 
 
 async function createThread() {
     const thread = await openai.beta.threads.create();
-    console.log(JSON.stringify(thread, null, 2));
+    console.log("CREATING THREAD: ",JSON.stringify(thread, null, 2));
     return thread;
 }
 
@@ -50,7 +50,7 @@ async function createMessage(threadId) {
             content: "What's the weather in San Francisco?"
         }
     );
-    console.log(JSON.stringify(message, null, 2));
+    console.log("CREATING MESSAGE: ",JSON.stringify(message, null, 2));
     return message;
 }
 
@@ -62,13 +62,13 @@ async function createRun(threadId, assistantId) {
             instructions: "You are a weather bot. Use the provided functions to answer questions."
         }
     );
-    console.log(JSON.stringify(run, null, 2));
+    console.log("CREATING RUN: ", JSON.stringify(run, null, 2));
     return run;
 }
 
 async function getRun(threadId, runId) {
     const run = await openai.beta.threads.runs.retrieve(threadId, runId);
-    console.log(JSON.stringify(run, null, 2));
+    console.log("GETTING RUN: ",JSON.stringify(run, null, 2));
     return run;
 }
 
@@ -86,13 +86,13 @@ async function submitToolOutputs(threadId, runId, toolCallId, args) {
             ]
         }
     );
-    console.log(JSON.stringify(run, null, 2));
+    console.log("SUBMIT TOOL OUTPUTS: ",JSON.stringify(run, null, 2));
     return run;
 }
 
 async function getMessages(threadId) {
     const messages = await openai.beta.threads.messages.list(threadId);
-    console.log(JSON.stringify(messages, null, 2));
+    console.log("GETTING MESSAGES: ",JSON.stringify(messages, null, 2));
     return messages;
 }
 
