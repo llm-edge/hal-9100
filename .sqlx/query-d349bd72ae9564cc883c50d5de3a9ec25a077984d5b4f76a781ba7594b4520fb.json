@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE runs\n        SET status = $1, required_action = COALESCE($5, required_action)\n        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4\n        RETURNING *\n        ",
+  "query": "\n        UPDATE runs\n        SET status = $1, required_action = COALESCE($5, required_action), last_error = COALESCE($6, last_error), failed_at = COALESCE($7, failed_at)\n        WHERE id::text = $2 AND thread_id::text = $3 AND user_id::text = $4\n        RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -105,7 +105,9 @@
         "Text",
         "Text",
         "Text",
-        "Jsonb"
+        "Jsonb",
+        "Jsonb",
+        "Int4"
       ]
     },
     "nullable": [
@@ -130,5 +132,5 @@
       true
     ]
   },
-  "hash": "80ac93bb6908c2ffa672280bbbe5234d52fe3c3277be64c603a5edbdaf299a12"
+  "hash": "d349bd72ae9564cc883c50d5de3a9ec25a077984d5b4f76a781ba7594b4520fb"
 }

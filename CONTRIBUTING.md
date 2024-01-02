@@ -101,3 +101,9 @@ A review finishes when all blocking comments are addressed and at least one
 owning reviewer has approved the PR. Be sure to acknowledge any non-blocking
 comments either by making the requested change, explaining why it's not being
 addressed now, or filing an issue to handle it later.
+
+
+### Troubleshooting
+
+- Sometimes you need to run `cargo sqlx prepare --workspace` - typically upon writing sql queries or editing the migrations. SQLX runs checks at build time, welcome to Rust!
+
