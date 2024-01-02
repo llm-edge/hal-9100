@@ -401,7 +401,7 @@ Rules:
                     input, result_string, expected_output
                 ),
                 Some(0.0),
-                60,
+                -1,
                 None,
                 Some(1.0),
                 None,

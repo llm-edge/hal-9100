@@ -261,7 +261,10 @@ pub async fn get_run(
     run_id: &str,
     user_id: &str,
 ) -> Result<Run, sqlx::Error> {
-    info!("Getting run from database for run_id: {}", run_id);
+    info!(
+        "Getting run from database for thread_id: {} and run_id: {}",
+        thread_id, run_id
+    );
     let row = sqlx::query!(
         r#"
         SELECT * FROM runs WHERE id::text = $1 AND thread_id::text = $2 AND user_id::text = $3

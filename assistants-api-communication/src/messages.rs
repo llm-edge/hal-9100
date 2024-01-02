@@ -43,7 +43,11 @@ pub async fn add_message_handler(
     .await;
     match message {
         Ok(message) => Ok(JsonResponse(message.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to add message: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -85,12 +89,17 @@ pub async fn update_message_handler(
     .await;
     match message {
         Ok(message) => Ok(JsonResponse(message.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to update message: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
 // Delete a specific message
-pub async fn delete_message_handler( // TODO: does not exist?
+pub async fn delete_message_handler(
+    // TODO: does not exist?
     Path((thread_id, message_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<()>, (StatusCode, String)> {
@@ -103,7 +112,11 @@ pub async fn delete_message_handler( // TODO: does not exist?
     .await;
     match result {
         Ok(_) => Ok(JsonResponse(())),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to delete message: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -139,6 +152,10 @@ pub async fn list_messages_handler(
             // has_more: messages.len() == limit as usize,
             has_more: false,
         })),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to list messages: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }

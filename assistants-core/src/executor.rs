@@ -90,7 +90,7 @@ fn build_instructions(
 ) -> String {
     let bpe = p50k_base().unwrap();
 
-    // if context_size is None, use env var or default to 4096
+    // if context_size is None, use env var or default to x
     let context_size = context_size.unwrap_or_else(|| {
         std::env::var("MODEL_CONTEXT_SIZE")
             .unwrap_or_else(|_| "4096".to_string())
@@ -261,7 +261,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
         system_prompt,
         &user_prompt,
         Some(0.0), // temperature
-        60,        // max_tokens_to_sample
+        -1,        // max_tokens_to_sample
         None,      // stop_sequences
         Some(1.0), // top_p
         None,      // top_k
@@ -269,6 +269,8 @@ Your answer will be used to use the tool so it must be very concise and make sur
         None,      // metadata
     )
     .await?;
+
+    info!("decide_tool_with_llm raw result: {}", result);
 
     // Just in case regex what's in <tool> sometimes LLM do this (e.g. extract the "tool" using a regex)
     let regex = regex::Regex::new(r"<(.*?)>").unwrap();
@@ -304,6 +306,8 @@ Your answer will be used to use the tool so it must be very concise and make sur
             results.retain(|tool| tool != "function");
         } 
     }
+
+    info!("decide_tool_with_llm result: {:?}", results);
 
     Ok(results
         .into_iter()
@@ -818,7 +822,7 @@ These are additional instructions from the user that you must obey absolutely:
         &system_prompt,
         &instructions,
         None, // temperature
-        2000, // TODO optional
+        -1,
         None,      // stop_sequences
         None, // top_p
         None,      // top_k

@@ -58,7 +58,11 @@ pub async fn submit_tool_outputs_handler(
     .await
     {
         Ok(run) => Ok(JsonResponse(run.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to submit tool outputs: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -107,7 +111,11 @@ pub async fn get_run_handler(
     let run = get_run(&app_state.pool, &thread_id, &run_id, &user_id).await;
     match run {
         Ok(run) => Ok(JsonResponse(run.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to get run: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -131,7 +139,11 @@ pub async fn update_run_handler(
     .await;
     match run {
         Ok(run) => Ok(JsonResponse(run.inner)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to update run: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -148,7 +160,11 @@ pub async fn delete_run_handler(
     .await;
     match result {
         Ok(_) => Ok(JsonResponse(())),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to delete run: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
@@ -159,7 +175,11 @@ pub async fn list_runs_handler(
     let runs = list_runs(&app_state.pool, &thread_id, &Uuid::default().to_string()).await;
     match runs {
         Ok(runs) => Ok(JsonResponse(runs.into_iter().map(|r| r.inner).collect())),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+        Err(e) => {
+            let error_message = e.to_string();
+            error!("Failed to list runs: {}", error_message);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, error_message))
+        }
     }
 }
 
