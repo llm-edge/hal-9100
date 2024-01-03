@@ -141,12 +141,19 @@ pub async fn decide_tool_with_llm(
     run: &Run,
     tool_calls_db: Vec<SubmittedToolCall>
 ) -> Result<Vec<String>, Box<dyn Error>> {
+
+    // if there are no tools, return empty
+    if assistant.inner.tools.is_empty() {
+        return Ok(vec![]);
+    }
+
     // Build the system prompt
     let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
 
 Rules:
 - You only return one of the tools like \"<retrieval>\" or \"<function>\" or \"<code_interpreter>\" or multiple of them
 - Do not return \"tools\"
+- If you do not have any tools to use, return nothing
 - Feel free to use MORE tools rather than LESS
 - Tools use snake_case, not camelCase
 - The tool names must be one of the tools available, nothing else OR A HUMAN WILL DIE
