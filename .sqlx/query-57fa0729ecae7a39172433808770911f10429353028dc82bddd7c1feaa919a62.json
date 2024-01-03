@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, name, description, parameters\n        FROM functions\n        WHERE user_id::text = $1\n        ",
+  "query": "\n        SELECT id, name, description, parameters\n        FROM functions\n        WHERE user_id::text = $1 AND assistant_id::text = $2\n        ",
   "describe": {
     "columns": [
       {
@@ -26,6 +26,7 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -36,5 +37,5 @@
       true
     ]
   },
-  "hash": "9f29e93f7fc1749a8940e9e7437b4e82239293eb19925ef06bad4151e1962ef8"
+  "hash": "57fa0729ecae7a39172433808770911f10429353028dc82bddd7c1feaa919a62"
 }

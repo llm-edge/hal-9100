@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO functions (user_id, name, description, parameters)\n        VALUES ($1, $2, $3, $4)\n        RETURNING id\n        ",
+  "query": "\n        INSERT INTO functions (assistant_id, user_id, name, description, parameters)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id\n        ",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,7 @@
     "parameters": {
       "Left": [
         "Uuid",
+        "Uuid",
         "Text",
         "Text",
         "Jsonb"
@@ -21,5 +22,5 @@
       false
     ]
   },
-  "hash": "4b02abde2e5848ca1fab9f4e6c8e0ffd7fd12ce87f7ebfde2637f3618da4e3a5"
+  "hash": "548cfbe133937a7445bb4bd30727fe727282d16bf7f32e119c0151e4e7245f94"
 }
