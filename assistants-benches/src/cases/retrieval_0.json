@@ -34,7 +34,7 @@
                 },
                 "save_response_to_variable": [
                     {
-                        "name": "id",
+                        "name": "$.id",
                         "type": "assistant_id"
                     }
                 ]
@@ -48,7 +48,7 @@
                 },
                 "save_response_to_variable": [
                     {
-                        "name": "id",
+                        "name": "$.id",
                         "type": "thread_id"
                     }
                 ]
@@ -76,7 +76,7 @@
                 },
                 "save_response_to_variable": [
                     {
-                        "name": "id",
+                        "name": "$.id",
                         "type": "message_id"
                     }
                 ]
@@ -97,7 +97,7 @@
                 },
                 "save_response_to_variable": [
                     {
-                        "name": "id",
+                        "name": "$.id",
                         "type": "run_id"
                     }
                 ]
@@ -124,7 +124,7 @@
                 ],
                 "save_response_to_variable": [
                     {
-                        "name": "id",
+                        "name": "$.id",
                         "type": "message_id"
                     }
                 ]

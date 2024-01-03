@@ -1,0 +1,244 @@
+[
+    {
+        "test_case": "Getting weather information",
+        "models": [
+            "mistralai/mistral-7b-instruct"
+        ],
+        "steps": [
+            {
+                "endpoint": "http://localhost:3000/assistants",
+                "method": "POST",
+                "request": {
+                    "instructions": "You are a weather bot. Use the provided functions to answer questions.",
+                    "name": "Weather Bot",
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "getCurrentWeather",
+                                "description": "Get the weather in location",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {
+                                        "location": {
+                                            "type": "string",
+                                            "description": "The city and state e.g. San Francisco, CA"
+                                        },
+                                        "unit": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "location"
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "model": "model_id"
+                },
+                "expected_response": {
+                    "id": "<ASSISTANT_ID>",
+                    "name": "Weather Bot",
+                    "model": "<MODEL_ID>",
+                    "instructions": "You are a weather bot. Use the provided functions to answer questions.",
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "getCurrentWeather",
+                                "description": "Get the weather in location",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {
+                                        "location": {
+                                            "type": "string",
+                                            "description": "The city and state e.g. San Francisco, CA"
+                                        },
+                                        "unit": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "location"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "assistant_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads",
+                "method": "POST",
+                "request": {},
+                "expected_response": {
+                    "id": "<THREAD_ID>"
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "thread_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads/thread_id/messages",
+                "method": "POST",
+                "request": {
+                    "role": "user",
+                    "content": "What's the weather in San Francisco?"
+                },
+                "expected_response": {
+                    "id": "<MESSAGE_ID>",
+                    "thread_id": "<THREAD_ID>",
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "value": "What's the weather in San Francisco?",
+                                "annotations": []
+                            }
+                        }
+                    ]
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "message_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads/thread_id/runs",
+                "method": "POST",
+                "request": {
+                    "assistant_id": "assistant_id",
+                    "instructions": "Please get the weather."
+                },
+                "expected_response": {
+                    "id": "<RUN_ID>",
+                    "thread_id": "<THREAD_ID>",
+                    "assistant_id": "<ASSISTANT_ID>",
+                    "status": "running",
+                    "instructions": "Please get the weather."
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "run_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads/thread_id/runs",
+                "method": "GET",
+                "request": {},
+                "expected_response": {
+                    "id": "<RUN_ID>",
+                    "thread_id": "<THREAD_ID>",
+                    "assistant_id": "<ASSISTANT_ID>",
+                    "status": "requires_action",
+                    "required_action": {
+                        "type": "submit_tool_outputs",
+                        "submit_tool_outputs": {
+                            "tool_calls": [
+                                {
+                                    "id": "<TOOL_CALL_ID>",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "getCurrentWeather",
+                                        "arguments": {
+                                            "location": "San Francisco"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "last_error": null,
+                    "expires_at": 0,
+                    "started_at": null,
+                    "cancelled_at": null,
+                    "failed_at": null,
+                    "completed_at": null,
+                    "model": "<MODEL_ID>",
+                    "instructions": "Please get the weather.",
+                    "tools": [],
+                    "file_ids": [],
+                    "metadata": {}
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$[0].id",
+                        "type": "run_id"
+                    },
+                    {
+                        "name": "$[0].required_action.submit_tool_outputs.tool_calls[0].id",
+                        "type": "tool_call_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads/thread_id/runs/run_id/submit_tool_outputs",
+                "method": "POST",
+                "request": {
+                    "tool_outputs": [
+                        {
+                            "tool_call_id": "<TOOL_CALL_ID>",
+                            "output": "It's 70 degrees and sunny in San Francisco."
+                        }
+                    ]
+                },
+                "expected_response": {
+                    "id": "<RUN_ID>",
+                    "thread_id": "<THREAD_ID>",
+                    "assistant_id": "<ASSISTANT_ID>",
+                    "status": "running",
+                    "instructions": "Please get the weather using function calling.",
+                    "model": "<MODEL_ID>"
+                },
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "run_id"
+                    }
+                ]
+            },
+            {
+                "endpoint": "http://localhost:3000/threads/thread_id/messages",
+                "method": "GET",
+                "request": {},
+                "expected_response": [
+                    {
+                        "id": "<MESSAGE_ID>",
+                        "thread_id": "<THREAD_ID>",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": {
+                                    "value": "Based on the weather in San Francisco, It's 70 degrees and sunny.",
+                                    "annotations": []
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "save_response_to_variable": [
+                    {
+                        "name": "$.id",
+                        "type": "message_id"
+                    }
+                ]
+            }
+        ]
+    }
+]
