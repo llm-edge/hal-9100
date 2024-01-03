@@ -1,6 +1,6 @@
 
 
-At the moment, you need both **Docker** installed to run the API.
+At the moment, you need **Docker** installed to run the API.
 
 Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
 
@@ -11,8 +11,11 @@ S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=minioadmin
 S3_SECRET_KEY=minioadmin
 S3_BUCKET_NAME=mybucket
-MODEL_URL="http://localhost:8000/v1/chat/completions"
+MODEL_URL="http://host.docker.internal:8000/v1/chat/completions"
 ```
+
+Please install `jq` if you haven't already. You can install it using `brew install jq` on MacOS or `sudo apt-get install` jq on Ubuntu.
+
 
 ## Steps to Run the API
 
@@ -52,18 +55,20 @@ docker-compose --profile api -f docker/docker-compose.yml up -d
 2. **Create an Assistant** 
 
 ```bash
-curl -X POST http://localhost:3000/assistants \
+assistant_response=$(curl -sS -X POST http://localhost:3000/assistants \
 -H "Content-Type: application/json" \
 -d '{
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
-    "tools": [{"type": "retrieval"}],
+    "tools": [],
     "model": "open-orca/mistral-7b-openorca"
-}'
+}')
+echo $assistant_response
+assistant_id=$(echo $assistant_response | jq -r '.id')
 ```
 ```json
 {
-    "id": 1,
+    "id": "f498889a-165d-455f-b2bd-152540072359",
     "object": "",
     "created_at": 1701298908915,
     "name": "Math Tutor",
@@ -79,12 +84,14 @@ curl -X POST http://localhost:3000/assistants \
 3. **Create a Thread**
 
 ```bash
-curl -X POST http://localhost:3000/threads \
--H "Content-Type: application/json"
+thread_response=$(curl -sS -X POST http://localhost:3000/threads \
+-H "Content-Type: application/json")
+echo $thread_response
+thread_id=$(echo $thread_response | jq -r '.id')
 ```
 ```json
 {
-    "id": 1,
+    "id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
     "file_ids": null,
     "object": "",
     "created_at": 1701039812831,
@@ -93,22 +100,23 @@ curl -X POST http://localhost:3000/threads \
 ```
 4. **Add a Message to a Thread**
 
-*Replace 1 with the actual thread id*
 
 ```bash
-curl -X POST http://localhost:3000/threads/1/messages \
+message_response=$(curl -sS -X POST http://localhost:3000/threads/$thread_id/messages \
 -H "Content-Type: application/json" \
 -d '{
     "role": "user",
     "content": "I need to solve the equation 3x + 11 = 14. Can you help me?"
-}'
+}')
+echo $message_response
+message_id=$(echo $message_response | jq -r '.id')
 ```
 ```json
 {
-    "id": 1,
+    "id": "e2f10813-9763-486d-9e71-eacc9c97cf3e",
     "object": "",
     "created_at": 1701039816652,
-    "thread_id": 1,
+    "thread_id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
     "role": "user",
     "content": [
         {
@@ -127,23 +135,23 @@ curl -X POST http://localhost:3000/threads/1/messages \
 ```
 5. **Run the Assistant**
 
-*Replace :thread_id and :assistant_id with the actual thread id and assistant id*
-
 ```bash
-curl -X POST http://localhost:3000/threads/1/runs \
+run_response=$(curl -sS -X POST http://localhost:3000/threads/$thread_id/runs \
 -H "Content-Type: application/json" \
 -d '{
-    "assistant_id": 1,
+    "assistant_id": "'$assistant_id'",
     "instructions": "Please solve the equation."
-}'
+}')
+echo $run_response
+run_id=$(echo $run_response | jq -r '.id')
 ```
 ```json
 {
-    "id": 1,
+    "id": "e2f10813-9763-486d-9e71-eacc9c97cf3e",
     "object": "",
     "created_at": 1701039820804,
-    "thread_id": 1,
-    "assistant_id": 1,
+    "thread_id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
+    "assistant_id": "f498889a-165d-455f-b2bd-152540072359",
     "status": "queued",
     "required_action": null,
     "last_error": null,
@@ -161,20 +169,19 @@ curl -X POST http://localhost:3000/threads/1/runs \
 ```
 6. **Check the Run Status**
 
-*Replace :thread_id and :run_id with the actual thread id and run id*
 
 ```bash
-curl -X GET http://localhost:3000/threads/1/runs/1 \
+curl -sS -X GET http://localhost:3000/threads/$thread_id/runs/$run_id \
 -H "Content-Type: application/json"
 ```
 (feel free to run this command multiple times until the run is completed - LLM can be slow, especially if you run it on your coffee machine)
 ```json
 {
-    "id": 1,
+    "id": "e2f10813-9763-486d-9e71-eacc9c97cf3e",
     "object": "",
     "created_at": 1701039820804,
-    "thread_id": 1,
-    "assistant_id": 1,
+    "thread_id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
+    "assistant_id": "f498889a-165d-455f-b2bd-152540072359",
     "status": "running",
     "required_action": null,
     "last_error": null,
@@ -192,19 +199,18 @@ curl -X GET http://localhost:3000/threads/1/runs/1 \
 ```
 7. **Display the Assistant's Response**
 
-*Replace :thread_id with the actual thread id*
 
 ```bash
-curl http://localhost:3000/threads/1/messages \
+curl -sS http://localhost:3000/threads/$thread_id/messages \
 -H "Content-Type: application/json"
 ```
 ```json
 [
     {
-        "id": 1,
+        "id": "e2f10813-9763-486d-9e71-eacc9c97cf3e",
         "object": "",
         "created_at": 1701301908671,
-        "thread_id": 1,
+        "thread_id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
         "role": "user",
         "content": [
             {
@@ -221,10 +227,10 @@ curl http://localhost:3000/threads/1/messages \
         "metadata": null,
     },
     {
-        "id": 2,
+        "id": "e2f10813-9763-486d-9e71-eacc9c97cf3e",
         "object": "",
         "created_at": 1701302114890,
-        "thread_id": 1,
+        "thread_id": "7c9396ee-258b-4c4e-b656-92745a4f1ccb",
         "role": "assistant",
         "content": [
             {
