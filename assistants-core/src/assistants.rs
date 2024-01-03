@@ -11,9 +11,10 @@ use assistants_core::models::Function;
 use futures::future::join_all;
 use sqlx::types::Uuid;
 
+use assistants_core::function_calling::FunctionCallError;
 use serde::de::Error;
 use serde_json::Error as SerdeError;
-
+use sqlx::Error as SqlxError;
 pub struct Tools(Option<Vec<Value>>);
 
 impl Tools {
@@ -83,47 +84,53 @@ pub async fn get_assistant(
     })
 }
 
+pub enum AssistantError {
+    SqlxError(SqlxError),
+    FunctionCallError(FunctionCallError),
+    // Add other error types as needed
+}
+
+impl From<SqlxError> for AssistantError {
+    fn from(err: SqlxError) -> Self {
+        AssistantError::SqlxError(err)
+    }
+}
+
+impl From<FunctionCallError> for AssistantError {
+    fn from(err: FunctionCallError) -> Self {
+        AssistantError::FunctionCallError(err)
+    }
+}
+
+impl std::fmt::Display for AssistantError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            AssistantError::SqlxError(e) => write!(f, "SqlxError: {:?}", e),
+            AssistantError::FunctionCallError(e) => write!(f, "FunctionCallError: {:?}", e),
+        }
+    }
+}
+impl std::fmt::Debug for AssistantError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            AssistantError::SqlxError(e) => write!(f, "SqlxError: {:?}", e),
+            AssistantError::FunctionCallError(e) => write!(f, "FunctionCallError: {:?}", e),
+        }
+    }
+}
 pub async fn create_assistant(
     pool: &PgPool,
     assistant: &Assistant,
-) -> Result<Assistant, sqlx::Error> {
+) -> Result<Assistant, AssistantError> {
     info!("Creating assistant: {:?}", assistant);
 
-    let mut futures = Vec::new();
-
+    let file_ids = &assistant.inner.file_ids;
     let tools_json: Vec<Value> = assistant
         .inner
         .tools
         .iter()
-        .map(|tool| {
-            let tool_json = serde_json::to_value(tool).unwrap();
-            println!("tool: {:?}", tool);
-            // tool_json: Object {"type": String("function")}
-            if let AssistantTools::Function(function_tool) = tool {
-                let future = async move {
-                    let f = function_tool.function.clone();
-                    println!("f: {:?}", f);
-                    match register_function(
-                        pool,
-                        Function {
-                            user_id: assistant.user_id.clone(),
-                            inner: f,
-                        },
-                    )
-                    .await
-                    {
-                        Ok(_) => info!("Function registered successfully"),
-                        Err(e) => error!("Failed to register function: {:?}", e),
-                    }
-                };
-                futures.push(future);
-            }
-            tool_json
-        })
+        .map(|tool| serde_json::to_value(tool).unwrap())
         .collect();
-
-    join_all(futures).await;
-    let file_ids = &assistant.inner.file_ids;
     let row = sqlx::query!(
         r#"
         INSERT INTO assistants (instructions, name, tools, model, user_id, file_ids)
@@ -139,6 +146,49 @@ pub async fn create_assistant(
     )
     .fetch_one(pool)
     .await?;
+
+    let mut futures = Vec::new();
+
+    assistant.inner.tools.iter().for_each(|tool| {
+        println!("tool: {:?}", tool);
+        // tool_json: Object {"type": String("function")}
+        if let AssistantTools::Function(function_tool) = tool {
+            let future = async move {
+                let f = function_tool.function.clone();
+                println!("f: {:?}", f);
+                match register_function(
+                    pool,
+                    Function {
+                        assistant_id: row.id.to_string(),
+                        user_id: assistant.user_id.clone(),
+                        inner: f,
+                    },
+                )
+                .await
+                {
+                    Ok(_) => Ok(info!("Function registered successfully")),
+                    Err(e) => {
+                        error!("Failed to register function: {:?}", e);
+                        return Err(e);
+                    }
+                }
+            };
+            futures.push(future);
+        }
+    });
+    let futures_results = join_all(futures).await;
+
+    // Check if any future failed
+    for result in futures_results {
+        match result {
+            Ok(_) => continue,
+            Err(e) => {
+                println!("Error: {:?}", e);
+                error!("Failed to register function: {:?}", e);
+                return Err(AssistantError::FunctionCallError(e));
+            }
+        }
+    }
     Ok(Assistant {
         inner: AssistantObject {
             id: row.id.to_string(),

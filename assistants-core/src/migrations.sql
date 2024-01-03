@@ -83,7 +83,8 @@ CREATE TABLE runs (
 CREATE TABLE functions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID,
-    name TEXT UNIQUE, -- ! Is it correct? Meaning the user cannot register the same function name twice
+    assistant_id UUID REFERENCES assistants(id),
+    name TEXT,
     description TEXT,
     parameters JSONB, -- store as JSON object
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))

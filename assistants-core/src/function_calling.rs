@@ -62,12 +62,15 @@ pub async fn register_function(
     })?;
     let user_id = Uuid::parse_str(&function.user_id)
         .map_err(|e| FunctionCallError::Other(format!("Failed to parse user_id: {}", e)))?;
+    let assistant_id = Uuid::parse_str(&function.assistant_id)
+        .map_err(|e| FunctionCallError::Other(format!("Failed to parse assistant_id: {}", e)))?;
     let row = sqlx::query!(
         r#"
-        INSERT INTO functions (user_id, name, description, parameters)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO functions (assistant_id, user_id, name, description, parameters)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
         "#,
+        assistant_id,
         user_id,
         function.inner.name,
         function.inner.description,
@@ -240,6 +243,7 @@ pub fn string_to_function_call(s: &str) -> Result<FunctionCall, FunctionCallErro
 // Function to handle database operations
 pub async fn create_function_call(
     pool: &PgPool,
+    assistant_id: &str,
     user_id: &str,
     model_config: ModelConfig,
 ) -> Result<Vec<FunctionCall>, Box<dyn Error>> {
@@ -247,9 +251,10 @@ pub async fn create_function_call(
         r#"
         SELECT id, name, description, parameters
         FROM functions
-        WHERE user_id::text = $1
+        WHERE user_id::text = $1 AND assistant_id::text = $2
         "#,
-        user_id
+        user_id,
+        assistant_id
     )
     .fetch_all(pool)
     .await?;
@@ -264,6 +269,7 @@ pub async fn create_function_call(
                     description: row.description,
                     parameters: serde_json::from_value(row.parameters.unwrap_or_default())?,
                 },
+                assistant_id: assistant_id.to_string(),
                 user_id: user_id.to_string(),
             },
             user_context: model_config.user_prompt.clone(),
@@ -280,7 +286,10 @@ pub async fn create_function_call(
 
 #[cfg(test)]
 mod tests {
+    use crate::{assistants::create_assistant, models::Assistant};
+
     use super::*;
+    use async_openai::types::{AssistantObject, AssistantTools, AssistantToolsFunction};
     use dotenv;
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
@@ -305,6 +314,24 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         reset_db(&pool).await;
+        let user_id = Uuid::default().to_string();
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("".to_string()),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "gpt-3.5-turbo".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
         // Mock weather function
         async fn weather(city: &str) -> String {
             let city = city.to_lowercase();
@@ -334,11 +361,10 @@ mod tests {
                     }
                 }),
             },
-            user_id: Uuid::new_v4().to_string(),
+            assistant_id: assistant.inner.id.clone(),
+            user_id: user_id.clone(),
         };
         register_function(&pool, weather_function).await.unwrap();
-
-        let user_id = Uuid::default().to_string();
 
         let model_config = ModelConfig {
             model_name: String::from("gpt-3.5-turbo"),
@@ -352,7 +378,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, &user_id, model_config).await;
+        let result = create_function_call(&pool, &assistant.inner.id, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -383,6 +409,23 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         reset_db(&pool).await;
+        let user_id = Uuid::default().to_string();
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("".to_string()),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "anthropic/claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // Mock weather function
         async fn weather(city: &str) -> String {
@@ -398,7 +441,8 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            user_id: Uuid::new_v4().to_string(),
+            assistant_id: assistant.inner.id.clone(),
+            user_id: user_id.clone(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -430,7 +474,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, &user_id, model_config).await;
+        let result = create_function_call(&pool, &assistant.inner.id, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -461,6 +505,24 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         reset_db(&pool).await;
+        let user_id = Uuid::default().to_string();
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("".to_string()),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "open-source/llama-2-70b-chat".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // Mock weather function
         async fn weather(city: &str) -> String {
@@ -476,7 +538,8 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            user_id: Uuid::default().to_string(),
+            assistant_id: assistant.inner.id.clone(),
+            user_id: user_id.clone(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -509,7 +572,7 @@ mod tests {
             metadata: None,
         };
 
-        let result = create_function_call(&pool, &user_id, model_config).await;
+        let result = create_function_call(&pool, &assistant.inner.id, &user_id, model_config).await;
 
         match result {
             Ok(function_results) => {
@@ -533,8 +596,35 @@ mod tests {
     #[tokio::test]
     async fn test_generate_function_call_with_llama_2_70b() {
         dotenv::dotenv().ok();
-        let function = Function {
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        let user_id = Uuid::default().to_string();
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("".to_string()),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "open-source/llama-2-70b-chat".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
             user_id: Uuid::default().to_string(),
+        };
+
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        let function = Function {
+            assistant_id: assistant.inner.id.clone(),
+            user_id: user_id.clone(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -589,8 +679,35 @@ mod tests {
     #[tokio::test]
     async fn test_generate_function_call_with_mixtral_8x7b() {
         dotenv::dotenv().ok();
-        let function = Function {
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        let user_id = Uuid::default().to_string();
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some("".to_string()),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "open-source/llama-2-70b-chat".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
             user_id: Uuid::default().to_string(),
+        };
+
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        let function = Function {
+            assistant_id: assistant.inner.id.clone(),
+            user_id: user_id.clone(),
             inner: ChatCompletionFunctions {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),

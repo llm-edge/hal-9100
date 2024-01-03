@@ -145,7 +145,7 @@ impl Default for Assistant {
                 file_ids: Vec::new(),
                 metadata: None,
             },
-            user_id: String::new(),
+            user_id: Uuid::default().to_string(),
         }
     }
 }
@@ -163,6 +163,7 @@ pub struct SubmittedToolCall {
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Function {
     pub inner: ChatCompletionFunctions,
+    pub assistant_id: String,
     pub user_id: String,
 }
 
@@ -193,4 +194,3 @@ pub struct PartialChunk {
     pub start_index: i32,
     pub end_index: i32,
 }
-

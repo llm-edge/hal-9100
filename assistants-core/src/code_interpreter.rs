@@ -173,6 +173,7 @@ So generate the Python code that we will execute that can help the user with his
     // Generate Python code
     let function_call_input = FunctionCallInput {
         function: Function {
+            assistant_id: Uuid::default().to_string(), // ! ??
             user_id: Uuid::default().to_string(),
             inner: ChatCompletionFunctions {
                 name: "exec".to_string(),
@@ -223,8 +224,7 @@ So generate the Python code that we will execute that can help the user with his
     docker
         .create_image(
             Some(CreateImageOptions {
-                from_image:
-                    "louis030195/assistants-code-interpreter:latest",
+                from_image: "louis030195/assistants-code-interpreter:latest",
                 ..Default::default()
             }),
             None,
@@ -247,7 +247,6 @@ So generate the Python code that we will execute that can help the user with his
         tty: Some(true),
         ..Default::default()
     };
-
 
     let options = CreateContainerOptions {
         name: "my-python-container",

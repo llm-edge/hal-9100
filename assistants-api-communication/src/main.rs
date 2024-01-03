@@ -2238,4 +2238,195 @@ mod tests {
             panic!("Expected a Text message, but got something else.");
         }
     }
+
+    #[tokio::test]
+    async fn test_two_assistants_with_function_calling_can_not_call_other_assistant_function() {
+        let app_state = setup().await;
+        let app = app(app_state.clone());
+        reset_db(&app_state.pool).await;
+
+        // Create two Assistants with functions
+        let assistant = CreateAssistantRequest {
+            instructions: Some(
+                "An assistant that call the test function always for testing purpose".to_string(),
+            ),
+            name: Some("Test".to_string()),
+            tools: Some(vec![AssistantTools::Function(AssistantToolsFunction {
+                r#type: "function".to_string(),
+                function: ChatCompletionFunctions {
+                    description: Some("A test function.".to_string()),
+                    name: "test_a".to_string(),
+                    parameters: json!({
+                        "type": "object",
+                    }),
+                },
+            })]),
+            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let assistant2 = CreateAssistantRequest {
+            instructions: Some("Test assistant".to_string()),
+            name: Some("Test".to_string()),
+            tools: Some(vec![AssistantTools::Function(AssistantToolsFunction {
+                r#type: "function".to_string(),
+                function: ChatCompletionFunctions {
+                    description: Some("A test function.".to_string()),
+                    name: "test_b".to_string(),
+                    parameters: json!({
+                        "type": "object",
+                    }),
+                },
+            })]),
+            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            file_ids: None,
+            description: None,
+            metadata: None,
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant2).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant2: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        // Create a Thread
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: ThreadObject = serde_json::from_slice(&body).unwrap();
+
+        // Add a Message to a Thread
+        let message = CreateMessageRequest {
+            role: "user".to_string(),
+            content: "Please call the functions you have".to_string(),
+            file_ids: None,
+            metadata: None,
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/messages", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&message).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Run the Assistant
+        let run_input = RunInput {
+            assistant_id: assistant.id,
+            instructions: "Please call the functions you have".to_string(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&run_input).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        // should be queued
+        assert_eq!(run.status, RunStatus::Queued);
+
+        // Run the queue consumer
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&app_state.pool, &mut con).await;
+
+        assert!(
+            result.is_ok(),
+            "The queue consumer should have run successfully. Instead, it returned: {:?}",
+            result
+        );
+
+        // check status
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(run.status, RunStatus::RequiresAction);
+
+        // shouldn't have test_b and only test_a
+        assert_eq!(
+            run.required_action
+                .clone()
+                .unwrap()
+                .submit_tool_outputs
+                .tool_calls
+                .len(),
+            1
+        );
+        assert_eq!(
+            run.required_action.unwrap().submit_tool_outputs.tool_calls[0]
+                .function
+                .name,
+            "test_a"
+        );
+    }
 }
