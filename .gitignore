@@ -20,3 +20,8 @@
 *.la
 .env
 
+
+# Dependency management directories
+node_modules/
+package-lock.json
+package.json
