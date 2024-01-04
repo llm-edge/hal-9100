@@ -94,10 +94,6 @@ node examples/quickstart.js
   - [ ] image text (soon)
   - [x] text
 
-## What can you build with Assistants?
-
-- [Perplexity for Astronauts: Stellar Amenities uses Assistants to let the LLM automatically find the right information on the spacecraft to help Astronauts](https://ai.stellaramenities.space)
-
 ## Join the Movement
 - **For Developers**: We've got the docs, tools, and a community ready to help you build what's next.
 - **For Innovators**: Looking for an edge in AI? Here's where you leapfrog the competition.
