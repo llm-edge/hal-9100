@@ -20,8 +20,8 @@ It is more of a public utility that we hope will be useful to many people and co
 
 ### Infra
 
-* Postgres for all the cold data (e.g. LLM's hippocampus & neocortex)
-* Redis for all the hot data (e.g. LLM's prefrontal cortex)
+* Postgres for all the cold data (retrieval, functions, assistants, etc.)
+* Redis for all the hot data (atm only queuing runs, next could be used for [caching](https://github.com/stellar-amenities/assistants/issues/51))
 * Minio for all the files
 * Docker
 
@@ -39,6 +39,16 @@ open questions you want to discuss.
 
 If the issue is currently unclear but you are interested, please post in Discord
 and someone can help clarify the issue in more detail.
+
+### Setup
+
+1. Install Rust `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+2. [Install Docker](https://docs.docker.com/engine/install/)
+3. Run the server and runs executor: `make all` (it's running `cargo` under the hood which is the package manager of Rust)
+
+"runs executor" is just a piece of code that wait items being added in Redis and execute runs when something is added.
+
+We recommend using [Cursor](https://cursor.sh/) for programming - best IDE nowadays. Also make sure to install Rust extension.
 
 ### Submitting Work
 
