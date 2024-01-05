@@ -44,7 +44,8 @@ and someone can help clarify the issue in more detail.
 
 1. Install Rust `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 2. [Install Docker](https://docs.docker.com/engine/install/)
-3. Run the server and runs executor: `make all` (it's running `cargo` under the hood which is the package manager of Rust)
+3. Run docker services postgres, redis, and minio `docker-compose -f docker/docker-compose.yml up postgres redis minio`
+4. Run the server and runs executor: `make all` (it's running `cargo` under the hood which is the package manager of Rust)
 
 "runs executor" is just a piece of code that wait items being added in Redis and execute runs when something is added.
 
