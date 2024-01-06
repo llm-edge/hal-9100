@@ -162,3 +162,79 @@ pub async fn list_assistants_handler(
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assistants_core::file_storage::FileStorage;
+    use async_openai::types::CreateRunRequest;
+    use axum::body::Body;
+    use axum::http::{self, Request};
+    use axum::response::Response;
+    use axum::routing::post;
+    use axum::Router;
+    use dotenv::dotenv;
+    use hyper::StatusCode;
+    use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
+    use std::convert::Infallible;
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tower::{Service, ServiceExt};
+    use tower_http::trace::TraceLayer;
+
+    async fn setup() -> AppState {
+        dotenv().ok();
+
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .idle_timeout(Duration::from_secs(3))
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        AppState {
+            pool: Arc::new(pool),
+            file_storage: Arc::new(FileStorage::new().await),
+            // Add other AppState fields here
+        }
+    }
+
+    fn app(app_state: AppState) -> Router {
+        Router::new()
+            .route("/assistants", post(create_assistant_handler))
+            // Add other routes here
+            .layer(TraceLayer::new_for_http())
+            .with_state(app_state)
+    }
+
+    #[tokio::test]
+    async fn test_create_assistant_with_metadata() {
+        let app_state = setup().await;
+        let app = app(app_state);
+        
+        let assistant_input = json!({
+            "instructions": "Hello, World!",
+            "name": "Test Assistant",
+            "model": "gpt-3.5-turbo-1106",
+            "metadata": {
+                "key1": "value1",
+                "key2": "value2",
+            },
+        });
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/assistants") // replace with your endpoint
+            .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(Body::from(json!(assistant_input).to_string()))
+            .unwrap();
+
+        let response = app.clone().oneshot(request).await.unwrap();
+        let status = response.status();
+
+        let assistant = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
+        let metadata = assistant.metadata.unwrap();
+        assert_eq!(metadata["key1"], Value::String("value1".to_string()), "metadata key1 comparison {:?}", metadata["key1"]);
+    }
+}
