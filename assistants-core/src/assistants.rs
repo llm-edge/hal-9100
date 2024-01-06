@@ -240,10 +240,28 @@ pub async fn update_assistant(
         .map(|tool| serde_json::to_value(tool).unwrap())
         .collect();
 
+    let metadata = assistant.inner.metadata.clone();
+    let metadata_json = metadata.map(|metadata| {
+        let mut new_map = HashMap::new();
+        for (key, value) in &metadata {
+            // Check if the value is a string and get its length
+            if let JsonValue::String(ref s) = value {
+                if s.len() > 512 {
+                    warn!("Metadata value of key '{}' exceeds 512 characters, OpenAI API will not accept this metadata", key);
+                }
+                new_map.insert(key.clone(), JsonValue::String(s.clone()));
+            } else {
+                // Handle the case where the value is not a string (optional)
+                warn!("Metadata value for key '{}' is not a string.", key);
+            }
+        }
+        serde_json::to_value(new_map).unwrap()
+    }).unwrap_or(Value::Null);
+
     let row = sqlx::query!(
         r#"
         UPDATE assistants 
-        SET instructions = $2, name = $3, tools = $4, model = $5, file_ids = $7
+        SET instructions = $2, name = $3, tools = $4, model = $5, metadata = $8, file_ids = $7
         WHERE id::text = $1 AND user_id::text = $6
         RETURNING *
         "#,
@@ -254,6 +272,7 @@ pub async fn update_assistant(
         assistant.inner.model,
         assistant.user_id,
         &assistant.inner.file_ids,
+        &metadata_json
     )
     .fetch_one(pool)
     .await?;

@@ -89,7 +89,7 @@ pub async fn get_assistant_handler(
 pub async fn update_assistant_handler(
     Path((assistant_id,)): Path<(String,)>,
     State(app_state): State<AppState>,
-    Json(assistant): Json<ModifyAssistantRequest>,
+    Json(assistant): Json<ModifyAssistantRequest>, // TODO: either eliminate dependance on crates or custom types for similar objects. This and the create_assistant_handler are unecessarily different as a result.
 ) -> Result<JsonResponse<AssistantObject>, (StatusCode, String)> {
     match update_assistant(
         &app_state.pool,
@@ -104,11 +104,29 @@ pub async fn update_assistant_handler(
                     .map(|tools| tools.into_iter().map(|tool| tool.into()).collect())
                     .unwrap_or(vec![]),
                 model: assistant.model,
+                metadata: if let Some(object) = &assistant.metadata {
+                    let mut temp_map = HashMap::new();
+                    for (k, v) in object {
+                        match v.as_str() {
+                            Some(str_value) => {
+                                temp_map.insert(k.clone(), Value::String(str_value.to_string()));
+                            },
+                            None => {
+                                return Err((
+                                    StatusCode::BAD_REQUEST,
+                                    format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
+                                ));
+                            },
+                        }
+                    }
+                    Some(temp_map)
+                } else {
+                    None
+                },
                 file_ids: assistant.file_ids.unwrap_or(vec![]),
                 object: Default::default(),
                 created_at: Default::default(),
                 description: Default::default(),
-                metadata: Default::default(),
             },
             user_id: Uuid::default().to_string(),
         },
