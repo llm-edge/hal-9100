@@ -1,6 +1,6 @@
 use async_openai::types::AssistantToolsFunction;
 use async_openai::types::{AssistantObject, AssistantTools};
-use log::{error, info};
+use log::{error, warn, info};
 use redis::AsyncCommands;
 use serde_json::{self, Value};
 use sqlx::PgPool;
@@ -13,8 +13,10 @@ use sqlx::types::Uuid;
 
 use assistants_core::function_calling::FunctionCallError;
 use serde::de::Error;
+use serde_json::Value as JsonValue;
 use serde_json::Error as SerdeError;
 use sqlx::Error as SqlxError;
+use std::collections::HashMap;
 pub struct Tools(Option<Vec<Value>>);
 
 impl Tools {
@@ -131,16 +133,36 @@ pub async fn create_assistant(
         .iter()
         .map(|tool| serde_json::to_value(tool).unwrap())
         .collect();
+    // if there is an assistant.inner.metadata, for each of the value verify that it does not exceed 512 characters, if it does raise a warning that openai will not acceps this metadata as values must be 512 characters or less
+    let metadata = assistant.inner.metadata.clone();
+    let metadata_json = metadata.map(|metadata| {
+        let mut new_map = HashMap::new();
+        for (key, value) in &metadata {
+            // Check if the value is a string and get its length
+            if let JsonValue::String(ref s) = value {
+                if s.len() > 512 {
+                    warn!("Metadata value of key '{}' exceeds 512 characters, OpenAI API will not accept this metadata", key);
+                }
+                new_map.insert(key.clone(), JsonValue::String(s.clone()));
+            } else {
+                // Handle the case where the value is not a string (optional)
+                warn!("Metadata value for key '{}' is not a string.", key);
+            }
+        }
+        serde_json::to_value(new_map).unwrap()
+    }).unwrap_or(Value::Null);
+    // do the same but for 
     let row = sqlx::query!(
         r#"
-        INSERT INTO assistants (instructions, name, tools, model, user_id, file_ids)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO assistants (instructions, name, tools, model, metadata, user_id, file_ids)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
         "#,
         assistant.inner.instructions.clone().unwrap_or_default(),
         assistant.inner.name.clone().unwrap_or_default(),
         &tools_json,
         assistant.inner.model,
+        &metadata_json,
         Uuid::parse_str(&assistant.user_id).unwrap(),
         &file_ids,
     )

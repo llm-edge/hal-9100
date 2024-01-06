@@ -6,6 +6,7 @@ use assistants_core::models::Assistant;
 use async_openai::types::{
     AssistantObject, CreateAssistantRequest, DeleteAssistantResponse, ModifyAssistantRequest,
 };
+use std::collections::HashMap;
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -31,6 +32,26 @@ pub async fn create_assistant_handler(
                     Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
                 },
                 model: assistant["model"].as_str().unwrap().to_string(),
+                metadata: if let Some(object) = assistant["metadata"].as_object() {
+                    // This serves to communicate the inconsistency with the OpenAI API's metadata value length limit
+                    let mut temp_map = HashMap::new();
+                    for (k, v) in object {
+                        match v.as_str() {
+                            Some(str_value) => {
+                                temp_map.insert(k.clone(), Value::String(str_value.to_string()));
+                            },
+                            None => {
+                                return Err((
+                                    StatusCode::BAD_REQUEST,
+                                    format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
+                                ));
+                            },
+                        }
+                    }
+                    Some(temp_map)
+                } else {
+                    None
+                },
                 file_ids: if assistant["file_ids"].is_array() {
                     assistant["file_ids"]
                         .as_array()
@@ -44,7 +65,6 @@ pub async fn create_assistant_handler(
                 object: Default::default(),
                 created_at: Default::default(),
                 description: Default::default(),
-                metadata: Default::default(),
             },
             user_id: Uuid::default().to_string(),
         },
