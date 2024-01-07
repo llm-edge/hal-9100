@@ -8,13 +8,14 @@ on:
       - "**/workflows/**.yml"
       - "**/docker/**"
     branches: [main]
-  pull_request:
-    paths:
-      - "**.rs"
-      - "**.toml"
-      - "**/workflows/**.yml"
-      - "**/docker/**"
-    branches: [main]
+  # TODO: basically cannot use secret in PR - gotta manually run or run LLM in action
+  # pull_request:
+  #   paths:
+  #     - "**.rs"
+  #     - "**.toml"
+  #     - "**/workflows/**.yml"
+  #     - "**/docker/**"
+  #   branches: [main]
   workflow_dispatch:
 
 permissions:

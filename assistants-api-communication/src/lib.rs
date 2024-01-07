@@ -7,3 +7,4 @@ pub mod threads;
 pub mod messages;
 pub mod runs;
 pub mod files;
+pub mod chat;

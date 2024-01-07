@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO assistants (instructions, name, tools, model, user_id, file_ids)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        RETURNING *\n        ",
+  "query": "\n        UPDATE assistants \n        SET instructions = $2, name = $3, tools = $4, model = $5, metadata = $8, file_ids = $7\n        WHERE id::text = $1 AND user_id::text = $6\n        RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -63,10 +63,12 @@
       "Left": [
         "Text",
         "Text",
+        "Text",
         "JsonbArray",
         "Text",
-        "Uuid",
-        "TextArray"
+        "Text",
+        "TextArray",
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -83,5 +85,5 @@
       true
     ]
   },
-  "hash": "d9605c5659acba7d75f8a3f1513c13087e658c0b78c342b9ae84b3319602bfc1"
+  "hash": "93863a0780eb7e3efb42814df188e594d54cb3658179389b39ff175f13706931"
 }
