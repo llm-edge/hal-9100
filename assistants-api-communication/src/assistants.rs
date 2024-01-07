@@ -6,6 +6,7 @@ use assistants_core::models::Assistant;
 use async_openai::types::{
     AssistantObject, CreateAssistantRequest, DeleteAssistantResponse, ModifyAssistantRequest,
 };
+use std::collections::HashMap;
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -31,6 +32,26 @@ pub async fn create_assistant_handler(
                     Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
                 },
                 model: assistant["model"].as_str().unwrap().to_string(),
+                metadata: if let Some(object) = assistant["metadata"].as_object() {
+                    // This serves to communicate the inconsistency with the OpenAI API's metadata value length limit
+                    let mut temp_map = HashMap::new();
+                    for (k, v) in object {
+                        match v.as_str() {
+                            Some(str_value) => {
+                                temp_map.insert(k.clone(), Value::String(str_value.to_string()));
+                            },
+                            None => {
+                                return Err((
+                                    StatusCode::BAD_REQUEST,
+                                    format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
+                                ));
+                            },
+                        }
+                    }
+                    Some(temp_map)
+                } else {
+                    None
+                },
                 file_ids: if assistant["file_ids"].is_array() {
                     assistant["file_ids"]
                         .as_array()
@@ -44,7 +65,6 @@ pub async fn create_assistant_handler(
                 object: Default::default(),
                 created_at: Default::default(),
                 description: Default::default(),
-                metadata: Default::default(),
             },
             user_id: Uuid::default().to_string(),
         },
@@ -69,7 +89,7 @@ pub async fn get_assistant_handler(
 pub async fn update_assistant_handler(
     Path((assistant_id,)): Path<(String,)>,
     State(app_state): State<AppState>,
-    Json(assistant): Json<ModifyAssistantRequest>,
+    Json(assistant): Json<ModifyAssistantRequest>, // TODO: either eliminate dependance on crates or custom types for similar objects. This and the create_assistant_handler are unecessarily different as a result.
 ) -> Result<JsonResponse<AssistantObject>, (StatusCode, String)> {
     match update_assistant(
         &app_state.pool,
@@ -84,11 +104,29 @@ pub async fn update_assistant_handler(
                     .map(|tools| tools.into_iter().map(|tool| tool.into()).collect())
                     .unwrap_or(vec![]),
                 model: assistant.model,
+                metadata: if let Some(object) = &assistant.metadata {
+                    let mut temp_map = HashMap::new();
+                    for (k, v) in object {
+                        match v.as_str() {
+                            Some(str_value) => {
+                                temp_map.insert(k.clone(), Value::String(str_value.to_string()));
+                            },
+                            None => {
+                                return Err((
+                                    StatusCode::BAD_REQUEST,
+                                    format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
+                                ));
+                            },
+                        }
+                    }
+                    Some(temp_map)
+                } else {
+                    None
+                },
                 file_ids: assistant.file_ids.unwrap_or(vec![]),
                 object: Default::default(),
                 created_at: Default::default(),
                 description: Default::default(),
-                metadata: Default::default(),
             },
             user_id: Uuid::default().to_string(),
         },
@@ -122,5 +160,81 @@ pub async fn list_assistants_handler(
             assistants.iter().map(|a| a.inner.clone()).collect(),
         )),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assistants_core::file_storage::FileStorage;
+    use async_openai::types::CreateRunRequest;
+    use axum::body::Body;
+    use axum::http::{self, Request};
+    use axum::response::Response;
+    use axum::routing::post;
+    use axum::Router;
+    use dotenv::dotenv;
+    use hyper::StatusCode;
+    use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
+    use std::convert::Infallible;
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tower::{Service, ServiceExt};
+    use tower_http::trace::TraceLayer;
+
+    async fn setup() -> AppState {
+        dotenv().ok();
+
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .idle_timeout(Duration::from_secs(3))
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        AppState {
+            pool: Arc::new(pool),
+            file_storage: Arc::new(FileStorage::new().await),
+            // Add other AppState fields here
+        }
+    }
+
+    fn app(app_state: AppState) -> Router {
+        Router::new()
+            .route("/assistants", post(create_assistant_handler))
+            // Add other routes here
+            .layer(TraceLayer::new_for_http())
+            .with_state(app_state)
+    }
+
+    #[tokio::test]
+    async fn test_create_assistant_with_metadata() {
+        let app_state = setup().await;
+        let app = app(app_state);
+        
+        let assistant_input = json!({
+            "instructions": "Hello, World!",
+            "name": "Test Assistant",
+            "model": "gpt-3.5-turbo-1106",
+            "metadata": {
+                "key1": "value1",
+                "key2": "value2",
+            },
+        });
+        let request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/assistants") // replace with your endpoint
+            .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(Body::from(json!(assistant_input).to_string()))
+            .unwrap();
+
+        let response = app.clone().oneshot(request).await.unwrap();
+        let status = response.status();
+
+        let assistant = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
+        let metadata = assistant.metadata.unwrap();
+        assert_eq!(metadata["key1"], Value::String("value1".to_string()), "metadata key1 comparison {:?}", metadata["key1"]);
     }
 }
