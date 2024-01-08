@@ -8,6 +8,8 @@ use std::env;
 use std::path::Path;
 use std::time::Duration;
 use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
+
 use tokio::io::AsyncReadExt;
 use url::Url;
 use uuid;
@@ -127,11 +129,13 @@ impl FileStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
+    use std::collections::HashSet;
     use std::fs::File;
     use std::io::Write;
     use std::path::PathBuf;
     use tempfile::tempdir;
-
+    use tokio::io::AsyncWriteExt;
     fn setup_env() {
         match dotenv::dotenv() {
             Ok(_) => (),
@@ -244,5 +248,31 @@ mod tests {
 
         // Clean up the temporary directory.
         dir.close().unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_read_pdf_content() {
+        // Download the PDF file
+        let response = reqwest::get("https://www.africau.edu/images/default/sample.pdf")
+            .await
+            .unwrap()
+            .bytes()
+            .await
+            .unwrap();
+
+        // Write the PDF file to disk
+        let mut file = File::create("sample.pdf").unwrap();
+        file.write_all(&response).unwrap();
+        file.sync_all().unwrap(); // Ensure all bytes are written to the file
+
+        // Read the PDF content
+        let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
+
+        // Check the content
+        assert!(content.contains("A Simple PDF File"));
+        assert!(content.contains("This is a small demonstration .pdf file"));
+
+        // Delete the file locally
+        std::fs::remove_file("sample.pdf").unwrap();
     }
 }

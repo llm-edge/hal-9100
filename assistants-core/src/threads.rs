@@ -138,3 +138,69 @@ pub async fn delete_thread(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use assistants_core::runs::{create_run_and_produce_to_executor_queue, get_run};
+    use async_openai::types::{
+        AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
+        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject,
+    };
+    use serde_json::json;
+    use sqlx::types::Uuid;
+
+    use crate::models::SubmittedToolCall;
+    use crate::runs::{create_run, submit_tool_outputs};
+
+    use super::*;
+    use dotenv::dotenv;
+    use sqlx::postgres::PgPoolOptions;
+    use std::collections::HashSet;
+    use std::io::Write;
+    use tokio::fs::File;
+    use tokio::io::AsyncWriteExt;
+
+    async fn setup() -> PgPool {
+        dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        // Initialize the logger with an info level filter
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(e) => (),
+        };
+        pool
+    }
+    async fn reset_redis() -> redis::RedisResult<()> {
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url)?;
+        let mut con = client.get_async_connection().await?;
+        redis::cmd("FLUSHALL").query_async(&mut con).await?;
+        Ok(())
+    }
+    async fn reset_db(pool: &PgPool) {
+        // TODO should also purge minio
+        sqlx::query!(
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        reset_redis().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_create_thread() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let result = create_thread(&pool, &Uuid::default().to_string()).await;
+        assert!(result.is_ok());
+    }
+}

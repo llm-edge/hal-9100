@@ -11,11 +11,8 @@ use assistants_core::assistants::{create_assistant, get_assistant};
 use assistants_core::file_storage::FileStorage;
 use assistants_core::messages::{add_message_to_thread, list_messages};
 use assistants_core::models::{Assistant, Message, Run, Thread};
-use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
 use assistants_core::threads::{create_thread, get_thread};
-use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::llm::llm;
-use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -34,8 +31,8 @@ use assistants_core::models::SubmittedToolCall;
 
 use assistants_core::retrieval::retrieve_file_contents;
 
-use crate::models::Chunk;
-use crate::retrieval::generate_queries_and_fetch_chunks;
+use assistants_core::models::Chunk;
+use assistants_core::retrieval::generate_queries_and_fetch_chunks;
 
 
 // This function formats the messages into a string
@@ -918,10 +915,7 @@ mod tests {
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
-    use std::collections::HashSet;
     use std::io::Write;
-    use tokio::fs::File;
-    use tokio::io::AsyncWriteExt;
 
     async fn setup() -> PgPool {
         dotenv().ok();
@@ -958,78 +952,6 @@ mod tests {
         .unwrap();
         reset_redis().await.unwrap();
     }
-
-    #[tokio::test]
-    async fn test_create_assistant() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let assistant = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "claude-2.1".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let result = create_assistant(&pool, &assistant).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_create_thread() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let result = create_thread(&pool, &Uuid::default().to_string()).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_add_message_to_thread() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let thread = create_thread(&pool, &Uuid::default().to_string())
-            .await
-            .unwrap(); // Create a new thread
-        let content = vec![MessageContent::Text(MessageContentTextObject {
-            r#type: "text".to_string(),
-            text: TextData {
-                value: "Hello world".to_string(),
-                annotations: vec![],
-            },
-        })];
-        let result = add_message_to_thread(
-            &pool,
-            &thread.inner.id,
-            MessageRole::User,
-            content,
-            &Uuid::default().to_string(),
-            None,
-        )
-        .await; // Use the id of the new thread
-        assert!(result.is_ok());
-    }
-
-    // Change the argument type to &String in test function test_list_messages
-    #[tokio::test]
-    async fn test_list_messages() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let result = list_messages(&pool, "0", &Uuid::default().to_string()).await;
-        assert!(result.is_ok());
-    }
-
 
 
     #[test]
@@ -1200,31 +1122,7 @@ mod tests {
         // assert_eq!(messages[1].file_ids, Some(vec![file_id])); -> !wor
     }
 
-    #[tokio::test]
-    async fn test_read_pdf_content() {
-        // Download the PDF file
-        let response = reqwest::get("https://www.africau.edu/images/default/sample.pdf")
-            .await
-            .unwrap()
-            .bytes()
-            .await
-            .unwrap();
 
-        // Write the PDF file to disk
-        let mut file = File::create("sample.pdf").await.unwrap();
-        file.write_all(&response).await.unwrap();
-        file.sync_all().await.unwrap(); // Ensure all bytes are written to the file
-
-        // Read the PDF content
-        let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
-
-        // Check the content
-        assert!(content.contains("A Simple PDF File"));
-        assert!(content.contains("This is a small demonstration .pdf file"));
-
-        // Delete the file locally
-        std::fs::remove_file("sample.pdf").unwrap();
-    }
 
     #[tokio::test]
     async fn test_decide_tool_with_llm_anthropic() {

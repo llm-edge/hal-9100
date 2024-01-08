@@ -1,6 +1,6 @@
 use async_openai::types::AssistantToolsFunction;
 use async_openai::types::{AssistantObject, AssistantTools};
-use log::{error, warn, info};
+use log::{error, info, warn};
 use redis::AsyncCommands;
 use serde_json::{self, Value};
 use sqlx::PgPool;
@@ -13,8 +13,8 @@ use sqlx::types::Uuid;
 
 use assistants_core::function_calling::FunctionCallError;
 use serde::de::Error;
-use serde_json::Value as JsonValue;
 use serde_json::Error as SerdeError;
+use serde_json::Value as JsonValue;
 use sqlx::Error as SqlxError;
 use std::collections::HashMap;
 pub struct Tools(Option<Vec<Value>>);
@@ -151,7 +151,7 @@ pub async fn create_assistant(
         }
         serde_json::to_value(new_map).unwrap()
     }).unwrap_or(Value::Null);
-    // do the same but for 
+    // do the same but for
     let row = sqlx::query!(
         r#"
         INSERT INTO assistants (instructions, name, tools, model, metadata, user_id, file_ids)
@@ -353,8 +353,8 @@ mod tests {
 
     use super::*;
     use async_openai::types::{
-        AssistantObject, AssistantToolsFunction, AssistantToolsRetrieval, ChatCompletionFunctions,
-        FunctionCall, RunToolCallObject, SubmitToolOutputs,
+        AssistantObject, AssistantToolsCode, AssistantToolsFunction, AssistantToolsRetrieval,
+        ChatCompletionFunctions, FunctionCall, RunToolCallObject, SubmitToolOutputs,
     };
     use dotenv::dotenv;
     use serde_json::json;
@@ -391,6 +391,34 @@ mod tests {
         .execute(pool)
         .await
         .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_create_assistant() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![AssistantTools::Code(AssistantToolsCode {
+                    r#type: "code_interpreter".to_string(),
+                })],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let result = create_assistant(&pool, &assistant).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
