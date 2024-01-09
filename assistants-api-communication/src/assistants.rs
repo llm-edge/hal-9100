@@ -203,6 +203,7 @@ mod tests {
     fn app(app_state: AppState) -> Router {
         Router::new()
             .route("/assistants", post(create_assistant_handler))
+            .route("/assistants/:assistant_id", post(update_assistant_handler))
             // Add other routes here
             .layer(TraceLayer::new_for_http())
             .with_state(app_state)
@@ -236,5 +237,57 @@ mod tests {
         let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
         let metadata = assistant.metadata.unwrap();
         assert_eq!(metadata["key1"], Value::String("value1".to_string()), "metadata key1 comparison {:?}", metadata["key1"]);
+    }
+    #[tokio::test]
+    async fn test_update_assistant() {
+        let app_state = setup().await;
+        let app = app(app_state);
+        
+        
+        let create_assistant_input = json!({
+            "instructions": "Hello, World!",
+            "name": "Test Assistant",
+            "model": "gpt-3.5-turbo-1106",
+            "metadata": {
+                "key1": "value1",
+                "key2": "value2",
+            },
+        });
+        let create_request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/assistants") // replace with your endpoint
+            .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(Body::from(json!(create_assistant_input).to_string()))
+            .unwrap();
+
+        let create_response = app.clone().oneshot(create_request).await.unwrap();
+
+        let create_assistant = hyper::body::to_bytes(create_response.into_body()).await.unwrap();
+        let create_assistant: AssistantObject = serde_json::from_slice(&create_assistant).unwrap();
+        let create_assistant_id = create_assistant.id;
+
+        let update_assistant_input = json!({
+            "model": "gpt-3.5-turbo-1106",
+            "metadata": {
+                "key1": "value1",
+                "key2": "value2",
+                "key3": "value3",
+            },
+        });
+        let update_request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/assistants/".to_owned() + &create_assistant_id) // replace with your endpoint
+            .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(Body::from(json!(update_assistant_input).to_string()))
+            .unwrap();
+        let update_response = app.clone().oneshot(update_request).await.unwrap();
+
+        let assistant = hyper::body::to_bytes(update_response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
+        let metadata = assistant.metadata.unwrap();
+        let instructions = assistant.instructions.unwrap();
+        
+        assert_eq!(instructions, create_assistant_input["instructions"], "instructions comparison {:?}", instructions);
+        assert_eq!(metadata["key3"], "value3", "metadata key3 comparison {:?}", metadata["key3"]);
     }
 }
