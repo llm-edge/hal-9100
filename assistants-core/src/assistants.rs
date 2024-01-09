@@ -261,18 +261,23 @@ pub async fn update_assistant(
     let row = sqlx::query!(
         r#"
         UPDATE assistants 
-        SET instructions = $2, name = $3, tools = $4, model = $5, metadata = $8, file_ids = $7
-        WHERE id::text = $1 AND user_id::text = $6
+        SET instructions = COALESCE($1, instructions),
+            name = COALESCE($2, name),
+            tools = COALESCE($3, tools),
+            model = COALESCE($4, model),
+            metadata = COALESCE($5, metadata),
+            file_ids = COALESCE($6, file_ids)
+        WHERE id::text = $7 AND user_id::text = $8
         RETURNING *
         "#,
-        assistant_id,
         assistant.inner.instructions,
         assistant.inner.name,
         &tools_json,
         assistant.inner.model,
-        assistant.user_id,
+        &metadata_json,
         &assistant.inner.file_ids,
-        &metadata_json
+        assistant_id,
+        assistant.user_id
     )
     .fetch_one(pool)
     .await?;
