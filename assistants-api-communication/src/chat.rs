@@ -227,11 +227,12 @@ mod tests {
         let client = Client::with_config(
             OpenAIConfig::new()
                 .with_api_key(&std::env::var("MODEL_API_KEY").unwrap_or_default())
-                .with_api_base("https://api.mistral.ai/v1"),
+                // .with_api_base("https://api.mistral.ai/v1"),
+                .with_api_base("https://api.perplexity.ai"),
         );
         let request = match CreateChatCompletionRequestArgs::default()
-            // .model("mistralai/mixtral-8x7b-instruct")
-            .model("mistral-tiny")
+            .model("mixtral-8x7b-instruct")
+            // .model("mistral-tiny")
             .max_tokens(512u16)
             .messages([messages])
             .build()
@@ -272,6 +273,7 @@ mod tests {
                     });
                     println!("error: {}", err);
                     writeln!(lock, "error: {err}").unwrap();
+                    return;
                 }
             }
             match stdout().flush() {

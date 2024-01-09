@@ -1,7 +1,9 @@
+use async_openai::Client;
 use async_openai::types::{
     AssistantTools, FunctionCall, MessageContent, MessageContentTextObject, MessageRole,
-    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData,
+    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData, CreateChatCompletionRequestArgs, ChatCompletionRequestUserMessageArgs,
 };
+use futures::{Stream, stream};
 use log::{error, info};
 use redis::AsyncCommands;
 use serde_json::{self, json};
@@ -10,12 +12,14 @@ use sqlx::PgPool;
 use assistants_core::assistants::{create_assistant, get_assistant};
 use assistants_core::file_storage::FileStorage;
 use assistants_core::messages::{add_message_to_thread, list_messages};
-use assistants_core::models::{Assistant, Message, Run, Thread};
+use assistants_core::models::{Assistant, Message, Run, Thread, LLMAction, LLMActionType, RunError};
 use assistants_core::threads::{create_thread, get_thread};
-use assistants_extra::llm::llm;
+use assistants_extra::llm::{llm, generate_chat_responses};
+use tiktoken_rs::p50k_base;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::sync::Arc;
 use assistants_core::runs::{get_run, update_run, update_run_status};
 
 use assistants_core::function_calling::ModelConfig;
@@ -33,219 +37,67 @@ use assistants_core::retrieval::retrieve_file_contents;
 use assistants_core::models::Chunk;
 use assistants_core::retrieval::generate_queries_and_fetch_chunks;
 
-use crate::prompts::{format_messages, build_instructions};
+use assistants_core::prompts::{format_messages, build_instructions};
+
+use futures::StreamExt;
+
+use crate::function_calling::string_to_function_call;
+use crate::retrieval::fetch_chunks;
 
 
 
+// Function to parse the LLM's tagged response and extract actions
+fn parse_llm_response(response: &str) -> Vec<LLMAction> {
+    let mut actions = Vec::new();
+    let document = roxmltree::Document::parse(response).unwrap();
 
-pub async fn decide_tool_with_llm(
-    assistant: &Assistant,
-    previous_messages: &[Message],
-    run: &Run,
-    tool_calls_db: Vec<SubmittedToolCall>
-) -> Result<Vec<String>, Box<dyn Error>> {
-
-    // if there are no tools, return empty
-    if assistant.inner.tools.is_empty() {
-        return Ok(vec![]);
+    for node in document.descendants() {
+        match node.tag_name().name() {
+            "steps" => {
+                if let Some(steps_str) = node.text() {
+                    actions.push(
+                        LLMAction {
+                            r#type: LLMActionType::Steps,
+                            content: steps_str.to_string(),
+                    });
+                }
+            },
+            "function_calling" => {
+                if let Some(function_calling_str) = node.text() {
+                    actions.push(
+                        LLMAction {
+                            r#type: LLMActionType::FunctionCalling,
+                            content: function_calling_str.to_string(),
+                    });
+                }
+            },
+            "code_interpreter" => {
+                if let Some(code) = node.text() {
+                    actions.push(
+                        LLMAction {
+                            r#type: LLMActionType::CodeInterpreter,
+                            content: code.to_string(),
+                    });
+                }
+            },
+            "retrieval" => {
+                if let Some(query_text) = node.text() {
+                    actions.push(
+                        LLMAction {
+                            r#type: LLMActionType::Retrieval,
+                            content: query_text.to_string(),
+                    });
+                }
+            },
+            _ => {}
+        }
     }
 
-    // Build the system prompt
-    let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
-
-Rules:
-- You only return one of the tools like \"<retrieval>\" or \"<function>\" or \"<code_interpreter>\" or multiple of them
-- Do not return \"tools\"
-- If you do not have any tools to use, return nothing
-- Feel free to use MORE tools rather than LESS
-- Tools use snake_case, not camelCase
-- The tool names must be one of the tools available, nothing else OR A HUMAN WILL DIE
-- Your answer must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.
-- If you do not obey a human will die
-
-Example:
-<user>
-<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the purpose of life according to the fundamental laws of the universe.\",\"name\":\"compute_purpose_of_life\"},\"name\":\"function\"}
----
-{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
-
-<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"I need to know the purpose of life, you can give me two answers.\", annotations: [] } })]
-</previous_messages>
-
-<instructions>You help me by using the tools you have.</instructions>
-
-</user>
-
-In this example, the assistant should return \"<function>,<retrieval>\".
-
-Another example:
-<user>
-<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the cosine similarity between two vectors.\",\"name\":\"compute_cosine_similarity\"},\"name\":\"function\"}
----
-{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
-
-<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"Given these two vectors, how similar are they?\", annotations: [] } })]
-</previous_messages>
-
-<instructions>You help me by using the tools you have.</instructions>
-
-</user>
-Another example:
-<user>
-<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that retrieves the customer's order history.\",\"name\":\"get_order_history\"},\"name\":\"function\"}
----
-{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}</tools>
-
-<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"Can you tell me what my best selling products are?\", annotations: [] } })]
-</previous_messages>
-
-<instructions>You help me by using the tools you have.</instructions>
-
-</user>
-
-In this example, the assistant should return \"<function>,<retrieval>\".
-
-Another example:
-<user>
-<tools>{\"description\":\"useful to call functions in the user's product, which would provide you later some additional context about the user's problem\",\"function\":{\"arguments\":{\"type\":\"object\"},\"description\":\"A function that compute the purpose of life according to the fundamental laws of the universe.\",\"name\":\"compute_purpose_of_life\"},\"name\":\"function\"}
----
-{\"description\":\"useful to retrieve information from files\",\"name\":\"retrieval\"}
----
-{\"description\":\"useful for performing complex math problems which LLMs are bad at by default\",\"name\":\"code_interpreter\"}</tools>
-
-<previous_messages>User: [Text(MessageContentTextObject { type: \"text\", text: TextData { value: \"I need to calculate the square root of 144.\", annotations: [] } })]
-</previous_messages>
-
-<instructions>You help me by using the tools you have.</instructions>
-
-</user>
-
-In this example, the assistant should return \"<code_interpreter>\".
-
-Your answer will be used to use the tool so it must be very concise and make sure to surround the tool by <>, do not say anything but the tool name with the <> around it.";
-
-    let tools = assistant.inner.tools.clone();
-    println!("tools: {:?}", tools);
-    // Build the user prompt
-    let tools_as_string = tools
-        .iter()
-        .map(|t| {
-            serde_json::to_string(&match t {
-                AssistantTools::Code(_) => json!({"name": "code_interpreter", "description": "useful for performing complex math problems which LLMs are bad at by default. Do not use code_interpreter if it's simple math that you believe a LLM can do (e.g. 1 + 1, 9 * 7, etc.) - Make sure to use code interpreter for more complex math problems"}),
-                AssistantTools::Retrieval(_) => json!({"name": "retrieval", "description": "useful to retrieve information from files"}),
-                AssistantTools::Function(e) => 
-                    json!({
-                        "name": "function",
-                        "description": "Useful to call functions in the user's product, which would provide you later some additional context about the user's problem. You can also use this to perform actions in the user's product.",
-                        "function": {
-                            "name": e.function.name,
-                            "description": e.function.description,
-                            "arguments": e.function.parameters,
-                        }
-                    })
-            }).unwrap()
-        })
-        .collect::<Vec<String>>();
-    let tools_as_string = tools_as_string.join("\n---\n");
-    let mut user_prompt = format!("<tools>{}</tools>\n\n<previous_messages>", tools_as_string);
-    for message in previous_messages {
-        user_prompt.push_str(&format!(
-            "{:?}: {:?}\n",
-            message.inner.role, message.inner.content
-        ));
-        // TODO bunch of noise in the message to remove
-    }
-
-    user_prompt.push_str("</previous_messages>\n\n");
-
-    // Add the assistant instructions to the user prompt
-    user_prompt.push_str(&format!(
-        "<instructions>{}</instructions>\n",
-        assistant.inner.instructions.as_ref().unwrap()
-    ));    
-
-    // Call the llm function
-    let result = llm(
-        &assistant.inner.model,
-        None, // TODO not sure how to best configure this
-        system_prompt,
-        &user_prompt,
-        Some(0.0), // temperature
-        -1,        // max_tokens_to_sample
-        None,      // stop_sequences
-        Some(1.0), // top_p
-        None,      // top_k
-        None,      // metadata
-        None,      // metadata
-    )
-    .await?;
-
-    info!("decide_tool_with_llm raw result: {}", result);
-
-    // Just in case regex what's in <tool> sometimes LLM do this (e.g. extract the "tool" using a regex)
-    let regex = regex::Regex::new(r"<(.*?)>").unwrap();
-    let mut results = Vec::new();
-    for captures in regex.captures_iter(&result) {
-        results.push(captures[1].to_string());
-    }
-    // if there is a , in the <> just split it, remove spaces
-    results = results
-        .iter()
-        .flat_map(|r| r.split(',').map(|s| s.trim().to_string()))
-        .collect::<Vec<String>>();
-
-    // remove non alphanumeric chars and keep underscores
-    results = results
-        .iter()
-        .map(|r| {
-            r.chars()
-                .filter(|c| c.is_alphanumeric() || *c == '_')
-                .collect::<String>()
-        })
-        .collect::<Vec<String>>();
-
-    // Check if the length of tool_calls_db is equal to the length of required_action output
-    if let Some(required_action) = &run.inner.required_action {
-        // Compare all ids from required action outputs and tool calls ids
-        let required_ids: HashSet<_> = required_action.submit_tool_outputs.tool_calls.iter().map(|t| t.clone().id)
-        .collect();
-        let tool_calls_ids: HashSet<_> = tool_calls_db.iter().map(|t| t.clone().id)
-        .collect();
-        if required_ids.is_subset(&tool_calls_ids) {
-            // If all tool calls have been done, remove function from tools_decision
-            results.retain(|tool| tool != "function");
-        } 
-    }
-
-    info!("decide_tool_with_llm result: {:?}", results);
-
-    Ok(results
-        .into_iter()
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>())
+    actions
 }
 
-pub struct RunError {
-    pub message: String,
-    pub run_id: String,
-    pub thread_id: String,
-    pub user_id: String,
-}
 
-impl std::fmt::Display for RunError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
 
-impl std::fmt::Debug for RunError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-
-impl std::error::Error for RunError {}
 
 pub async fn loop_through_runs(
     pool: &PgPool,
@@ -290,12 +142,15 @@ pub async fn try_run_executor(
 }
 
 
+struct LLMStep {
+
+}
 // The function that consume the runs queue and do all the LLM software 3.0 logic
 pub async fn run_executor(
     // TODO: split in smaller functions if possible
     pool: &PgPool,
     con: &mut redis::aio::Connection,
-) -> Result<Run, RunError> {
+) -> Result<Run, RunError> {    
     info!("Consuming queue");
     let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
         error!("Redis error: {}", e);
@@ -315,7 +170,7 @@ pub async fn run_executor(
     let thread_id = ids["thread_id"].as_str().unwrap();
     let user_id = ids["user_id"].as_str().unwrap();
 
-    info!("Retrieving run");
+    info!("Retrieving run: {}", run_id);
     let mut run = get_run(pool, thread_id, run_id, user_id).await.map_err(|e| RunError {
         message: format!("Failed to get run: {}", e),
         run_id: run_id.to_string(),
@@ -427,20 +282,39 @@ pub async fn run_executor(
     }
 
     info!("Assistant tools: {:?}", assistant.inner.tools);
-    info!("Asking LLM to decide which tool to use");
 
-    // Decide which tool to use
-    let mut tools_decision = decide_tool_with_llm(&assistant, &messages, &run, tool_calls_db).await.map_err(|e| RunError {
-        message: format!("Failed to decide tool: {}", e),
-        run_id: run_id.to_string(),
-        thread_id: thread_id.to_string(),
-        user_id: user_id.to_string(),
-    })?;
+    let mut steps = 1;
 
-    info!("Tools decision: {:?}", tools_decision);
+    let assistant_instructions = format!(
+        "<assistant>\n{}\n</assistant>",
+        assistant.inner.instructions.as_ref().unwrap()
+    );
 
-    let mut instructions = build_instructions(
-        &run.inner.instructions,
+    let run_instructions = format!(
+        "<run>\n{}\n</run>",
+        run.inner.instructions
+    );
+
+    let fundamental_instructions = "<fundamental>
+You are an AI Assistant that helps a user. Your responses are being parsed to trigger actions.
+You can decide how many iterations you can take to solve the user's problem. This is particularly useful for problems that require multiple steps to solve.
+You can use the following tools to trigger actions and/or get more context about the problem:
+- <steps>[Steps]</steps>: Use this tool to solve the problem in multiple steps. For example: <steps>1</steps> means you will solve the problem in 1 step. <steps>2</steps> means you will solve the problem in 2 steps. etc.
+- <function_calling>[Function Calling]</function_calling>: Use this tool to call a function. For example: <function_calling>{\"function\": {\"description\": \"Fetch a user's profile\",\"name\": \"get_user_profile\",\"parameters\": {\"username\": {\"properties\": {},\"required\": [\"username\"],\"type\": \"string\"}}}}</function_calling>.
+- <code_interpreter>[Code Interpreter]</code_interpreter>: Use this tool to generate code. This is useful to do complex data analysis. For example: <code_interpreter></code_interpreter>. You do not need to pass any parameters to this tool.
+- <retrieval>[Retrieval]</retrieval>: Use this tool to retrieve information from a knowledge base. For example: <retrieval>capital of France</retrieval>.
+    
+Your fundamental, unbreakable rules are:
+- Only use the tools you are given.
+- Always use <steps>[Steps]</steps> to solve the problem in one or multiple steps.
+- Do not invent new tools, new information, etc.
+- If you don't know the answer, say \"I don't know\".
+- Fundamental instructions are the most important instructions. You must always follow them. Then the assistant instructions. Then the run instructions. Then the user's messages.
+</fundamental>";
+
+    let final_instructions = format!("{}\n{}\n{}\n", fundamental_instructions, assistant_instructions, run_instructions);
+    let instructions = build_instructions(
+        &final_instructions,
         &vec![],
         &formatted_messages,
         &tools,
@@ -449,269 +323,274 @@ pub async fn run_executor(
         None
     );
 
-    let model = assistant.inner.model.clone();
-    let url = std::env::var("MODEL_URL")
-        .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
-    // Call create_function_call here
-    let model_config = ModelConfig {
-        model_name: model.clone(),
-        model_url: url.clone().into(),
-        user_prompt: formatted_messages.clone(), // TODO: assuming this is the user prompt. Should it be just last message? Or more custom?
-        temperature: Some(0.0),
-        max_tokens_to_sample: 200,
-        stop_sequences: None,
-        top_p: Some(1.0),
-        top_k: None,
-        metadata: None,
-    };
+    let client = Client::new();
+    let bpe = p50k_base().unwrap();
+    let context_size = std::env::var("MODEL_CONTEXT_SIZE")
+            .unwrap_or_else(|_| "4096".to_string())
+            .parse::<usize>()
+            .unwrap_or(4096);
+    let tokens =
+        bpe.encode_with_special_tokens(&serde_json::to_string(&instructions).unwrap());
+    let max_tokens = (context_size - tokens.len()) as u16;
+    let request = CreateChatCompletionRequestArgs::default()
+        .model(assistant.inner.model.clone())
+        .max_tokens(max_tokens)
+        .messages([ChatCompletionRequestUserMessageArgs::default()
+            .content(instructions)
+            .build()
+            .map_err(|e| RunError {
+                message: format!("Failed to build request: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?
+            .into()])
+        .build()
+        .map_err(|e| RunError {
+            message: format!("Failed to build request: {}", e),
+            run_id: run_id.to_string(),
+            thread_id: thread_id.to_string(),
+            user_id: user_id.to_string(),
+        })?;
 
-    // Sort the tools_decision so that "function" comes first if present
-    tools_decision.sort_by(|a, b| {
-        if a == "function" {
-            Ordering::Less
-        } else if b == "function" {
-            Ordering::Greater
-        } else {
-            a.cmp(b)
-        }
-    });
+    let mut stream = client.chat().create_stream(request).await.map_err(|e| RunError {
+        message: format!("Failed to create stream: {}", e),
+        run_id: run_id.to_string(),
+        thread_id: thread_id.to_string(),
+        user_id: user_id.to_string(),
+    })?;
+    let run_inner_required_action = Arc::new(run.inner.required_action);
+    let mut retrieval_chunks;
+    while let Some(result) = stream.next().await {
 
-    let mut retrieval_files: Vec<String> = vec![];
-    let mut retrieval_chunks: Vec<Chunk> = vec![];
+        match result {
+            Ok(response) => {
+                let chat_choice = response.choices.first().unwrap();
+                    let mut buffer = String::new();
+                    if let Some(ref content) = chat_choice.delta.content {
+                    
 
-    // Iterate over the sorted tools_decision
-    for tool_decision in tools_decision {
-
-        // TODO: can prob optimise thru parallelism
-        match tool_decision.as_str() {
-            "function" => {
-                info!("Using function tool");
-                // skip this if tools is not empty (e.g. if there are required_action (s))
-                if !run.inner.required_action.is_none() {
-                    info!("Skipping function call because there is a required action");
-                    continue;
-                }
-                run = update_run_status(
-                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
-                    pool,
-                    thread_id,
-                    &run.inner.id,
-                    RunStatus::Queued,
-                    &run.user_id,
-                    None,
-        None,
-                )
-                .await.map_err(|e| RunError {
-                    message: format!("Failed to update run status: {}", e),
-                    run_id: run_id.to_string(),
-                    thread_id: thread_id.to_string(),
-                    user_id: user_id.to_string(),
-                })?;
-
-                info!("Generating function to call");
-
-                let function_results =
-                    create_function_call(&pool, 
-                        &assistant.inner.id,
-                        user_id, 
-                        model_config.clone()).await.map_err(|e| RunError {
-                        message: format!("Failed to create function call: {}", e),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    })?;
-
-                info!("Function results: {:?}", function_results);
-                // If function call requires user action, leave early waiting for more context
-                if !function_results.is_empty() {
-                    // Update run status to "requires_action"
-                    run = update_run_status(
-                        pool,
-                        thread_id,
-                        &run.inner.id,
-                        RunStatus::RequiresAction,
-                        &run.user_id,
-                        Some(RequiredAction {
-                            r#type: "submit_tool_outputs".to_string(),
-                            submit_tool_outputs: SubmitToolOutputs {
-                                tool_calls: function_results
-                                    .iter()
-                                    .map(|f| RunToolCallObject {
-                                        id: uuid::Uuid::new_v4().to_string(),
-                                        r#type: "function".to_string(), // TODO hardcoded
-                                        function: FunctionCall {
-                                            name: f.clone().name,
-                                            arguments: f.clone().arguments,
-                                        },
-                                    })
-                                    .collect::<Vec<RunToolCallObject>>(),
-                            },
-                        }),
-                        None
-                    )
-                    .await.map_err(|e| RunError {
-                        message: format!("Failed to update run status: {}", e),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    })?;
-                    info!(
-                        "Run updated to requires_action with {:?}",
-                        run.inner.required_action
-                    );
-                    return Ok(run);
-                }
-            }
-            "retrieval" => {
-                // Call file retrieval here
-                // Initialize an empty vector to hold all file IDs
-                let mut all_file_ids = Vec::new();
-
-                // If the run has associated file IDs, add them to the list
-                all_file_ids.extend(run.inner.file_ids.iter().cloned());
-
-                // If the assistant has associated file IDs, add them to the list
-                all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
-
-                // Check if the all_file_ids includes any file IDs.
-                if all_file_ids.is_empty() { 
-                    break;
-                }
-                info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
-                // Retrieve the contents of each file.
-                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
-                
-                let formatted_messages_clone = formatted_messages.clone();
-                let retrieval_chunks_future = generate_queries_and_fetch_chunks(
-                    &pool,
-                    &formatted_messages_clone,
-                    &assistant.inner.model,
-                );
-                
-                let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
-
-                retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
-                    // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
-                    error!("Failed to retrieve chunks: {}", e);
-                    vec![]
-                });
-
-                // Include the file contents and previous messages in the instructions.
-                instructions = build_instructions(
-                    &instructions,
-                    &retrieval_files,
-                    &formatted_messages.clone(),
-                    &tools,
-                    None,
-                    &retrieval_chunks.iter().map(|c| 
-                        serde_json::to_string(&json!({
-                            "data": c.data,
-                            "sequence": c.sequence,
-                            "start_index": c.start_index,
-                            "end_index": c.end_index,
-                            "metadata": c.metadata,
-                        })).unwrap()
-                    ).collect::<Vec<String>>(),
-                    None
-                );
-                
-            }
-            "code_interpreter" => {
-                // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
-                let code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
-                    model_name: model.clone(),
-                    model_url: url.clone().into(),
-                    max_tokens_to_sample: -1,
-                    stop_sequences: None,
-                    top_p: Some(1.0),
-                    top_k: None,
-                    metadata: None,
-                }).await {
-                    Ok(result) => {
-                        // Handle the successful execution of the code
-                        // You might want to store the result or send it back to the user
-                        Some(result)
-                    }
-                    Err(e) => {
-                        // Handle the error from the interpreter
-                        // You might want to log the error or notify the user
+                            println!("{}", content);
+                            buffer.push_str(content);
+                            // Check for the end of an XML tag 
+                            // TODO assuming there was a start tag
+                            if buffer.ends_with("</steps>") || buffer.ends_with("</retrieval>") || buffer.ends_with("</function_calling>") || buffer.ends_with("</code_interpreter>") {
+                                // Parse the buffer for actions
+                                let actions = parse_llm_response(&buffer);
+                                let last_action = actions.last().unwrap();
+                                match last_action.r#type {
+                                    LLMActionType::Steps => {
+                                        // extract the number from <steps>1</steps> using regex
+                                        let re = regex::Regex::new(r"<steps>(\d+)</steps>").unwrap();
+                                        let captures = re.captures(&last_action.content).unwrap();
+                                        steps = captures.get(1).unwrap().as_str().parse::<usize>().unwrap();
+                                    },
+                                    LLMActionType::FunctionCalling => {
+                                        info!("Using function tool");
+                                        // skip this if tools is not empty (e.g. if there are required_action (s))
+                                        if !run_inner_required_action.clone().is_none() {
+                                            info!("Skipping function call because there is a required action");
+                                            continue;
+                                        }
+                                        let result = update_run_status(
+                                            pool,
+                                            thread_id,
+                                            &run_id,
+                                            RunStatus::Queued,
+                                            &user_id,
+                                            None,
+                                None,
+                                        )
+                                        .await.map_err(|e| RunError {
+                                            message: format!("Failed to update run status: {}", e),
+                                            run_id: run_id.to_string(),
+                                            thread_id: thread_id.to_string(),
+                                            user_id: user_id.to_string(),
+                                        });
                         
-                        return Err(RunError {
-                            message: format!("Failed to run code: {}", e),
-                            run_id: run_id.to_string(),
-                            thread_id: thread_id.to_string(),
-                            user_id: user_id.to_string(),
-                        })
-                    }
-                };
+                                        info!("Generating function to call");
+                        
+                                        let function_results = string_to_function_call(&last_action.content.clone()).unwrap();
+                                        // TODO: use case multiple functions call
+                                        info!("Function results: {:?}", function_results);
+                                        // If function call requires user action, leave early waiting for more context
+                                        // Update run status to "requires_action"
+                                        let result = update_run_status(
+                                            pool,
+                                            thread_id,
+                                            &run_id,
+                                            RunStatus::RequiresAction,
+                                            &user_id,
+                                            Some(RequiredAction {
+                                                r#type: "submit_tool_outputs".to_string(),
+                                                submit_tool_outputs: SubmitToolOutputs {
+                                                    tool_calls: vec![RunToolCallObject {
+                                                        id: uuid::Uuid::new_v4().to_string(),
+                                                        r#type: "function".to_string(), // TODO hardcoded
+                                                        function: function_results,
+                                                    }],
+                                                },
+                                            }),
+                                            None
+                                        )
+                                        .await.map_err(|e| RunError {
+                                            message: format!("Failed to update run status: {}", e),
+                                            run_id: run_id.to_string(),
+                                            thread_id: thread_id.to_string(),
+                                            user_id: user_id.to_string(),
+                                        });
+                                        
+                                        info!(
+                                            "Run updated to requires_action with {:?}",
+                                            run_inner_required_action
+                                        );
+                                        return Ok(());
+                                    },
+                                    LLMActionType::CodeInterpreter => {
+                                        // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
+                                        let code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
+                                            model_name: assistant.inner.model,
+                                            model_url: None,
+                                            max_tokens_to_sample: -1,
+                                            stop_sequences: None,
+                                            top_p: Some(1.0),
+                                            top_k: None,
+                                            metadata: None,
+                                        }).await {
+                                            Ok(result) => {
+                                                // Handle the successful execution of the code
+                                                // You might want to store the result or send it back to the user
+                                                Some(result)
+                                            }
+                                            Err(e) => {
+                                                // Handle the error from the interpreter
+                                                // You might want to log the error or notify the user
+                                                
+                                                return Err(RunError {
+                                                    message: format!("Failed to run code: {}", e),
+                                                    run_id: run_id.to_string(),
+                                                    thread_id: thread_id.to_string(),
+                                                    user_id: user_id.to_string(),
+                                                })
+                                            }
+                                        };
 
-                if code_output.is_none() {
-                    return Err(RunError {
-                        message: format!("Failed to run code: no output"),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    });
-                }
+                                        if code_output.is_none() {
+                                            return Err(RunError {
+                                                message: format!("Failed to run code: no output"),
+                                                run_id: run_id.to_string(),
+                                                thread_id: thread_id.to_string(),
+                                                user_id: user_id.to_string(),
+                                            });
+                                        }
 
-                // Call file retrieval here
-                // Initialize an empty vector to hold all file IDs
-                let mut all_file_ids = Vec::new();
+                                        // Call file retrieval here
+                                        // Initialize an empty vector to hold all file IDs
+                                        let mut all_file_ids = Vec::new();
 
-                // If the run has associated file IDs, add them to the list
-                all_file_ids.extend(run.inner.file_ids.iter().cloned());
+                                        // If the run has associated file IDs, add them to the list
+                                        all_file_ids.extend(run.inner.file_ids.iter().cloned());
 
-                // If the assistant has associated file IDs, add them to the list
-                all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
+                                        // If the assistant has associated file IDs, add them to the list
+                                        all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
 
 
-                // Check if the all_file_ids includes any file IDs.
-                if all_file_ids.is_empty() {
-                    break;
-                }
-                info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
-                // Retrieve the contents of each file.
-                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
-                
-                let formatted_messages_clone = formatted_messages.clone();
-                let retrieval_chunks_future = generate_queries_and_fetch_chunks(
-                    &pool,
-                    &formatted_messages_clone,
-                    &assistant.inner.model,
-                );
-                
-                let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
+                                        // Check if the all_file_ids includes any file IDs.
+                                        if all_file_ids.is_empty() {
+                                            break;
+                                        }
+                                        info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                                        // Retrieve the contents of each file.
+                                        let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                                        
+                                        let formatted_messages_clone = formatted_messages.clone();
+                                        let retrieval_chunks_future = generate_queries_and_fetch_chunks(
+                                            &pool,
+                                            &formatted_messages_clone,
+                                            &assistant.inner.model,
+                                        );
+                                        
+                                        let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
 
-                retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
-                    // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
-                    error!("Failed to retrieve chunks: {}", e);
-                    vec![]
-                });
+                                        retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
+                                            // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
+                                            error!("Failed to retrieve chunks: {}", e);
+                                            vec![]
+                                        });
 
-                // Build instructions with the code output
-                instructions = build_instructions(
-                    &instructions,
-                    &retrieval_files,
-                    &formatted_messages,
-                    &tools,
-                    code_output.as_deref(),
-                    &retrieval_chunks.iter().map(|c| 
-                        serde_json::to_string(&json!({
-                            "data": c.data,
-                            "sequence": c.sequence,
-                            "start_index": c.start_index,
-                            "end_index": c.end_index,
-                            "metadata": c.metadata,
-                        })).unwrap()
-                    ).collect::<Vec<String>>(),
-                    None
-                );
+                                    },
+                                    LLMActionType::Retrieval => {
+                                        // extract query from <retrieval>capital of France</retrieval> using regex
+                                        let re = regex::Regex::new(r"<retrieval>(.+)</retrieval>").unwrap();
+                                        let captures = re.captures(&last_action.content).unwrap();
+                                        let query = captures.get(1).unwrap().as_str();
+
+                                        // Call file retrieval here
+                                        // Initialize an empty vector to hold all file IDs
+                                        let mut all_file_ids = Vec::new();
+
+                                        // If the run has associated file IDs, add them to the list
+                                        all_file_ids.extend(run.inner.file_ids.iter().cloned());
+
+                                        // If the assistant has associated file IDs, add them to the list
+                                        all_file_ids.extend(assistant.inner.file_ids.iter().cloned());
+
+                                        // Check if the all_file_ids includes any file IDs.
+                                        if all_file_ids.is_empty() { 
+                                            break;
+                                        }
+                                        info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                                        // Retrieve the contents of each file.
+                                        let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                                        
+                                        let formatted_messages_clone = formatted_messages.clone();
+                                        let retrieval_chunks_future = fetch_chunks(
+                                            &pool,
+                                            query.to_string(),
+                                        );
+                                        
+                                        let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
+
+                                        retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
+                                            // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
+                                            error!("Failed to retrieve chunks: {}", e);
+                                            vec![]
+                                        });
+
+                                        // Include the file contents and previous messages in the instructions.
+                                        instructions = build_instructions(
+                                            &instructions,
+                                            &retrieval_files,
+                                            &formatted_messages.clone(),
+                                            &tools,
+                                            None,
+                                            &retrieval_chunks.iter().map(|c| 
+                                                serde_json::to_string(&json!({
+                                                    "data": c.data,
+                                                    "sequence": c.sequence,
+                                                    "start_index": c.start_index,
+                                                    "end_index": c.end_index,
+                                                    "metadata": c.metadata,
+                                                })).unwrap()
+                                            ).collect::<Vec<String>>(),
+                                            None
+                                        );
+                                    },
+                                    _ => {
+                                        // Handle unknown action
+                                        error!("Unknown action: {:?}", last_action.r#type);
+                                        // return Err("Unknown action".into());
+                                    }
+                                }
+                                // Clear the buffer after processing
+                                buffer.clear();
+                            }
+                        }
             }
-            _ => {
-                // Handle unknown tool
-                error!("Unknown tool: {}", tool_decision);
+            Err(e) => {
+                error!("Error: {}", e);
                 return Err(RunError {
-                    message: format!("Unknown tool: {}", tool_decision),
+                    message: format!("Error: {}", e),
                     run_id: run_id.to_string(),
                     thread_id: thread_id.to_string(),
                     user_id: user_id.to_string(),
@@ -720,90 +599,10 @@ pub async fn run_executor(
         }
     }
 
-    info!("Calling LLM API with instructions: {}", instructions);
+    Ok(run)
+}   
+                                                
 
-    // Less prompt is more - just making sure the LLM does not talk too much about his context but rather directly answer the user TODO: (should be configurable)
-    let system_prompt = format!("You are an assistant that help a user based on tools and context you have.
-
-Rules:
-- Do not hallucinate
-- Obey strictly to the user request e.g. in <message> tags - EXTREMELY IMPORTANT
-- Answer directly the user e.g. 'What is the solution to the equation \"x + 2 = 4\"?' You should answer \"x = 2\" even though receiving bunch of context before.
-- Do not add tags in your answer such as <function_calls> etc. nor continue the user sentence. Just answer the user.
-
-These are additional instructions from the user that you must obey absolutely:
-
-{}
-
-", assistant.inner.instructions.as_ref().unwrap_or(&"".to_string()));
-
-    let result = llm(
-        &assistant.inner.model,
-        url.clone().into(),
-        &system_prompt,
-        &instructions,
-        None, // temperature
-        -1,
-        None,      // stop_sequences
-        None, // top_p
-        None,      // top_k
-        None,      // metadata
-        None,      // metadata
-    ).await;
-
-    match result {
-        Ok(output) => {
-            info!("LLM API output: {}", output);
-            let content = vec![MessageContent::Text(MessageContentTextObject {
-                r#type: "text".to_string(),
-                text: TextData {
-                    value: output.to_string(),
-                    annotations: vec![],
-                },
-            })];
-            add_message_to_thread(
-                pool,
-                &thread.inner.id,
-                MessageRole::Assistant,
-                content,
-                &run.user_id.to_string(),
-                None,
-            )
-            .await.map_err(|e| RunError {
-                message: format!("Failed to add message to thread: {}", e),
-                run_id: run_id.to_string(),
-                thread_id: thread_id.to_string(),
-                user_id: user_id.to_string(),
-            })?;
-            // Update run status to "completed"
-            run = update_run_status(
-                pool,
-                &thread.inner.id,
-                &run.inner.id,
-                RunStatus::Completed,
-                user_id,
-                None,
-                None
-            )
-            .await.map_err(|e| RunError {
-                message: format!("Failed to update run status: {}", e),
-                run_id: run_id.to_string(),
-                thread_id: thread_id.to_string(),
-                user_id: user_id.to_string(),
-            })?;
-            Ok(run)
-        }
-        Err(e) => {
-            error!("Assistant model error: {}", e);
-            Err(RunError {
-                message: format!("Assistant model error: {}", e),
-                run_id: run_id.to_string(),
-                thread_id: thread_id.to_string(),
-                user_id: user_id.to_string(),
-            })
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -1054,11 +853,11 @@ mod tests {
             user_id: "".to_string(),
         }];
         // Call the function
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
-        let mut result = result.unwrap();
+        // let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        // let mut result = result.unwrap();
         // Check if the result is one of the expected tools
         let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
-        assert_eq!(result.sort(), expected_tools.sort());
+        // assert_eq!(result.sort(), expected_tools.sort());
     }
 
 
@@ -1109,10 +908,10 @@ mod tests {
             user_id: "".to_string(),
         }];
 
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        // let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
 
-        let result = result.unwrap();
-        assert_eq!(result, vec!["code_interpreter"]);
+        // let result = result.unwrap();
+        // assert_eq!(result, vec!["code_interpreter"]);
     }
 
     #[tokio::test]
@@ -1182,12 +981,12 @@ mod tests {
         std::env::set_var("MODEL_URL", "https://api.perplexity.ai/chat/completions");
 
         // Call the decide_tool_with_llm function using the open-source LLM
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        // let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
 
-        let mut result = result.unwrap();
+        // let mut result = result.unwrap();
         // Check if the result is one of the expected tools
-        let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
-        assert_eq!(result.sort(), expected_tools.sort());
+        // let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
+        // assert_eq!(result.sort(), expected_tools.sort());
     }
 
     #[tokio::test]
@@ -1757,10 +1556,10 @@ mod tests {
             &assistant.user_id,
         ).await.unwrap();
 
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone()).await;
+        // let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone()).await;
 
-        let result = result.unwrap();
-        println!("{:?}", result);
-        assert!(!result.contains(&"function".to_string()), "Expected the function tool to not be returned, but it was: {:?}", result);
+        // let result = result.unwrap();
+        // println!("{:?}", result);
+        // assert!(!result.contains(&"function".to_string()), "Expected the function tool to not be returned, but it was: {:?}", result);
     }
 }

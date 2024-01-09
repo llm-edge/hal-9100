@@ -1,5 +1,19 @@
-use assistants_core::models::Message;
+use std::pin::Pin;
 
+use assistants_core::models::Message;
+use assistants_extra::llm::generate_chat_responses;
+use async_openai::{
+    error::OpenAIError,
+    types::{CreateChatCompletionRequest, CreateChatCompletionStreamResponse},
+};
+
+use crate::{
+    function_calling::ModelConfig,
+    models::{LLMAction, LLMActionType},
+};
+use async_stream::stream;
+use async_trait::async_trait;
+use futures::{pin_mut, Stream, StreamExt};
 use tiktoken_rs::p50k_base;
 
 // This function formats the messages into a string
@@ -114,7 +128,13 @@ pub fn build_instructions(
 
 #[cfg(test)]
 mod tests {
+    use crate::models::LLMActionType;
     use assistants_core::prompts::build_instructions;
+    use assistants_extra::llm::generate_chat_responses;
+    use async_openai::types::{
+        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    };
+    use futures::StreamExt;
     use tiktoken_rs::p50k_base;
 
     #[test]

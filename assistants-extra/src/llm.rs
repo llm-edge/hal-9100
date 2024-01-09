@@ -2,6 +2,13 @@ use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::openai::{
     call_open_source_openai_api_with_messages, call_openai_api_with_messages, Message,
 };
+use async_openai::error::OpenAIError;
+use async_openai::types::{
+    CreateChatCompletionRequest, CreateChatCompletionRequestArgs,
+    CreateChatCompletionStreamResponse,
+};
+use async_openai::Client;
+use futures::Stream;
 use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
@@ -122,10 +129,33 @@ pub async fn llm(
     }
 }
 
+pub async fn generate_chat_responses(
+    mut request: CreateChatCompletionRequest,
+    context_size: Option<i32>,
+) -> impl Stream<Item = Result<CreateChatCompletionStreamResponse, OpenAIError>> {
+    let client = Client::new();
+    if request.max_tokens.unwrap_or(u16::MAX) == u16::MAX {
+        let bpe = p50k_base().unwrap();
+        let tokens =
+            bpe.encode_with_special_tokens(&serde_json::to_string(&request.messages).unwrap());
+        request.max_tokens = Some((context_size.unwrap_or(4096) - tokens.len() as i32) as u16);
+    }
+    let stream = client
+        .chat()
+        .create_stream(request)
+        .await
+        .map_err(|e| e.into()) // Convert OpenAIError into a Box<dyn Error>
+        .unwrap_or_else(|_: OpenAIError| Box::pin(futures::stream::empty()));
+
+    stream
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use async_openai::types::ChatCompletionRequestUserMessageArgs;
     use dotenv;
+    use futures::StreamExt;
     use std::collections::HashMap;
 
     #[tokio::test]
@@ -192,5 +222,40 @@ mod tests {
         let result = result.unwrap();
         // assert!(result.contains("42"));
         // println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_generate_chat_responses() -> Result<(), Box<dyn std::error::Error>> {
+        dotenv::dotenv().ok();
+
+        let request = CreateChatCompletionRequestArgs::default()
+            .model("gpt-3.5-turbo")
+            .max_tokens(512u16)
+            .messages([ChatCompletionRequestUserMessageArgs::default()
+                .content(
+                    "Write a one sentence tweet praising and introducing Rust library async-openai",
+                )
+                .build()?
+                .into()])
+            .build()?;
+
+        let mut stream = generate_chat_responses(request, None).await;
+
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(response) => {
+                    response.choices.iter().for_each(|chat_choice| {
+                        if let Some(ref content) = chat_choice.delta.content {
+                            println!("{}", content);
+                        }
+                    });
+                }
+                Err(err) => {
+                    println!("Error: {}", err);
+                }
+            }
+        }
+
+        Ok(())
     }
 }

@@ -197,6 +197,40 @@ Query?",
     Ok(chunks)
 }
 
+pub async fn fetch_chunks(pool: &PgPool, query: String) -> Result<Vec<Chunk>, Box<dyn Error>> {
+    // Convert the query to tsquery and execute it on the database
+    let rows = sqlx::query!(
+        r#"
+        SELECT * FROM chunks 
+        WHERE to_tsvector(data) @@ to_tsquery($1)
+        "#,
+        query,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let chunks = rows
+        .into_iter()
+        .map(|row| Chunk {
+            id: row.id,
+            sequence: row.sequence,
+            data: row.data,
+            file_id: row.file_id,
+            start_index: row.start_index,
+            end_index: row.end_index,
+            metadata: match row.metadata {
+                Some(JsonValue::Object(map)) => {
+                    Some(map.into_iter().collect::<HashMap<String, JsonValue>>())
+                }
+                _ => None,
+            },
+            created_at: row.created_at,
+        })
+        .collect();
+
+    Ok(chunks)
+}
+
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
 pub async fn retrieve_file_contents(
