@@ -11,15 +11,11 @@ use assistants_core::assistants::{create_assistant, get_assistant};
 use assistants_core::file_storage::FileStorage;
 use assistants_core::messages::{add_message_to_thread, list_messages};
 use assistants_core::models::{Assistant, Message, Run, Thread};
-use assistants_core::pdf_utils::{pdf_mem_to_text, pdf_to_text};
 use assistants_core::threads::{create_thread, get_thread};
-use assistants_extra::anthropic::call_anthropic_api;
 use assistants_extra::llm::llm;
-use assistants_extra::openai::{call_open_source_openai_api, call_openai_api};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use tiktoken_rs::p50k_base;
 use assistants_core::runs::{get_run, update_run, update_run_status};
 
 use assistants_core::function_calling::ModelConfig;
@@ -34,106 +30,13 @@ use assistants_core::models::SubmittedToolCall;
 
 use assistants_core::retrieval::retrieve_file_contents;
 
-use crate::models::Chunk;
-use crate::retrieval::generate_queries_and_fetch_chunks;
+use assistants_core::models::Chunk;
+use assistants_core::retrieval::generate_queries_and_fetch_chunks;
+
+use crate::prompts::{format_messages, build_instructions};
 
 
-// This function formats the messages into a string
-fn format_messages(messages: &Vec<Message>) -> String {
-    let mut formatted_messages = String::new();
-    for message in messages {
-        formatted_messages.push_str(&format!(
-            "<message>\n{}\n</message>\n",
-            serde_json::json!({
-                "role": message.inner.role,
-                "content": message.inner.content
-            })
-        ));
-    }
-    formatted_messages
-}
 
-/// Builds the instructions for the assistant.
-///
-/// This function takes several arguments, constructs parts of the instructions separately, and then
-/// combines them into the final instructions string based on their priority and the context size limit.
-///
-/// # Arguments
-///
-/// * `original_instructions` - The original instructions string.
-/// * `file_contents` - A vector of strings representing the file contents.
-/// * `previous_messages` - A string representing the previous messages.
-/// * `tools` - A string representing the tools.
-/// * `code_output` - An optional string representing the code output.
-/// * `context_size` - The context size limit for the language model.
-/// * `retrieval_chunks` - A vector of strings representing the retrieval chunks.
-///
-/// # Returns
-///
-/// * A string representing the final instructions for the assistant.
-///
-/// # Note
-///
-/// The function uses the `tiktoken_rs` library to count the tokens in the instructions.
-/// The parts of the instructions are added to the final instructions string based on their priority.
-/// The order of priority (from highest to lowest) is: original instructions, tools, code output,
-/// previous messages, file contents, and retrieval chunks.
-/// If a part doesn't fit within the context size limit, it is not added to the final instructions.
-fn build_instructions(
-    original_instructions: &str,
-    file_contents: &Vec<String>,
-    previous_messages: &str,
-    tools: &str,
-    code_output: Option<&str>,
-    retrieval_chunks: &Vec<String>,
-    context_size: Option<usize>,
-) -> String {
-    let bpe = p50k_base().unwrap();
-
-    // if context_size is None, use env var or default to x
-    let context_size = context_size.unwrap_or_else(|| {
-        std::env::var("MODEL_CONTEXT_SIZE")
-            .unwrap_or_else(|_| "4096".to_string())
-            .parse::<usize>()
-            .unwrap_or(4096)
-    });
-
-    // Build each part of the instructions
-    let instructions_part = format!("<instructions>\n{}\n</instructions>\n", original_instructions);
-    let file_contents_part = format!("<file>\n{:?}\n</file>\n", file_contents);
-    let retrieval_chunks_part = format!("<chunk>\n{:?}\n</chunk>\n", retrieval_chunks);
-    let tools_part = format!("<tools>\n{}\n</tools>\n", tools);
-    let code_output_part = match code_output {
-        Some(output) => format!("<math_solution>\n{}\n</math_solution>\n", output),
-        None => String::new(),
-    };
-    let previous_messages_part = format!("<previous_messages>\n{}\n</previous_messages>", previous_messages);
-
-    // Initialize the final instructions with the highest priority part
-    let mut final_instructions = instructions_part;
-
-    // List of other parts ordered by priority
-    let mut other_parts = [tools_part, previous_messages_part, code_output_part, file_contents_part.clone(), retrieval_chunks_part.clone()];
-    // TODO: probably this could be made customisable if someone has a usecase where code is very important for example
-
-    // Add other parts to the final instructions if they fit in the context limit
-    for part in &other_parts {
-        let part_tokens = bpe.encode_with_special_tokens(part).len();
-        let final_instructions_tokens = bpe.encode_with_special_tokens(&final_instructions).len();
-
-        if final_instructions_tokens + part_tokens <= context_size {
-            // If file_contents_part is already in final_instructions, do not add retrieval_chunks_part
-            if part == &retrieval_chunks_part && final_instructions.contains(&retrieval_chunks_part) {
-                continue;
-            }
-            final_instructions += part;
-        } else {
-            break;
-        }
-    }
-
-    final_instructions
-}
 
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
@@ -918,10 +821,7 @@ mod tests {
     use super::*;
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
-    use std::collections::HashSet;
     use std::io::Write;
-    use tokio::fs::File;
-    use tokio::io::AsyncWriteExt;
 
     async fn setup() -> PgPool {
         dotenv().ok();
@@ -959,122 +859,8 @@ mod tests {
         reset_redis().await.unwrap();
     }
 
-    #[tokio::test]
-    async fn test_create_assistant() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let assistant = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Code(AssistantToolsCode {
-                    r#type: "code_interpreter".to_string(),
-                })],
-                model: "claude-2.1".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-        let result = create_assistant(&pool, &assistant).await;
-        assert!(result.is_ok());
-    }
 
-    #[tokio::test]
-    async fn test_create_thread() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let result = create_thread(&pool, &Uuid::default().to_string()).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_add_message_to_thread() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let thread = create_thread(&pool, &Uuid::default().to_string())
-            .await
-            .unwrap(); // Create a new thread
-        let content = vec![MessageContent::Text(MessageContentTextObject {
-            r#type: "text".to_string(),
-            text: TextData {
-                value: "Hello world".to_string(),
-                annotations: vec![],
-            },
-        })];
-        let result = add_message_to_thread(
-            &pool,
-            &thread.inner.id,
-            MessageRole::User,
-            content,
-            &Uuid::default().to_string(),
-            None,
-        )
-        .await; // Use the id of the new thread
-        assert!(result.is_ok());
-    }
-
-    // Change the argument type to &String in test function test_list_messages
-    #[tokio::test]
-    async fn test_list_messages() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let result = list_messages(&pool, "0", &Uuid::default().to_string()).await;
-        assert!(result.is_ok());
-    }
-
-
-
-    #[test]
-    fn test_build_instructions_context_limit() {
-        let original_instructions = "Solve the quadratic equation x^2 + 5x + 6 = 0.";
-        let file_contents = vec![
-            "# Python script to solve quadratic equations\nimport cmath\ndef solve_quadratic(a, b, c):\n    # calculate the discriminant\n    d = (b**2) - (4*a*c)\n    # find two solutions\n    sol1 = (-b-cmath.sqrt(d))/(2*a)\n    sol2 = (-b+cmath.sqrt(d))/(2*a)\n    return sol1, sol2\n".to_string(),
-            "# Another Python script\nprint('Hello, world!')\n".to_string(),
-        ];
-        let previous_messages = "<message>\n{\"role\": \"user\", \"content\": \"Can you solve a quadratic equation for me?\"}\n</message>\n<message>\n{\"role\": \"assistant\", \"content\": \"Sure, I can help with that. What's the equation?\"}\n</message>\n";
-        let tools = "code_interpreter";
-        let code_output = Some("The solutions are (-2+0j) and (-3+0j)");
-        let context_size = 200; // Set a realistic context size
-        let retrieval_chunks = vec![
-            "Here's a chunk of text retrieved from a large document...".to_string(),
-            "And here's another chunk of text...".to_string(),
-        ];
     
-        let instructions = build_instructions(
-            original_instructions,
-            &file_contents,
-            previous_messages,
-            tools,
-            code_output,
-            &retrieval_chunks,
-            Some(context_size),
-        );
-    
-        // Use tiktoken to count tokens
-        let bpe = p50k_base().unwrap();
-        let tokens = bpe.encode_with_special_tokens(&instructions);
-    
-        // Check that the instructions do not exceed the context limit
-        assert!(tokens.len() <= context_size, "The instructions exceed the context limit");
-    
-        // Check that the instructions contain the most important parts
-        assert!(instructions.contains(original_instructions), "The instructions do not contain the original instructions");
-        assert!(instructions.contains(tools), "The instructions do not contain the tools");
-        assert!(instructions.contains(previous_messages), "The instructions do not contain the previous messages");
-
-        // Check that the instructions do not contain the less important parts
-        assert!(!instructions.contains(&file_contents[0]), "The instructions contain the file contents");
-        assert!(!instructions.contains(&retrieval_chunks[0]), "The instructions contain the retrieval chunks");
-    }
-
     #[tokio::test]
     async fn test_end_to_end_knowledge_retrieval() {
         // Setup
@@ -1200,31 +986,7 @@ mod tests {
         // assert_eq!(messages[1].file_ids, Some(vec![file_id])); -> !wor
     }
 
-    #[tokio::test]
-    async fn test_read_pdf_content() {
-        // Download the PDF file
-        let response = reqwest::get("https://www.africau.edu/images/default/sample.pdf")
-            .await
-            .unwrap()
-            .bytes()
-            .await
-            .unwrap();
 
-        // Write the PDF file to disk
-        let mut file = File::create("sample.pdf").await.unwrap();
-        file.write_all(&response).await.unwrap();
-        file.sync_all().await.unwrap(); // Ensure all bytes are written to the file
-
-        // Read the PDF content
-        let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
-
-        // Check the content
-        assert!(content.contains("A Simple PDF File"));
-        assert!(content.contains("This is a small demonstration .pdf file"));
-
-        // Delete the file locally
-        std::fs::remove_file("sample.pdf").unwrap();
-    }
 
     #[tokio::test]
     async fn test_decide_tool_with_llm_anthropic() {
