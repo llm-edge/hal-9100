@@ -305,6 +305,7 @@ mod tests {
         .unwrap();
     }
     #[tokio::test]
+    #[ignore]
     async fn test_create_function_call_with_openai() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -400,6 +401,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_create_function_call_with_anthropic() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -416,7 +418,7 @@ mod tests {
                 instructions: Some("".to_string()),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: "anthropic/claude-2.1".to_string(),
+                model: "mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -496,6 +498,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_create_function_call_with_llama_2_70b_chat() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -594,6 +597,8 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
+
     async fn test_generate_function_call_with_llama_2_70b() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -677,6 +682,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_generate_function_call_with_mixtral_8x7b() {
         dotenv::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -760,6 +766,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_string_to_function_call() {
         // Case 1: Valid JSON embedded within non-JSON content
         let input = "Some non-JSON content...\

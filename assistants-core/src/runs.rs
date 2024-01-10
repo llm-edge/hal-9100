@@ -752,7 +752,7 @@ mod tests {
                 created_at: 0,
                 name: Some("Math Tutor".to_string()),
                 description: None,
-                model: "claude-2.1".to_string(),
+                model: "mixtral-8x7b-instruct".to_string(),
                 instructions: Some(
                     "You are a personal math tutor. Write and run code to answer math questions."
                         .to_string(),
@@ -827,7 +827,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "claude-2.1".to_string(),
+                    model: "mixtral-8x7b-instruct".to_string(),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),
@@ -899,7 +899,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "claude-2.1".to_string(),
+                    model: "mixtral-8x7b-instruct".to_string(),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),
@@ -968,7 +968,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model: "mixtral-8x7b-instruct".to_string(),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),

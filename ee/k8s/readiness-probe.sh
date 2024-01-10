@@ -9,7 +9,7 @@ ASSISTANT_RESPONSE=$(curl -s -X POST $URL/assistants \
     "instructions": "You are a personal math tutor. Write and run code to answer math questions.",
     "name": "Math Tutor",
     "tools": [{"type": "retrieval"}],
-    "model": "claude-2.1"
+    "model": "mixtral-8x7b-instruct"
 }')
 
 ASSISTANT_ID=$(echo $ASSISTANT_RESPONSE | jq -r '.id')

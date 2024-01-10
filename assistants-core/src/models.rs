@@ -84,7 +84,7 @@ impl From<assistants_core::models::Message> for async_openai::types::MessageObje
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Copy)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Run {
     pub inner: RunObject,
     pub user_id: String,
@@ -139,7 +139,7 @@ impl Default for Assistant {
                 created_at: 0,
                 name: None,
                 description: None,
-                model: "claude-2.1".to_string(), // TODO everything should default to open source llm in the future when the repo is more stable
+                model: "mixtral-8x7b-instruct".to_string(), // TODO everything should default to open source llm in the future when the repo is more stable
                 instructions: Some("You are a helpful assistant.".to_string()),
                 tools: Vec::new(),
                 file_ids: Vec::new(),
@@ -229,6 +229,7 @@ pub enum LLMActionType {
     CodeInterpreter,
     #[serde(rename = "retrieval")]
     Retrieval,
+    Unknown,
     // Add additional action types as needed
 }
 

@@ -217,7 +217,7 @@ mod tests {
         let assistant_input = json!({
             "instructions": "Hello, World!",
             "name": "Test Assistant",
-            "model": "gpt-3.5-turbo-1106",
+            "model": "mixtral-8x7b-instruct",
             "metadata": {
                 "key1": "value1",
                 "key2": "value2",

@@ -178,7 +178,7 @@ fn app(app_state: AppState) -> Router {
         // .route("/threads/:thread_id/runs/:run_id/steps", get(list_run_steps_handler))
         // https://platform.openai.com/docs/api-reference/files
         .route("/files", post(upload_file_handler))
-        .route("/chat/completions", post(chat_handler))
+        // .route("/chat/completions", post(chat_handler))
         .route("/health", get(health_handler)) // new health check route
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024)) // 250mb
@@ -1152,7 +1152,7 @@ mod tests {
             tools: Some(vec![AssistantTools::Retrieval(AssistantToolsRetrieval {
                 r#type: "retrieval".to_string(),
             })]),
-            model: "claude-2.1".to_string(),
+            model: "mixtral-8x7b-instruct".to_string(),
             file_ids: Some(vec![file_id]), // Associate the uploaded file with the assistant
             description: None,
             metadata: None,
@@ -1808,7 +1808,7 @@ mod tests {
                     "type": "retrieval"
                 }
             ],
-            "model": "claude-2.1",
+            "model": "mixtral-8x7b-instruct",
             "file_ids": [file_id], // Associate the uploaded file with the assistant
         });
         let response = app
@@ -2057,7 +2057,7 @@ mod tests {
                     "type": "code_interpreter"
                 }
             ],
-            "model": "mistralai/mixtral-8x7b-instruct",
+            "model": "mixtral-8x7b-instruct",
             "file_ids": [file_id]
         });
 
@@ -2263,7 +2263,7 @@ mod tests {
                     }),
                 },
             })]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: "mixtral-8x7b-instruct".to_string(),
             file_ids: None,
             description: None,
             metadata: None,
@@ -2282,7 +2282,7 @@ mod tests {
                     }),
                 },
             })]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: "mixtral-8x7b-instruct".to_string(),
             file_ids: None,
             description: None,
             metadata: None,

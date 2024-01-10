@@ -413,7 +413,7 @@ mod tests {
                 tools: vec![AssistantTools::Code(AssistantToolsCode {
                     r#type: "code_interpreter".to_string(),
                 })],
-                model: "claude-2.1".to_string(),
+                model: "mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -450,7 +450,7 @@ mod tests {
                         r#type: "retrieval".to_string(),
                     }),
                 ],
-                model: "claude-2.1".to_string(),
+                model: "mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -494,7 +494,7 @@ mod tests {
             }
             _ => panic!("Wrong type"),
         }
-        assert_eq!(assistant.inner.model, "claude-2.1".to_string());
+        assert_eq!(assistant.inner.model, "mixtral-8x7b-instruct".to_string());
         assert_eq!(assistant.inner.file_ids.len(), 0);
     }
 }
