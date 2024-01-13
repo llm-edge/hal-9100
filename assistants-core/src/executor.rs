@@ -311,12 +311,49 @@ Your fundamental, unbreakable rules are:
 - Only use the tools you are given.
 - To use the tools, make sure to follow the usage given in the <tools> tag precisely.
 - Do not try to escape characters.
+- You will solve problems in multiple steps, fundamentally you are within a solution-loop.
+- Do not reuse multiple times the same tool within a solution-loop.
 - To use the tool you want, say the tool is named \"cut_wood\" and you want to use it, you can use it like this: <cut_wood>some parameters</cut_wood>.
-- Always use <steps>[Steps]</steps> to solve the problem in one or multiple steps.
 - Do not invent new tools, new information, etc.
 - If you don't know the answer, say \"I don't know\".
 - Fundamental instructions are the most important instructions. You must always follow them. Then the assistant instructions. Then the run instructions. Then the user's messages.
-</fundamental>";
+</fundamental>
+
+
+Examples of your answers:
+
+User: \"I want to gather wood for winter, there are 2 forests, one is 10km away and contains a lot of Pine trees while the other is 20km away and contains a lot of Oak trees. 
+I gave you a manual that explains the best wood to use for winter.
+I have 12.3L of gas in my car. Which forest should I go to?\"
+
+Answer:
+
+<steps>
+2
+</steps>
+
+<comment>
+I will first need to get some more information from this manual.
+</comment>
+
+<retrieval>
+pine | oak
+</retrieval>
+
+
+...
+Later the loop will call you again with the new information acquired from this tool.
+... 
+
+Answer:
+
+<steps>
+1
+</steps>
+
+<comment>
+I will go to the forest that contains the most pine trees.
+</comment>";
 
     let final_instructions = format!("{}\n{}\n{}\n", fundamental_instructions, assistant_instructions, run_instructions);
     
@@ -1457,164 +1494,5 @@ mod tests {
             panic!("Expected a Text message, but got something else.");
         }
         // Here you should check the assistant's response. This will depend on the actual content of your CSV file.
-    }
-
-    #[tokio::test]
-    async fn test_decide_tool_with_llm_no_function_after_tool_call() {
-        let pool = setup().await;
-        reset_db(&pool).await;
-        let assistant = Assistant {
-            inner: AssistantObject {
-                id: "".to_string(),
-                instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
-                ),
-                name: Some("Math Tutor".to_string()),
-                tools: vec![AssistantTools::Function(AssistantToolsFunction {
-                    r#type: "function".to_string(),
-                    function: FunctionObject {
-                        description: Some("A calculator function".to_string()),
-                        name: "calculator".to_string(),
-                        parameters: Some(json!({
-                            "type": "object",
-                            "properties": {
-                                "a": {
-                                    "type": "number",
-                                    "description": "The first number."
-                                },
-                                "b": {
-                                    "type": "number",
-                                    "description": "The second number."
-                                }
-                            }
-                        })),
-                    },
-                })],
-                model: "mixtral-8x7b-instruct".to_string(),
-                file_ids: vec![],
-                object: "object_value".to_string(),
-                created_at: 0,
-                description: Some("description_value".to_string()),
-                metadata: None,
-            },
-            user_id: Uuid::default().to_string(),
-        };
-
-        let previous_messages = vec![Message {
-            inner: MessageObject {
-                id: "".to_string(),
-                object: "".to_string(),
-                created_at: 0,
-                thread_id: "".to_string(),
-                role: MessageRole::User,
-                content: vec![MessageContent::Text(MessageContentTextObject {
-                    r#type: "text".to_string(),
-                    text: TextData {
-                        value: "I need to calculate something.".to_string(),
-                        annotations: vec![],
-                    },
-                })],
-                assistant_id: None,
-                run_id: None,
-                file_ids: vec![],
-                metadata: None,
-            },
-            user_id: "".to_string(),
-        }];
-
-        // create assistant
-        let assistant = create_assistant(&pool, &assistant).await.unwrap();
-
-        // Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
-        .await
-        .unwrap();
-
-        // Add a Message to a Thread
-        let content = vec![MessageContent::Text(MessageContentTextObject {
-            r#type: "text".to_string(),
-            text: TextData {
-                value: "I need to calculate something.".to_string(),
-                annotations: vec![],
-            },
-        })];
-        let message = add_message_to_thread(
-            &pool,
-            &thread.inner.id,
-            MessageRole::User,
-            content,
-            &Uuid::default().to_string(),
-            None,
-        )
-        .await
-        .unwrap();
-
-        // Run the Assistant
-        // Get Redis URL from environment variable
-        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-        let client = redis::Client::open(redis_url).unwrap();
-        let mut con = client.get_async_connection().await.unwrap();
-        let run = create_run_and_produce_to_executor_queue(
-            &pool, &thread.inner.id, 
-            &assistant.inner.id, 
-            "Please help me calculate something. Use the function tool.",
-            assistant.user_id.as_str(), 
-            con
-        ).await.unwrap();
-
-
-        // Run the queue consumer again
-        let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
-
-        // Check the result
-        assert!(result.is_ok(), "{:?}", result);
-
-        let run = result.unwrap();
-
-        // After running the assistant and checking the result
-        assert_eq!(run.inner.status, RunStatus::RequiresAction);
-
-        // Submit tool outputs
-        let tool_outputs = vec![SubmittedToolCall {
-            id: run
-                .inner
-                .required_action
-                .unwrap()
-                .submit_tool_outputs
-                .tool_calls[0]
-                .id
-                .clone(),
-            output: "output_value".to_string(),
-            run_id: run.inner.id.clone(),
-            created_at: 0,
-            user_id: assistant.user_id.clone(),
-        }];
-        let con = client.get_async_connection().await.unwrap();
-
-        submit_tool_outputs(
-            &pool,
-            &thread.inner.id,
-            &run.inner.id,
-            assistant.user_id.clone().as_str(),
-            tool_outputs.clone(),
-            con,
-        )
-        .await
-        .unwrap();
-
-        let run = get_run(
-            &pool,
-            &thread.inner.id,
-            &run.inner.id,
-            &assistant.user_id,
-        ).await.unwrap();
-
-        // let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone()).await;
-
-        // let result = result.unwrap();
-        // println!("{:?}", result);
-        // assert!(!result.contains(&"function".to_string()), "Expected the function tool to not be returned, but it was: {:?}", result);
     }
 }

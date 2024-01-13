@@ -163,6 +163,7 @@ impl TagStream {
             match result {
                 Ok(response) => {
                     let first_choice = response.choices.first().unwrap();
+                    println!("first_choice: {:?}", first_choice);
 
                     if let Some(content) = &first_choice.delta.content {
                         self.buffer.push_str(&content);
@@ -189,6 +190,10 @@ impl TagStream {
                 Err(e) => {
                     println!("Error: {}", e);
                     error!("Error while streaming LLM: {}", e);
+                    // TODO: if error is "stream ended" it seems ok - problem with async-openai not dealing well w open source llm
+                    if e.to_string().contains("Stream ended") {
+                        return Ok(None);
+                    }
                     // Return the error to the caller
                     return Err(e);
                 }
@@ -200,33 +205,44 @@ impl TagStream {
 
     // Extract a complete tag from the buffer
     fn extract_complete_tag(&mut self) -> Option<(String, String)> {
-        if let Ok(doc) = Document::parse(&self.buffer) {
-            if let Some(first_element) = doc.root().first_element_child() {
-                let tag_name = first_element.tag_name().name().to_string();
+        // Check if the buffer contains a complete XML tag
+        if let Some(start) = self.buffer.find('<') {
+            if let Some(end) = self.buffer.rfind('>') {
+                if end > start {
+                    // Extract the complete XML tag from the buffer
+                    let xml_tag = &self.buffer[start..=end];
 
-                // Serialize the subtree of the element to include nested tags
-                let tag_content = first_element
-                    .descendants()
-                    .filter_map(|n| {
-                        if n.is_text() && n.parent().unwrap().eq(&first_element) {
-                            Some(n.text().unwrap_or_default())
-                        } else if n.is_element() && n != first_element {
-                            // Serialize the element and its descendants
-                            let range = n.range();
-                            Some(&self.buffer[range])
-                        } else {
-                            None
+                    // Parse the XML tag
+                    if let Ok(doc) = Document::parse(xml_tag) {
+                        if let Some(first_element) = doc.root().first_element_child() {
+                            let tag_name = first_element.tag_name().name().to_string();
+
+                            // Serialize the subtree of the element to include nested tags
+                            let tag_content = first_element
+                                .descendants()
+                                .filter_map(|n| {
+                                    if n.is_text() && n.parent().unwrap().eq(&first_element) {
+                                        Some(n.text().unwrap_or_default())
+                                    } else if n.is_element() && n != first_element {
+                                        // Serialize the element and its descendants
+                                        let range = n.range();
+                                        Some(&self.buffer[range])
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect::<String>();
+
+                            // Calculate the length of the matched element to remove it from the buffer
+                            let matched_element_length = first_element.range().end;
+
+                            // Remove the processed tag from the buffer
+                            self.buffer.drain(start..start + matched_element_length);
+
+                            return Some((tag_name, tag_content));
                         }
-                    })
-                    .collect::<String>();
-
-                // Calculate the length of the matched element to remove it from the buffer
-                let matched_element_length = first_element.range().end;
-
-                // Remove the processed tag from the buffer
-                self.buffer.drain(..matched_element_length);
-
-                return Some((tag_name, tag_content));
+                    }
+                }
             }
         }
         None
