@@ -91,7 +91,8 @@ pub fn build_instructions(
     let retrieval_chunks_part = format!("<chunk>\n{:?}\n</chunk>\n", retrieval_chunks);
     let tools_part = format!("<tools>\n{:?}\n</tools>\n", tools);
     let tool_calls_part = format!("<tool_calls>\n{}\n</tool_calls>\n", tool_calls);
-    let code_output_part = match code_output { // TODO: maybe different tag
+    let code_output_part = match code_output {
+        // TODO: maybe different tag
         Some(output) => format!("<math_solution>\n{}\n</math_solution>\n", output),
         None => String::new(),
     };
@@ -166,33 +167,23 @@ impl TagStream {
                     if let Some(content) = &first_choice.delta.content {
                         self.buffer.push_str(&content);
                     }
-                    if first_choice.finish_reason == Some(FinishReason::Stop) {
-                        // If there's a stop reason, return the content in the buffer
-                        let content = self.buffer.clone();
-                        self.buffer.clear();
-                        return Ok(Some((
-                            "end_of_message".to_string(),
-                            content,
-                            self.full_output.clone(),
-                        )));
-                    }
-
-                    if first_choice.finish_reason == Some(FinishReason::Length) {
-                        // If there's a stop reason, return the content in the buffer
-                        let content = self.buffer.clone();
-                        self.buffer.clear();
-                        return Ok(Some((
-                            "end_of_message".to_string(),
-                            content,
-                            self.full_output.clone(),
-                        )));
-                    }
-
                     if let Some((tag, content)) = self.extract_complete_tag() {
                         // append buffer to full_output
                         self.full_output = format!("{}{}", self.full_output, self.buffer);
                         self.buffer.clear();
                         return Ok(Some((tag, content, self.full_output.clone())));
+                    }
+                    if first_choice.finish_reason == Some(FinishReason::Stop)
+                        || first_choice.finish_reason == Some(FinishReason::Length)
+                    {
+                        // If there's a stop reason, return the content in the buffer
+                        let content = self.buffer.clone();
+                        self.buffer.clear();
+                        return Ok(Some((
+                            "end_of_message".to_string(),
+                            content,
+                            self.full_output.clone(),
+                        )));
                     }
                 }
                 Err(e) => {
@@ -253,7 +244,7 @@ mod tests {
         config::OpenAIConfig,
         error::OpenAIError,
         types::{
-            ChatCompletionRequestUserMessageArgs, ChatCompletionResponseStreamMessage,
+            ChatChoiceStream, ChatCompletionRequestUserMessageArgs,
             ChatCompletionStreamResponseDelta, CreateChatCompletionRequestArgs,
             CreateChatCompletionStreamResponse, FinishReason,
         },
@@ -278,7 +269,7 @@ mod tests {
         ];
         let tool_calls = "<tool_call>\n{\"tool\": \"code_interpreter\", \"action\": \"run\", \"args\": {\"code\": \"x^2 + 5x + 6 = 0\", \"language\": \"python\"}}\n</tool_call>\n";
         let code_output = Some("The solutions are (-2+0j) and (-3+0j)");
-        let context_size = 200; // Set a realistic context size
+        let context_size = 250; // Set a realistic context size
         let retrieval_chunks = vec![
             "Here's a chunk of text retrieved from a large document...".to_string(),
             "And here's another chunk of text...".to_string(),
@@ -348,11 +339,11 @@ mod tests {
         let responses = vec![
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: None,
                     delta: ChatCompletionStreamResponseDelta {
@@ -361,15 +352,16 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: None,
                     delta: ChatCompletionStreamResponseDelta {
@@ -378,15 +370,16 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: None,
                     delta: ChatCompletionStreamResponseDelta {
@@ -395,15 +388,16 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: None,
                     delta: ChatCompletionStreamResponseDelta {
@@ -412,15 +406,16 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: None,
                     delta: ChatCompletionStreamResponseDelta {
@@ -429,16 +424,17 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             // This response simulates the end of the stream without a closing tag
             Ok(CreateChatCompletionStreamResponse {
                 id: "1".to_string(),
-                created: 1234567890,
+                created: Some(1234567890),
                 model: "model_name".to_string(),
                 system_fingerprint: Some("fingerprint".to_string()),
-                object: "object_type".to_string(),
-                choices: vec![ChatCompletionResponseStreamMessage {
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
                     index: 0,
                     finish_reason: Some(FinishReason::Length),
                     delta: ChatCompletionStreamResponseDelta {
@@ -447,6 +443,7 @@ mod tests {
                         role: None,
                         tool_calls: None,
                     },
+                    logprobs: None,
                 }],
             }),
             // Add more responses to simulate different scenarios
@@ -534,6 +531,68 @@ mod tests {
                 content
             );
             // Add more specific assertions as needed
+        }
+    }
+
+    #[tokio::test]
+    async fn test_tag_stream_with_function_calling_and_stop() {
+        // Create a mock stream of responses
+        let responses = vec![
+            Ok(CreateChatCompletionStreamResponse {
+                id: "1".to_string(),
+                created: Some(1234567890),
+                model: "model_name".to_string(),
+                system_fingerprint: Some("fingerprint".to_string()),
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
+                    index: 0,
+                    finish_reason: None,
+                    delta: ChatCompletionStreamResponseDelta {
+                        content: Some("To answer your weather question, you need to provide a function call with the appropriate weather-related function and parameters. For example:\n\n{\"function\": {\"description\": \"Get the current weather for a city\", \"name\": \"getCurrentWeather\", \"parameters\": { \"properties\": { \"location\": { \"description\": \"The city and state e.g. San Francisco, CA\", \"type\": \"string\" }, \"unit\": { \"type\": \"string\" } }, \"required\": [ \"location\" ], \"type\": \"object\" }}, \"user_context\": \"Give me the weather report for San Francisco, California.\"}\n\nThen, your response should look like this: <function_calling>{ \\\"name\\\": \\\"getCurrentWeather\\\", \\\"arguments\\\": { \\\"location\\\": \\\"San Francisco, California\\\", \\\"unit\\\": \\\"preferred\\\" } }</function_calling>\n\nThis will return the current weather for San Francisco, California in your preferred unit.".to_string()),
+                        function_call: None,
+                        role: None,
+                        tool_calls: None,
+                    },
+                    logprobs: None,
+                }],
+            }),
+            Ok(CreateChatCompletionStreamResponse {
+                id: "1".to_string(),
+                created: Some(1234567890),
+                model: "model_name".to_string(),
+                system_fingerprint: Some("fingerprint".to_string()),
+                object: Some("object_type".to_string()),
+                choices: vec![ChatChoiceStream {
+                    index: 0,
+                    finish_reason: Some(FinishReason::Stop),
+                    delta: ChatCompletionStreamResponseDelta {
+                        content: None,
+                        function_call: None,
+                        role: None,
+                        tool_calls: None,
+                    },
+                    logprobs: None,
+                }],
+            }),
+        ];
+
+        let stream = mock_stream(responses);
+        let mut tag_stream = TagStream::new(stream);
+
+        // Test for the function_calling tag
+        if let Ok(Some((tag, content, _))) = tag_stream.next_tag().await {
+            assert_eq!(tag, "function_calling");
+            assert_eq!(content, "{ \\\"name\\\": \\\"getCurrentWeather\\\", \\\"arguments\\\": { \\\"location\\\": \\\"San Francisco, California\\\", \\\"unit\\\": \\\"preferred\\\" } }");
+        } else {
+            panic!("Failed to extract function_calling tag");
+        }
+
+        // Test for the end of the message
+        if let Ok(Some((tag, content, _))) = tag_stream.next_tag().await {
+            assert_eq!(tag, "end_of_message");
+            assert_eq!(content, "");
+        } else {
+            panic!("Failed to extract end of message");
         }
     }
 }

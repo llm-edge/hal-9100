@@ -102,13 +102,15 @@ const openai = new OpenAI({
     baseURL: 'http://localhost:3000',
     apiKey: 'EMPTY',
 });
+
+let assistantId, threadId, runId, toolCallId;
 ```
 
 ```ts
 async function createAssistant() {
     const assistant = await openai.beta.assistants.create({
         instructions: "You are a weather bot. Use the provided functions to answer questions.",
-        model: "Intel/neural-chat-7b-v3-2",
+        model: "neural-chat-7b-v3-2",
         name: "Weather Bot",
         tools: [{
             "type": "function",
@@ -126,6 +128,7 @@ async function createAssistant() {
             }
         }]
     });
+    assistantId = assistant.id;
     console.log(JSON.stringify(assistant, null, 2));
 }
 createAssistant();
@@ -176,6 +179,7 @@ createAssistant();
 ```ts
 async function createThread() {
     const thread = await openai.beta.threads.create();
+    threadId = thread.id;
     console.log(JSON.stringify(thread, null, 2));
 }
 createThread();
@@ -195,7 +199,7 @@ createThread();
 ```ts
 async function createMessage() {
     const message = await openai.beta.threads.messages.create(
-        "f74681b8-2371-4db1-946f-3efb070f0b19",
+        threadId,
         {
             role: "user",
             content: "What's the weather in San Francisco?"
@@ -234,12 +238,13 @@ createMessage();
 ```ts
 async function createRun() {
     const run = await openai.beta.threads.runs.create(
-        "f74681b8-2371-4db1-946f-3efb070f0b19",
+        threadId,
     { 
-        assistant_id: "75ce7666-7560-4bb2-8358-48107d94183a",
+        assistant_id: assistantId,
         instructions: "You are a weather bot. Use the provided functions to answer questions."
     }
     );
+    runId = run.id;
     console.log(JSON.stringify(run, null, 2));
 }
 createRun();
@@ -273,9 +278,10 @@ createRun();
 ```ts
 async function getRun() {
     const run = await openai.beta.threads.runs.retrieve(
-        "f74681b8-2371-4db1-946f-3efb070f0b19",
-        "3933cbe4-5c26-4f93-b2d8-f03dabc055f2"
+        threadId,
+        runId
     );
+    toolCallId = run?.required_action?.submit_tool_outputs?.tool_calls?.[0]?.id;
     console.log(JSON.stringify(run, null, 2));
 }
 getRun();
@@ -336,12 +342,12 @@ Good. So it seems the weather in San Francisco is 68F. Let's tell the LLM about 
 ```ts
 async function submitToolOutputs() {
     const run = await openai.beta.threads.runs.submitToolOutputs(
-        "f74681b8-2371-4db1-946f-3efb070f0b19",
-        "3933cbe4-5c26-4f93-b2d8-f03dabc055f2",
+        threadId,
+        runId,
         {
             tool_outputs: [
                 {
-                    tool_call_id: "9cb246b2-061c-46a4-aa34-80e7587c81c4",
+                    tool_call_id: toolCallId,
                     output: "{\"temperature\": 68, \"unit\": \"F\"}"
                 }
             ]
@@ -397,7 +403,7 @@ Now the LLM knows about the weather in San Francisco, and can answer questions a
 ```ts
 async function getMessages() {
     const messages = await openai.beta.threads.messages.list(
-        "f74681b8-2371-4db1-946f-3efb070f0b19"
+        threadId
     );
     console.log(JSON.stringify(messages, null, 2));
 }

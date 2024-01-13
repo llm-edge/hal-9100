@@ -2,7 +2,6 @@ use assistants_api_communication::assistants::{
     create_assistant_handler, delete_assistant_handler, get_assistant_handler,
     list_assistants_handler, update_assistant_handler,
 };
-use assistants_api_communication::chat::chat_handler;
 use assistants_api_communication::files::upload_file_handler;
 use assistants_api_communication::messages::{
     add_message_handler, delete_message_handler, get_message_handler, list_messages_handler,
@@ -209,9 +208,9 @@ mod tests {
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, CreateAssistantRequest,
-        CreateMessageRequest, ListMessagesResponse, MessageContent, MessageObject, MessageRole,
-        ModifyAssistantRequest, ModifyMessageRequest, ModifyThreadRequest, RunObject, RunStatus,
-        ThreadObject,
+        CreateMessageRequest, FunctionObject, ListMessagesResponse, MessageContent, MessageObject,
+        MessageRole, ModifyAssistantRequest, ModifyMessageRequest, ModifyThreadRequest, RunObject,
+        RunStatus, ThreadObject,
     };
     use axum::{
         body::Body,
@@ -405,7 +404,7 @@ mod tests {
             tools: Some(vec![AssistantTools::Code(AssistantToolsCode {
                 r#type: "code_interpreter".to_string(),
             })]),
-            model: "updated test".to_string(),
+            model: Some("updated test".to_string()),
             file_ids: None,
             description: None,
             metadata: None,
@@ -2255,12 +2254,12 @@ mod tests {
             name: Some("Test".to_string()),
             tools: Some(vec![AssistantTools::Function(AssistantToolsFunction {
                 r#type: "function".to_string(),
-                function: ChatCompletionFunctions {
+                function: FunctionObject {
                     description: Some("A test function.".to_string()),
                     name: "test_a".to_string(),
-                    parameters: json!({
+                    parameters: Some(json!({
                         "type": "object",
-                    }),
+                    })),
                 },
             })]),
             model: "mixtral-8x7b-instruct".to_string(),
@@ -2274,12 +2273,12 @@ mod tests {
             name: Some("Test".to_string()),
             tools: Some(vec![AssistantTools::Function(AssistantToolsFunction {
                 r#type: "function".to_string(),
-                function: ChatCompletionFunctions {
+                function: FunctionObject {
                     description: Some("A test function.".to_string()),
                     name: "test_b".to_string(),
-                    parameters: json!({
+                    parameters: Some(json!({
                         "type": "object",
-                    }),
+                    })),
                 },
             })]),
             model: "mixtral-8x7b-instruct".to_string(),

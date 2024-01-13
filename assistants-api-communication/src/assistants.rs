@@ -6,7 +6,6 @@ use assistants_core::models::Assistant;
 use async_openai::types::{
     AssistantObject, CreateAssistantRequest, DeleteAssistantResponse, ModifyAssistantRequest,
 };
-use std::collections::HashMap;
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -14,6 +13,7 @@ use axum::{
 };
 use serde_json::Value;
 use sqlx::types::Uuid;
+use std::collections::HashMap;
 
 pub async fn create_assistant_handler(
     State(app_state): State<AppState>,
@@ -103,7 +103,7 @@ pub async fn update_assistant_handler(
                     .tools
                     .map(|tools| tools.into_iter().map(|tool| tool.into()).collect())
                     .unwrap_or(vec![]),
-                model: assistant.model,
+                model: assistant.model.unwrap(),
                 metadata: if let Some(object) = &assistant.metadata {
                     let mut temp_map = HashMap::new();
                     for (k, v) in object {
@@ -213,7 +213,7 @@ mod tests {
     async fn test_create_assistant_with_metadata() {
         let app_state = setup().await;
         let app = app(app_state);
-        
+
         let assistant_input = json!({
             "instructions": "Hello, World!",
             "name": "Test Assistant",
@@ -236,14 +236,18 @@ mod tests {
         let assistant = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
         let metadata = assistant.metadata.unwrap();
-        assert_eq!(metadata["key1"], Value::String("value1".to_string()), "metadata key1 comparison {:?}", metadata["key1"]);
+        assert_eq!(
+            metadata["key1"],
+            Value::String("value1".to_string()),
+            "metadata key1 comparison {:?}",
+            metadata["key1"]
+        );
     }
     #[tokio::test]
     async fn test_update_assistant() {
         let app_state = setup().await;
         let app = app(app_state);
-        
-        
+
         let create_assistant_input = json!({
             "instructions": "Hello, World!",
             "name": "Test Assistant",
@@ -262,7 +266,9 @@ mod tests {
 
         let create_response = app.clone().oneshot(create_request).await.unwrap();
 
-        let create_assistant = hyper::body::to_bytes(create_response.into_body()).await.unwrap();
+        let create_assistant = hyper::body::to_bytes(create_response.into_body())
+            .await
+            .unwrap();
         let create_assistant: AssistantObject = serde_json::from_slice(&create_assistant).unwrap();
         let create_assistant_id = create_assistant.id;
 
@@ -282,12 +288,22 @@ mod tests {
             .unwrap();
         let update_response = app.clone().oneshot(update_request).await.unwrap();
 
-        let assistant = hyper::body::to_bytes(update_response.into_body()).await.unwrap();
+        let assistant = hyper::body::to_bytes(update_response.into_body())
+            .await
+            .unwrap();
         let assistant: AssistantObject = serde_json::from_slice(&assistant).unwrap();
         let metadata = assistant.metadata.unwrap();
         let instructions = assistant.instructions.unwrap();
-        
-        assert_eq!(instructions, create_assistant_input["instructions"], "instructions comparison {:?}", instructions);
-        assert_eq!(metadata["key3"], "value3", "metadata key3 comparison {:?}", metadata["key3"]);
+
+        assert_eq!(
+            instructions, create_assistant_input["instructions"],
+            "instructions comparison {:?}",
+            instructions
+        );
+        assert_eq!(
+            metadata["key3"], "value3",
+            "metadata key3 comparison {:?}",
+            metadata["key3"]
+        );
     }
 }

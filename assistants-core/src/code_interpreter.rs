@@ -4,6 +4,7 @@
 
 // docker run --rm code-interpreter python -c "print(1+1)"
 
+use async_openai::types::FunctionObject;
 use async_recursion::async_recursion;
 
 use assistants_core::function_calling::generate_function_call;
@@ -175,10 +176,10 @@ So generate the Python code that we will execute that can help the user with his
         function: Function {
             assistant_id: Uuid::default().to_string(), // ! ??
             user_id: Uuid::default().to_string(),
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: "exec".to_string(),
                 description: Some("A function that executes Python code".to_string()),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["code"],
                     "properties": {
@@ -187,7 +188,7 @@ So generate the Python code that we will execute that can help the user with his
                             "description": "The Python code to execute"
                         }
                     }
-                }),
+                })),
             },
         },
         user_context: build_prompt(&user_input),

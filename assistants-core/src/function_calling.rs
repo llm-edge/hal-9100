@@ -2,6 +2,7 @@ use assistants_core::models::Function;
 use assistants_extra::llm::llm;
 use async_openai::types::ChatCompletionFunctions;
 use async_openai::types::FunctionCall;
+use async_openai::types::FunctionObject;
 use log::error;
 use log::info;
 use serde_json::json;
@@ -264,10 +265,10 @@ pub async fn create_function_call(
     for row in rows {
         let input = FunctionCallInput {
             function: Function {
-                inner: ChatCompletionFunctions {
+                inner: FunctionObject {
                     name: row.name.unwrap_or_default(),
                     description: row.description,
-                    parameters: serde_json::from_value(row.parameters.unwrap_or_default())?,
+                    parameters: Some(serde_json::from_value(row.parameters.unwrap_or_default())?),
                 },
                 assistant_id: assistant_id.to_string(),
                 user_id: user_id.to_string(),
@@ -347,10 +348,10 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["city"],
                     "properties": {
@@ -360,7 +361,7 @@ mod tests {
                             "enum": null
                         }
                     }
-                }),
+                })),
             },
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
@@ -445,10 +446,10 @@ mod tests {
         let weather_function = Function {
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["city"],
                     "properties": {
@@ -458,7 +459,7 @@ mod tests {
                             "enum": null
                         }
                     }
-                }),
+                })),
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -543,10 +544,10 @@ mod tests {
         let weather_function = Function {
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["city"],
                     "properties": {
@@ -556,7 +557,7 @@ mod tests {
                             "enum": null
                         }
                     }
-                }),
+                })),
             },
         };
         register_function(&pool, weather_function).await.unwrap();
@@ -630,10 +631,10 @@ mod tests {
         let function = Function {
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["city"],
                     "properties": {
@@ -643,7 +644,7 @@ mod tests {
                             "enum": null
                         }
                     }
-                }),
+                })),
             },
         };
 
@@ -714,10 +715,10 @@ mod tests {
         let function = Function {
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
-            inner: ChatCompletionFunctions {
+            inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
-                parameters: json!({
+                parameters: Some(json!({
                     "type": "object",
                     "required": ["city"],
                     "properties": {
@@ -727,7 +728,7 @@ mod tests {
                             "enum": null
                         }
                     }
-                }),
+                })),
             },
         };
 
