@@ -1,7 +1,7 @@
 use assistants_extra::anthropic;
 use async_openai::types::{
     AssistantObject, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, RunStatus,
-    ThreadObject,
+    ThreadObject, FunctionObject,
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
@@ -162,7 +162,7 @@ pub struct SubmittedToolCall {
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Function {
-    pub inner: ChatCompletionFunctions,
+    pub inner: FunctionObject,
     pub assistant_id: String,
     pub user_id: String,
 }

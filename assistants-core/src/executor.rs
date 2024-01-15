@@ -54,7 +54,7 @@ pub async fn decide_tool_with_llm(
     let system_prompt = "You are an assistant that decides which tool to use based on a list of tools to solve the user problem.
 
 Rules:
-- You only return one of the tools like \"<retrieval>\" or \"<function>\" or \"<code_interpreter>\" or multiple of them
+- You only return one of the tools like \"<retrieval>\" or \"<function>\" or \"<code_interpreter>\" or \"<action>\" or multiple of them
 - Do not return \"tools\"
 - If you do not have any tools to use, return nothing
 - Feel free to use MORE tools rather than LESS
@@ -142,7 +142,13 @@ Your answer will be used to use the tool so it must be very concise and make sur
                             "description": e.function.description,
                             "arguments": e.function.parameters,
                         }
-                    })
+                    }),
+                    AssistantTools::Extra(e) =>
+                    json!({
+                        "name": "action",
+                        "description": "Useful to make HTTP requests to the user's APIs, which would provide you later some additional context about the user's problem. You can also use this to perform actions to help the user.",
+                        "data": e.data,
+                    }),
             }).unwrap()
         })
         .collect::<Vec<String>>();
@@ -810,13 +816,14 @@ mod tests {
     use assistants_core::runs::{get_run, create_run_and_produce_to_executor_queue};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
-        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject,
+        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra,
     };
     use serde_json::json;
     use sqlx::types::Uuid;
 
     use crate::models::SubmittedToolCall;
     use crate::runs::{create_run, submit_tool_outputs};
+    use crate::test_data::OPENAPI_SPEC;
 
     use super::*;
     use dotenv::dotenv;
@@ -991,10 +998,10 @@ mod tests {
     #[tokio::test]
     async fn test_decide_tool_with_llm_anthropic() {
         setup().await;
-        let mut functions = ChatCompletionFunctions {
+        let mut functions = FunctionObject {
             description: Some("A calculator function".to_string()),
             name: "calculator".to_string(),
-            parameters: json!({
+            parameters: Some(json!({
                 "type": "object",
                 "properties": {
                     "a": {
@@ -1006,7 +1013,7 @@ mod tests {
                         "description": "The second number."
                     }
                 }
-            }),
+            })),
         };
 
         let assistant = Assistant {
@@ -1118,10 +1125,10 @@ mod tests {
     #[tokio::test]
     async fn test_decide_tool_with_llm_open_source() {
         setup().await;
-        let mut functions = ChatCompletionFunctions {
+        let mut functions = FunctionObject {
             description: Some("A calculator function".to_string()),
             name: "calculator".to_string(),
-            parameters: json!({
+            parameters: Some(json!({
                 "type": "object",
                 "properties": {
                     "a": {
@@ -1133,7 +1140,7 @@ mod tests {
                         "description": "The second number."
                     }
                 }
-            }),
+            })),
         };
         let assistant = Assistant {
             inner: AssistantObject {
@@ -1217,12 +1224,12 @@ mod tests {
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
                         r#type: "function".to_string(),
-                        function: ChatCompletionFunctions {
+                        function: FunctionObject {
                             description: Some("A function that finds the favourite number of bob.".to_string()),
                             name: "determine_number".to_string(),
-                            parameters: json!({
+                            parameters: Some(json!({
                                 "type": "object",
-                            }),
+                            })),
                         },
                     }),
                     AssistantTools::Retrieval(AssistantToolsRetrieval {
@@ -1619,10 +1626,10 @@ mod tests {
                 name: Some("Math Tutor".to_string()),
                 tools: vec![AssistantTools::Function(AssistantToolsFunction {
                     r#type: "function".to_string(),
-                    function: ChatCompletionFunctions {
+                    function: FunctionObject {
                         description: Some("A calculator function".to_string()),
                         name: "calculator".to_string(),
-                        parameters: json!({
+                        parameters: Some(json!({
                             "type": "object",
                             "properties": {
                                 "a": {
@@ -1634,7 +1641,7 @@ mod tests {
                                     "description": "The second number."
                                 }
                             }
-                        }),
+                        })),
                     },
                 })],
                 model: "mistralai/mixtral-8x7b-instruct".to_string(),
@@ -1762,5 +1769,163 @@ mod tests {
         let result = result.unwrap();
         println!("{:?}", result);
         assert!(!result.contains(&"function".to_string()), "Expected the function tool to not be returned, but it was: {:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_decide_tool_with_llm_action() {
+        // Setup
+        let pool = setup().await;
+
+        // Create an assistant with "action" tool
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal assistant. Use the MediaWiki API to fetch random facts."
+                        .to_string(),
+                ),
+                name: Some("Fact Fetcher".to_string()),
+                tools: vec![AssistantTools::Extra(AssistantToolsExtra {
+                    r#type: "action".to_string(),
+                    data: Some(serde_json::from_value(json!({"openapi_spec": OPENAPI_SPEC.to_string(),
+            })).unwrap())})],
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        // Create a set of previous messages
+        let previous_messages = vec![Message {
+            inner: MessageObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                thread_id: "".to_string(),
+                role: MessageRole::User,
+                content: vec![MessageContent::Text(MessageContentTextObject {
+                    r#type: "text".to_string(),
+                    text: TextData {
+                        value: "Give me a random fact.".to_string(),
+                        annotations: vec![],
+                    },
+                })],
+                assistant_id: None,
+                run_id: None,
+                file_ids: vec![],
+                metadata: None,
+            },
+            user_id: "".to_string(),
+        }];
+
+        // Call the function
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        let result = result.unwrap();
+
+        // Check if the result is "action"
+        assert_eq!(result[0], "action");
+    }
+
+    #[tokio::test]
+    async fn test_end_to_end_action_tool() {
+        // Setup
+        let pool = setup().await;
+
+        // Create an assistant with "action" tool
+        let assistant = Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal assistant. Use the MediaWiki API to fetch random facts."
+                        .to_string(),
+                ),
+                name: Some("Fact Fetcher".to_string()),
+                tools: vec![AssistantTools::Extra(AssistantToolsExtra {
+                    r#type: "action".to_string(),
+                    data: Some(serde_json::from_value(json!({"openapi_spec": OPENAPI_SPEC.to_string()})).unwrap())})],
+                model: "claude-2.1".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let assistant = create_assistant(&pool, &assistant).await.unwrap();
+
+        // Create a Thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a Message to a Thread
+        let content = vec![MessageContent::Text(MessageContentTextObject {
+            r#type: "text".to_string(),
+            text: TextData {
+                value: "Give me a random fact.".to_string(),
+                annotations: vec![],
+            },
+        })];
+        let message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            content,
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find a random fact.",
+             assistant.user_id.as_str(), 
+             con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::InProgress);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+        // Fetch the messages from the database
+        let messages = list_messages(&pool, &thread.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // Check the messages
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].inner.role, MessageRole::User);
+        if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
+            assert_eq!(text_object.text.value, "Give me a random fact.");
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+
+        assert_eq!(messages[1].inner.role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages[1].inner.content[0] {
+            assert!(text_object.text.value.contains("title"), "Expected the assistant to return a title of a random Wikipedia page, but got something else {:?}", text_object.text.value);
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
     }
 }

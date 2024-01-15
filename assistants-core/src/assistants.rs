@@ -273,7 +273,8 @@ pub async fn update_assistant(
         assistant.inner.instructions,
         assistant.inner.name,
         &tools_json,
-        assistant.inner.model,
+        // TODO: update async-openai instead
+        if assistant.inner.model.is_empty() { None } else { Some(assistant.inner.model.clone()) },
         &metadata_json,
         &assistant.inner.file_ids,
         assistant_id,
@@ -359,7 +360,7 @@ mod tests {
     use super::*;
     use async_openai::types::{
         AssistantObject, AssistantToolsCode, AssistantToolsFunction, AssistantToolsRetrieval,
-        ChatCompletionFunctions, FunctionCall, RunToolCallObject, SubmitToolOutputs,
+        ChatCompletionFunctions, FunctionCall, RunToolCallObject, SubmitToolOutputs, FunctionObject,
     };
     use dotenv::dotenv;
     use serde_json::json;
@@ -438,12 +439,12 @@ mod tests {
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
                         r#type: "function".to_string(),
-                        function: ChatCompletionFunctions {
+                        function: FunctionObject {
                             description: Some("A function that compute the purpose of life according to the fundamental laws of the universe.".to_string()),
                             name: "compute_purpose_of_life".to_string(),
-                            parameters: json!({
+                            parameters: Some(json!({
                                 "type": "object",
-                            }),
+                            })),
                         },
                     }),
                     AssistantTools::Retrieval(AssistantToolsRetrieval {
