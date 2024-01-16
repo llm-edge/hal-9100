@@ -17,6 +17,7 @@ assistants-core = { path = "../assistants-core" }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 minio = "0.1.0"
 serde_json = "1.0"
+serde_yaml = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.2.0"
 tower-http = { version = "0.4.0", features = ["fs", "limit", "trace", "cors"] }
