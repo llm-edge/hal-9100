@@ -174,6 +174,7 @@ So generate the Python code that we will execute that can help the user with his
     // Generate Python code
     let function_call_input = FunctionCallInput {
         function: Function {
+            metadata: None,
             assistant_id: Uuid::default().to_string(), // ! ??
             user_id: Uuid::default().to_string(),
             inner: FunctionObject {

@@ -1,7 +1,7 @@
 use assistants_extra::anthropic;
 use async_openai::types::{
-    AssistantObject, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, RunStatus,
-    ThreadObject, FunctionObject,
+    AssistantObject, ChatCompletionFunctions, FunctionObject, MessageObject, MessageRole,
+    RunObject, RunStatus, ThreadObject,
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
@@ -165,6 +165,7 @@ pub struct Function {
     pub inner: FunctionObject,
     pub assistant_id: String,
     pub user_id: String,
+    pub metadata: Option<serde_json::Value>,
 }
 
 // Define a struct for the input

@@ -8,6 +8,7 @@ pub mod file_storage;
 pub mod function_calling;
 pub mod messages;
 pub mod models;
+pub mod openapi;
 pub mod pdf_utils;
 pub mod prompts;
 pub mod retrieval;

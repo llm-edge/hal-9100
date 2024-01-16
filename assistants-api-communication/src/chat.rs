@@ -71,6 +71,7 @@ pub async fn chat_handler(
                 generate_function_call(FunctionCallInput {
                     user_context: serde_json::to_string(&request.messages.clone()).unwrap(),
                     function: Function {
+                        metadata: None,
                         inner: tool.function.clone(),
                         assistant_id: "".to_string(),
                         user_id: "".to_string(),

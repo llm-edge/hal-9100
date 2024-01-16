@@ -15,6 +15,8 @@ use std::io::ErrorKind;
 use std::{collections::HashMap, error::Error, pin::Pin};
 
 use crate::models::FunctionCallInput;
+use crate::openapi::ActionRequest;
+use crate::openapi::OpenAPISpec;
 #[derive(Clone, Debug)]
 pub struct ModelConfig {
     pub model_name: String,
@@ -67,8 +69,8 @@ pub async fn register_function(
         .map_err(|e| FunctionCallError::Other(format!("Failed to parse assistant_id: {}", e)))?;
     let row = sqlx::query!(
         r#"
-        INSERT INTO functions (assistant_id, user_id, name, description, parameters)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO functions (assistant_id, user_id, name, description, parameters, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
         "#,
         assistant_id,
@@ -76,6 +78,7 @@ pub async fn register_function(
         function.inner.name,
         function.inner.description,
         &parameters_json,
+        function.metadata
     )
     .fetch_one(pool)
     .await
@@ -265,6 +268,7 @@ pub async fn create_function_call(
     for row in rows {
         let input = FunctionCallInput {
             function: Function {
+                metadata: None,
                 inner: FunctionObject {
                     name: row.name.unwrap_or_default(),
                     description: row.description,
@@ -285,17 +289,130 @@ pub async fn create_function_call(
 }
 // ! TODO next: fix mistral 7b (prompt is not good enough, stupid LLM returns exactly the prompt he was given), then create list of tests to run for all cases (multiple functions, multiple parameters, different topics, etc.)
 
+pub async fn register_openapi_functions(
+    pool: &PgPool,
+    openapi_spec_str: String,
+    assistant_id: &str,
+    user_id: &str,
+) -> Result<Vec<String>, FunctionCallError> {
+    // Parse the OpenAPI spec string into an OpenAPISpec object
+    let openapi = OpenAPISpec::new(&openapi_spec_str)
+        .map_err(|e| FunctionCallError::Other(format!("Failed to parse OpenAPI spec: {}", e)))?;
+
+    // Vector to hold the IDs of the registered functions
+    let mut function_ids = Vec::new();
+
+    // Iterate over each function and save it to the database
+    for (path, function) in openapi.openapi_spec.paths.iter() {
+        // Convert the operations into a Vec so we have an owned, Send version
+        // which let you iterate over it in parallel
+        let operations: Vec<_> = function
+            .methods()
+            .into_iter()
+            .map(|(method, operation)| {
+                // Manually construct a new operation
+                (method, operation.clone())
+            })
+            .collect();
+
+        for (method, operation) in operations {
+            let mut schema = json!({
+                "type": "object",
+                "properties": {},
+            });
+            let mut required: Vec<String> = Vec::new();
+
+            for param in operation.parameters.clone() {
+                let parameter_resolved = param.resolve(&openapi.openapi_spec).unwrap();
+                let param_name = parameter_resolved.name;
+                schema["properties"][param_name.clone()] =
+                    serde_json::to_value(parameter_resolved.schema).unwrap();
+                if parameter_resolved.required.unwrap_or(false) {
+                    required.push(param_name);
+                }
+            }
+
+            schema["required"] = serde_json::to_value(required).unwrap();
+            println!("schema {:?}", schema);
+
+            let function = Function {
+                inner: FunctionObject {
+                    name: operation.operation_id.as_ref().unwrap().to_string(),
+                    description: operation.summary.as_ref().map(|s| s.to_string()), // Use summary as description
+                    parameters: Some(schema),
+                },
+                assistant_id: assistant_id.to_string(),
+                user_id: user_id.to_string(),
+                // all the things that the LLM should not use like (domain, path, method, operation, operation_hash, is_consequential, content_type, ...)
+                metadata: Some(json!({
+                    "domain": openapi.openapi_spec.servers[0].url.clone(),
+                    "path": path.to_string(),
+                    "method": method.to_string(),
+                    "operation": operation.operation_id.as_ref().unwrap().to_string(),
+                    // "operation_hash": None,
+                    "is_consequential": false,
+                    "content_type": "application/json".to_string(),
+                })),
+            };
+            println!("function {:?}", function);
+            let function_id = register_function(pool, function).await?;
+            function_ids.push(function_id);
+        }
+    }
+
+    Ok(function_ids)
+}
+
+pub async fn execute_request(request: ActionRequest) -> Result<serde_json::Value, Box<dyn Error>> {
+    let client = reqwest::Client::new();
+    let url = format!("{}{}", request.domain, request.path);
+
+    let response = match request.method.to_lowercase().as_str() {
+        "get" => client.get(&url).send().await?,
+        "post" => client.post(&url).json(&request.params).send().await?,
+        "put" => client.put(&url).json(&request.params).send().await?,
+        "delete" => client.delete(&url).send().await?,
+        _ => {
+            return Err(Box::new(std::io::Error::new(
+                ErrorKind::Other,
+                "Invalid method",
+            )))
+        }
+    };
+
+    let text = response.text().await?;
+    let json: serde_json::Value = serde_json::from_str(&text)?;
+    Ok(json)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{assistants::create_assistant, models::Assistant};
 
     use super::*;
     use async_openai::types::{AssistantObject, AssistantTools, AssistantToolsFunction};
-    use dotenv;
+    use dotenv::dotenv;
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
     use std::env;
-
+    async fn setup() -> PgPool {
+        dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        // Initialize the logger with an info level filter
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(_) => (),
+        };
+        pool
+    }
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
@@ -308,12 +425,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_function_call_with_openai() {
         dotenv::dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let pool = setup().await;
         reset_db(&pool).await;
         let user_id = Uuid::default().to_string();
         let assistant = Assistant {
@@ -347,6 +459,7 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
+            metadata: None,
             inner: FunctionObject {
                 name: String::from("weather"),
                 description: Some(String::from("Get the weather for a city")),
@@ -402,13 +515,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_function_call_with_anthropic() {
-        dotenv::dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let pool = setup().await;
         reset_db(&pool).await;
         let user_id = Uuid::default().to_string();
         let assistant = Assistant {
@@ -442,6 +549,7 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
+            metadata: None,
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
             inner: FunctionObject {
@@ -498,13 +606,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_function_call_with_llama_2_70b_chat() {
-        dotenv::dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let pool = setup().await;
         reset_db(&pool).await;
         let user_id = Uuid::default().to_string();
         let assistant = Assistant {
@@ -539,6 +641,7 @@ mod tests {
 
         // Register the weather function
         let weather_function = Function {
+            metadata: None,
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
             inner: FunctionObject {
@@ -596,14 +699,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_function_call_with_llama_2_70b() {
-        dotenv::dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let pool = setup().await;
         let user_id = Uuid::default().to_string();
         let assistant = Assistant {
             inner: AssistantObject {
@@ -624,6 +720,7 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         let function = Function {
+            metadata: None,
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
             inner: FunctionObject {
@@ -679,14 +776,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_function_call_with_mixtral_8x7b() {
-        dotenv::dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let pool = setup().await;
         let user_id = Uuid::default().to_string();
         let assistant = Assistant {
             inner: AssistantObject {
@@ -707,6 +797,7 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         let function = Function {
+            metadata: None,
             assistant_id: assistant.inner.id.clone(),
             user_id: user_id.clone(),
             inner: FunctionObject {
@@ -799,5 +890,127 @@ mod tests {
             "Expected arguments to be {{\"a\":5,\"b\":3}}, but got {}",
             result.arguments
         );
+    }
+
+    #[tokio::test]
+    async fn test_register_openapi_functions() {
+        let pool = setup().await;
+        let openapi_spec_str = r#"
+        {
+            "openapi": "3.0.0",
+            "info": {
+                "title": "Weather API",
+                "version": "1.0.0"
+            },
+            "servers": [
+                {
+                    "url": "https://api.weather.gov"
+                }
+            ],
+            "paths": {
+                "/weather": {
+                    "get": {
+                        "summary": "Get the weather for a city",
+                        "operationId": "getWeather",
+                        "parameters": [
+                            {
+                                "name": "city",
+                                "in": "query",
+                                "description": "The city to get the weather for",
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "successful operation"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        "#;
+
+        // Create assistant
+        let assistant = create_assistant(
+            &pool,
+            &Assistant {
+                inner: AssistantObject {
+                    id: "".to_string(),
+                    object: "".to_string(),
+                    created_at: 0,
+                    name: Some("Math Tutor".to_string()),
+                    description: None,
+                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    instructions: Some(
+                        "You are a personal math tutor. Write and run code to answer math questions."
+                            .to_string(),
+                    ),
+                    tools: vec![],
+                    file_ids: vec![],
+                    metadata: None,
+                },
+                user_id: Uuid::default().to_string(),
+            }
+        )
+        .await
+        .unwrap();
+
+        let assistant_id = assistant.inner.id;
+        let user_id = uuid::Uuid::default().to_string();
+
+        let function_ids = register_openapi_functions(
+            &pool,
+            openapi_spec_str.to_string(),
+            &assistant_id,
+            &user_id,
+        )
+        .await
+        .unwrap();
+
+        // Check if the function was registered
+        assert_eq!(function_ids.len(), 1);
+
+        // Fetch the function from the database
+        let row = sqlx::query!(
+            r#"
+            SELECT id, name, description, parameters, metadata
+            FROM functions
+            WHERE id::text = $1
+            "#,
+            function_ids[0]
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        // Check the function details
+        assert_eq!(row.name, Some("getWeather".to_string()));
+        assert_eq!(
+            row.description,
+            Some("Get the weather for a city".to_string())
+        );
+        let parameters = row.parameters.unwrap();
+        let properties = parameters["properties"].as_object().unwrap();
+        assert_eq!(properties.len(), 1);
+        assert!(properties.contains_key("city"));
+        let required = parameters["required"].as_array().unwrap();
+        assert_eq!(required.len(), 1);
+        assert_eq!(required[0], "city");
+        assert_eq!(parameters["type"], "object");
+        assert_eq!(parameters["properties"]["city"]["type"], "string");
+        assert_eq!(parameters["properties"]["city"]["description"], json!(null));
+
+        // check metadata
+        let metadata = row.metadata.unwrap();
+        assert_eq!(metadata["domain"], "https://api.weather.gov");
+        assert_eq!(metadata["path"], "/weather");
+        assert_eq!(metadata["method"].as_str().unwrap().to_lowercase(), "get");
+        assert_eq!(metadata["operation"], "getWeather");
+        assert_eq!(metadata["is_consequential"], false);
+        assert_eq!(metadata["content_type"], "application/json");
     }
 }
