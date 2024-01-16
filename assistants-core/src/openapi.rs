@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub struct FunctionSignature {
     pub name: String,
     pub description: String,
-    pub parameters: HashMap<String, Value>,
+    pub parameters: Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ pub struct ActionRequest {
     pub operation_hash: Option<String>,
     pub is_consequential: bool,
     pub content_type: String,
-    pub params: Option<HashMap<String, Value>>,
+    pub params: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

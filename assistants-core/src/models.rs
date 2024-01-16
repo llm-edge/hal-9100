@@ -5,6 +5,7 @@ use async_openai::types::{
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::Error as SqlxError;
 use std::collections::HashMap;
 use std::error::Error;

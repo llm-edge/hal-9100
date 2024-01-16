@@ -46,6 +46,10 @@ impl Tools {
                             let code_tool = serde_json::from_value(tool.clone())?;
                             Ok(AssistantTools::Code(code_tool))
                         }
+                        Some("action") => {
+                            let action_tool = serde_json::from_value(tool.clone())?;
+                            Ok(AssistantTools::Extra(action_tool))
+                        }
                         _ => Err(Box::new(SerdeError::custom(format!(
                             "Unknown tool type: {:?}",
                             tool
@@ -211,7 +215,7 @@ pub async fn create_assistant(
                 match register_openapi_functions(
                     pool,
                     openapi_spec_str,
-                    &assistant.inner.id,
+                    &row.id.to_string(),
                     &assistant.user_id,
                 )
                 .await
