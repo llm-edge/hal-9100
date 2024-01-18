@@ -59,12 +59,19 @@ jobs:
   docker-build:
     needs: test
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'Release')
 
     steps:
       - uses: actions/checkout@v2
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: regex-match
+        with:
+          text: ${{ github.event.head_commit.message }}
+          regex: '^Release ([^ ]+)'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -89,7 +96,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/assistants:latest
+          tags: ghcr.io/${{ github.repository }}/assistants:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -103,9 +110,17 @@ jobs:
   docker-build-code-interpreter:
     needs: test
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'Release')
 
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: regex-match
+        with:
+          text: ${{ github.event.head_commit.message }}
+          regex: '^Release ([^ ]+)'
+
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -136,6 +151,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/assistants-code-interpreter:latest, ${{ secrets.DOCKERHUB_USERNAME }}/assistants-code-interpreter:latest
+          tags: ghcr.io/${{ github.repository }}/assistants-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/assistants-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
