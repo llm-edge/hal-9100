@@ -103,7 +103,7 @@ pub async fn update_assistant_handler(
                     .tools
                     .map(|tools| tools.into_iter().map(|tool| tool.into()).collect())
                     .unwrap_or(vec![]),
-                model: assistant.model,
+                model: assistant.model.unwrap_or("".to_string()), // TODO dirty?
                 metadata: if let Some(object) = &assistant.metadata {
                     let mut temp_map = HashMap::new();
                     for (k, v) in object {

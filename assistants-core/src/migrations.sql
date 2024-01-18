@@ -87,6 +87,7 @@ CREATE TABLE functions (
     name TEXT,
     description TEXT,
     parameters JSONB, -- store as JSON object
+    metadata JSONB,
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))
 );
 

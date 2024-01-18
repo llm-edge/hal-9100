@@ -1,5 +1,6 @@
 use async_openai::types::AssistantToolsFunction;
 use async_openai::types::{AssistantObject, AssistantTools};
+use futures::Future;
 use log::{error, info, warn};
 use redis::AsyncCommands;
 use serde_json::{self, Value};
@@ -17,6 +18,9 @@ use serde_json::Error as SerdeError;
 use serde_json::Value as JsonValue;
 use sqlx::Error as SqlxError;
 use std::collections::HashMap;
+use std::pin::Pin;
+
+use crate::function_calling::register_openapi_functions;
 pub struct Tools(Option<Vec<Value>>);
 
 impl Tools {
@@ -41,6 +45,10 @@ impl Tools {
                         Some("code_interpreter") => {
                             let code_tool = serde_json::from_value(tool.clone())?;
                             Ok(AssistantTools::Code(code_tool))
+                        }
+                        Some("action") => {
+                            let action_tool = serde_json::from_value(tool.clone())?;
+                            Ok(AssistantTools::Extra(action_tool))
                         }
                         _ => Err(Box::new(SerdeError::custom(format!(
                             "Unknown tool type: {:?}",
@@ -169,18 +177,21 @@ pub async fn create_assistant(
     .fetch_one(pool)
     .await?;
 
-    let mut futures = Vec::new();
-
+    let mut futures: Vec<Pin<Box<dyn Future<Output = Result<(), FunctionCallError>> + Send>>> =
+        Vec::new();
     assistant.inner.tools.iter().for_each(|tool| {
         println!("tool: {:?}", tool);
         // tool_json: Object {"type": String("function")}
         if let AssistantTools::Function(function_tool) = tool {
-            let future = async move {
-                let f = function_tool.function.clone();
+            let f = function_tool.function.clone();
+
+            let future = Box::pin(async move {
                 println!("f: {:?}", f);
                 match register_function(
                     pool,
                     Function {
+                        // metadata: f.metadata.clone(),
+                        metadata: None, // TODO
                         assistant_id: row.id.to_string(),
                         user_id: assistant.user_id.clone(),
                         inner: f,
@@ -194,7 +205,28 @@ pub async fn create_assistant(
                         return Err(e);
                     }
                 }
-            };
+            });
+            futures.push(future);
+        } else if let AssistantTools::Extra(extra_tool) = tool {
+            let f = extra_tool.data.clone();
+            let openapi_spec_str = serde_json::to_string(&f).unwrap().clone();
+            let future = Box::pin(async move {
+                println!("f: {:?}", f);
+                match register_openapi_functions(
+                    pool,
+                    openapi_spec_str,
+                    &row.id.to_string(),
+                    &assistant.user_id,
+                )
+                .await
+                {
+                    Ok(_) => Ok(info!("Function registered successfully")),
+                    Err(e) => {
+                        error!("Failed to register function: {:?}", e);
+                        return Err(e);
+                    }
+                }
+            });
             futures.push(future);
         }
     });
@@ -273,7 +305,12 @@ pub async fn update_assistant(
         assistant.inner.instructions,
         assistant.inner.name,
         &tools_json,
-        assistant.inner.model,
+        // TODO: update async-openai instead
+        if assistant.inner.model.is_empty() {
+            None
+        } else {
+            Some(assistant.inner.model.clone())
+        },
         &metadata_json,
         &assistant.inner.file_ids,
         assistant_id,
@@ -359,7 +396,8 @@ mod tests {
     use super::*;
     use async_openai::types::{
         AssistantObject, AssistantToolsCode, AssistantToolsFunction, AssistantToolsRetrieval,
-        ChatCompletionFunctions, FunctionCall, RunToolCallObject, SubmitToolOutputs,
+        ChatCompletionFunctions, FunctionCall, FunctionObject, RunToolCallObject,
+        SubmitToolOutputs,
     };
     use dotenv::dotenv;
     use serde_json::json;
@@ -438,12 +476,12 @@ mod tests {
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
                         r#type: "function".to_string(),
-                        function: ChatCompletionFunctions {
+                        function: FunctionObject {
                             description: Some("A function that compute the purpose of life according to the fundamental laws of the universe.".to_string()),
                             name: "compute_purpose_of_life".to_string(),
-                            parameters: json!({
+                            parameters: Some(json!({
                                 "type": "object",
-                            }),
+                            })),
                         },
                     }),
                     AssistantTools::Retrieval(AssistantToolsRetrieval {

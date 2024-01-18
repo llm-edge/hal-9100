@@ -1,10 +1,11 @@
 use assistants_extra::anthropic;
 use async_openai::types::{
-    AssistantObject, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, RunStatus,
-    ThreadObject,
+    AssistantObject, ChatCompletionFunctions, FunctionObject, MessageObject, MessageRole,
+    RunObject, RunStatus, ThreadObject,
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::Error as SqlxError;
 use std::collections::HashMap;
 use std::error::Error;
@@ -162,9 +163,10 @@ pub struct SubmittedToolCall {
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct Function {
-    pub inner: ChatCompletionFunctions,
+    pub inner: FunctionObject,
     pub assistant_id: String,
     pub user_id: String,
+    pub metadata: Option<serde_json::Value>,
 }
 
 // Define a struct for the input
