@@ -236,6 +236,13 @@ mod tests {
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
         };
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(_) => (),
+        };
         app_state
     }
 
