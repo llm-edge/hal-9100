@@ -88,6 +88,12 @@ need help on it or would like suggestions on how to approach the issue. If so,
 share wildly. If they seem to have a good handle on it, let them work on their
 solution until a challenge comes up.
 
+### Releasing new Docker images
+
+Just commit with Release and version number in the commit message. For example:
+
+`git commit -m "Release 1.0.0"`
+
 #### Tips
 
 - At any point you can compare your feature branch to the upstream/main of

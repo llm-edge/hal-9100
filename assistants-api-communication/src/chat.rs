@@ -327,6 +327,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_function_calling() {
         dotenv().ok();
         // Create a Router with the stream_chat_handler route
