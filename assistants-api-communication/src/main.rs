@@ -178,7 +178,7 @@ fn app(app_state: AppState) -> Router {
         // .route("/threads/:thread_id/runs/:run_id/steps", get(list_run_steps_handler))
         // https://platform.openai.com/docs/api-reference/files
         .route("/files", post(upload_file_handler))
-        .route("/chat/completions", post(chat_handler))
+        // .route("/chat/completions", post(chat_handler))
         .route("/health", get(health_handler)) // new health check route
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024)) // 250mb
@@ -235,6 +235,13 @@ mod tests {
         let app_state = AppState {
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
+        };
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(_) => (),
         };
         app_state
     }
