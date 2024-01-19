@@ -820,6 +820,10 @@ pub async fn run_executor(
                         serde_json::to_string(&output).unwrap()
                     );
 
+
+                    // HACK: remove "\" from the string 
+                    action_calls = action_calls.replace("\\", "");
+
                     instructions = build_instructions(
                         &run.inner.instructions,
                         &vec![],
