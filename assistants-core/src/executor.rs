@@ -193,7 +193,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
 
     // Add the assistant instructions to the user prompt
     user_prompt.push_str(&format!(
-        "<instructions>{}</instructions>\n",
+        "<instructions>{}</instructions>\nSelected tool(s):",
         assistant.inner.instructions.as_ref().unwrap()
     ));    
 

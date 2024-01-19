@@ -1096,7 +1096,7 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Value = serde_json::from_slice(&body).unwrap();
-        let file_id = body["file_id"].as_str().unwrap().to_string();
+        let file_id = body["id"].as_str().unwrap().to_string();
 
         // 2. Create an Assistant with the uploaded file
         let assistant = CreateAssistantRequest {
@@ -1740,7 +1740,7 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Value = serde_json::from_slice(&body).unwrap();
-        let file_id = body["file_id"].as_str().unwrap().to_string();
+        let file_id = body["id"].as_str().unwrap().to_string();
 
         // 2. Create an Assistant with the uploaded file and function tool
         let assistant = json!({ // ! hack using json because serializsation of assistantools is fked
