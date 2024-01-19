@@ -1,5 +1,6 @@
 use assistants_api_communication::models::AppState;
 use assistants_core::retrieval::split_and_insert;
+use async_openai::types::{OpenAIFile, OpenAIFilePurpose};
 use axum::{
     debug_handler,
     extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
@@ -11,10 +12,35 @@ use serde_json::{json, Value};
 use std::io::Write;
 use tempfile;
 
+pub async fn retrieve_file_handler(
+    Path(file_id): Path<String>,
+    State(app_state): State<AppState>,
+) -> Result<JsonResponse<OpenAIFile>, (StatusCode, String)> {
+    match app_state.file_storage.retrieve_file(&file_id).await {
+        Ok(file) => Ok(JsonResponse(OpenAIFile {
+            id: file_id,
+            object: "object".to_string(),
+            bytes: file.len() as u32,
+            created_at: 0,
+            filename: "unknown".to_string(),
+            purpose: OpenAIFilePurpose::Assistants,
+            status: Some("unknown".to_string()),
+            status_details: Some("unknown".to_string()),
+        })),
+        Err(e) => {
+            error!("Failed to retrieve file: {:?}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to retrieve file".to_string(),
+            ))
+        }
+    }
+}
+
 pub async fn upload_file_handler(
     State(app_state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<JsonResponse<Value>, (StatusCode, String)> {
+) -> Result<JsonResponse<OpenAIFile>, (StatusCode, String)> {
     let mut file_data = Vec::new();
     let mut purpose = String::new();
     let mut content_type = String::new();
@@ -77,10 +103,16 @@ pub async fn upload_file_handler(
         .unwrap();
     }
 
-    Ok(JsonResponse(json!({
-        "status": "success",
-        "file_id": file_id,
-    })))
+    Ok(JsonResponse(OpenAIFile {
+        id: file_id,
+        object: "object".to_string(),
+        bytes: file_data.len() as u32,
+        created_at: 0,
+        filename: "unknown".to_string(), // TODO
+        purpose: OpenAIFilePurpose::Assistants,
+        status: Some("success".to_string()),
+        status_details: Some("unknown".to_string()),
+    }))
 }
 
 #[cfg(test)]
@@ -89,7 +121,7 @@ mod tests {
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
-        routing::post,
+        routing::{get, post},
     };
     use hyper;
     use mime;
@@ -122,10 +154,56 @@ mod tests {
     fn app(app_state: AppState) -> Router {
         // Define your routes here
         Router::new()
+            .route("/files/:file_id", get(retrieve_file_handler))
             .route("/files", post(upload_file_handler))
             .layer(DefaultBodyLimit::disable())
             .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024))
             .with_state(app_state)
+    }
+
+    #[tokio::test]
+    async fn test_retrieve_file_handler() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Upload a file first
+        let boundary = "------------------------14737809831466499882746641449";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\r\nTest file content\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
+            boundary = boundary
+        );
+
+        let upload_request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/files")
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={}", boundary),
+            )
+            .body(Body::from(body))
+            .unwrap();
+
+        let upload_response = app.clone().oneshot(upload_request).await.unwrap();
+        assert_eq!(upload_response.status(), StatusCode::OK);
+
+        // Extract file_id from the upload response
+        let upload_response_body = hyper::body::to_bytes(upload_response.into_body())
+            .await
+            .unwrap();
+        let upload_response_json: serde_json::Value =
+            serde_json::from_slice(&upload_response_body).unwrap();
+        let file_id = upload_response_json["id"].as_str().unwrap().to_string();
+
+        // Now retrieve the file
+        let retrieve_request = Request::builder()
+            .method(http::Method::GET)
+            .uri(format!("/files/{}", file_id))
+            .body(Body::empty())
+            .unwrap();
+
+        let retrieve_response = app.clone().oneshot(retrieve_request).await.unwrap();
+
+        assert_eq!(retrieve_response.status(), StatusCode::OK);
     }
     #[tokio::test]
     async fn test_upload_file_handler() {
