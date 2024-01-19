@@ -169,8 +169,8 @@ Your answer will be used to use the tool so it must be very concise and make sur
                             "description": "Useful to make HTTP requests to the user's APIs, which would provide you later some additional context about the user's problem. You can also use this to perform actions to help the user.",
                             "data": {
                                 "info": {
-                                    "description": data["info"]["description"],
-                                    "title": data["info"]["title"]
+                                    "description": data.get("info").unwrap_or(&json!({})).get("description").unwrap_or(&json!("")).to_string().replace("\"", ""),
+                                    "title": data.get("info").unwrap_or(&json!({})).get("title").unwrap_or(&json!("")).to_string().replace("\"", ""),
                                 },
                                 "paths": data["paths"],
                             }
@@ -1355,7 +1355,7 @@ mod tests {
                         r#type: "retrieval".to_string(),
                     }),
                 ],
-                model: "claude-2.1".to_string(),
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1906,8 +1906,7 @@ mod tests {
                 name: Some("Fact Fetcher".to_string()),
                 tools: vec![AssistantTools::Extra(AssistantToolsExtra {
                     r#type: "action".to_string(),
-                    data: Some(serde_json::from_value(json!({"openapi_spec": OPENAPI_SPEC.to_string(),
-            })).unwrap())})],
+                    data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap())})],
                 model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
