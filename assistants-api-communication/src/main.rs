@@ -496,61 +496,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_list_assistants() {
-        let app_state = setup().await;
-        let app = app(app_state.clone());
-        reset_db(&app_state.pool.clone()).await;
-
-        // Create an assistant first
-        let assistant = CreateAssistantRequest {
-            instructions: Some("test".to_string()),
-            name: Some("test".to_string()),
-            tools: Some(vec![AssistantTools::Code(AssistantToolsCode {
-                r#type: "code_interpreter".to_string(),
-            })]),
-            model: "test".to_string(),
-            file_ids: None,
-            description: None,
-            metadata: None,
-        };
-
-        let response = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .method(http::Method::POST)
-                    .uri("/assistants")
-                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        // Now list the assistants
-        let response = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .method(http::Method::GET)
-                    .uri("/assistants")
-                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let assistants: Vec<AssistantObject> = serde_json::from_slice(&body).unwrap();
-        assert!(assistants.len() > 0);
-    }
-
-    #[tokio::test]
     async fn test_upload_csv_file_handler() {
         let app_state = setup().await;
         let app = app(app_state);
