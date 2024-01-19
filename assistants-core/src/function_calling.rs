@@ -666,7 +666,7 @@ mod tests {
                 instructions: Some("".to_string()),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: "open-source/llama-2-70b-chat".to_string(),
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
