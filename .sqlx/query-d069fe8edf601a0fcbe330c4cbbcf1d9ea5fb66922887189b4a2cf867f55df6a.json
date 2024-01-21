@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO threads (user_id)\n        VALUES ($1)\n        RETURNING *\n        ",
+  "query": "\n        INSERT INTO threads (user_id, metadata)\n        VALUES ($1, $2)\n        RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -36,7 +36,8 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -48,5 +49,5 @@
       true
     ]
   },
-  "hash": "d279f15e6b1608078ceaaa360ada64dc8c7a2b75f14ce860cfaf611ecf18f566"
+  "hash": "d069fe8edf601a0fcbe330c4cbbcf1d9ea5fb66922887189b4a2cf867f55df6a"
 }

@@ -456,7 +456,10 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method(http::Method::GET)
-                    .uri(format!("/threads/{}/runs/{}/steps", thread.id, run.id))
+                    .uri(format!(
+                        "/threads/{}/runs/{}/steps",
+                        thread.id, run.inner.id
+                    ))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
                     .body(Body::empty())
                     .unwrap(),

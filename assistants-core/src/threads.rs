@@ -4,9 +4,9 @@ use serde_json::{self, Value};
 use sqlx::PgPool;
 
 use assistants_core::models::Thread;
-use sqlx::types::Uuid;
-use std::{error::Error, collections::HashMap};
 use serde_json::Value as JsonValue;
+use sqlx::types::Uuid;
+use std::{collections::HashMap, error::Error};
 
 pub async fn create_thread(pool: &PgPool, thread: &Thread) -> Result<Thread, Box<dyn Error>> {
     info!("Creating thread for user_id: {}", &thread.user_id);
@@ -29,8 +29,6 @@ pub async fn create_thread(pool: &PgPool, thread: &Thread) -> Result<Thread, Box
         }
         serde_json::to_value(new_map).unwrap()
     }).unwrap_or(Value::Null);
-
-    
 
     let row = sqlx::query!(
         r#"
@@ -210,7 +208,7 @@ mod tests {
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, chunks, run_steps RESTART IDENTITY"
         )
         .execute(pool)
         .await
@@ -231,7 +229,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string(),
         };
-        let result = create_thread(&pool,&thread_object).await;
+        let result = create_thread(&pool, &thread_object).await;
         assert!(result.is_ok());
     }
 }

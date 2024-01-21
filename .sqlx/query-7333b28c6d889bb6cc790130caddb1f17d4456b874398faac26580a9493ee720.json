@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE run_steps\n        SET status = $1\n        WHERE run_id::text = $2 AND user_id::text = $3\n        RETURNING *\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "object",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "run_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "assistant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "cancelled_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "completed_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "expired_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "failed_at",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "last_error",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "step_details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "usage",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 15,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7333b28c6d889bb6cc790130caddb1f17d4456b874398faac26580a9493ee720"
+}

@@ -10,15 +10,15 @@ use axum::{
     response::IntoResponse,
     response::Json as JsonResponse,
 };
+use serde_json::Value;
 use sqlx::types::Uuid;
 use std::collections::HashMap;
-use serde_json::Value;
 
 pub async fn create_thread_handler(
     State(app_state): State<AppState>,
-    Json(thread): Json<Value>,
+    thread: Option<Json<Value>>,
 ) -> Result<JsonResponse<ThreadObject>, (StatusCode, String)> {
-
+    let thread = thread.unwrap_or_default();
     let thread_object = &Thread {
         inner: ThreadObject {
             id: Default::default(),
@@ -31,13 +31,13 @@ pub async fn create_thread_handler(
                     match v.as_str() {
                         Some(str_value) => {
                             temp_map.insert(k.clone(), Value::String(str_value.to_string()));
-                        },
+                        }
                         None => {
                             return Err((
                                 StatusCode::BAD_REQUEST,
                                 format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
                             ));
-                        },
+                        }
                     }
                 }
                 Some(temp_map)
@@ -48,11 +48,7 @@ pub async fn create_thread_handler(
         user_id: Uuid::default().to_string(),
     };
     // TODO: should infer user id from Authorization header
-    let thread = create_thread(
-        &app_state.pool,
-        &thread_object
-    )
-    .await;
+    let thread = create_thread(&app_state.pool, &thread_object).await;
     match thread {
         Ok(thread) => Ok(JsonResponse(thread.inner)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
@@ -122,7 +118,7 @@ mod tests {
     use assistants_core::file_storage::FileStorage;
     use async_openai::types::CreateRunRequest;
     use axum::body::Body;
-    use axum::http::{self, Request, status};
+    use axum::http::{self, status, Request};
     use axum::response::Response;
     use axum::routing::post;
     use axum::Router;
@@ -187,24 +183,27 @@ mod tests {
                 match serde_json::from_slice::<ThreadObject>(&bytes) {
                     Ok(thread) => {
                         println!("Deserialized thread object successfully: {:?}", thread);
-                    },
+                    }
                     Err(e) => {
                         eprintln!("Failed to deserialize thread object: {:?}", e);
                         return; // Or handle the error as per your error handling strategy
-                    },
+                    }
                 }
-            },
+            }
             Err(e) => {
                 eprintln!("Failed to read response body: {:?}", e);
                 return; // Or handle the error as per your error handling strategy
-            },
+            }
         }
         let thread = thread_body.unwrap();
         let thread: ThreadObject = serde_json::from_slice(&thread).unwrap();
         let metadata = thread.metadata.unwrap();
 
-        assert_eq!(metadata["key1"], Value::String("value1".to_string()), "metadata key1 comparison {:?}", metadata["key1"]);
-
-
+        assert_eq!(
+            metadata["key1"],
+            Value::String("value1".to_string()),
+            "metadata key1 comparison {:?}",
+            metadata["key1"]
+        );
     }
 }

@@ -352,12 +352,15 @@ pub async fn list_steps(
 #[cfg(test)]
 mod tests {
     use crate::{
-        assistants::create_assistant, models::Assistant, runs::create_run, threads::create_thread,
+        assistants::create_assistant,
+        models::{Assistant, Thread},
+        runs::create_run,
+        threads::create_thread,
     };
 
     use super::*;
     use async_openai::types::{
-        AssistantObject, MessageCreation, RunStepDetailsMessageCreationObject,
+        AssistantObject, MessageCreation, RunStepDetailsMessageCreationObject, ThreadObject,
     };
     use dotenv::dotenv;
     use sqlx::postgres::PgPoolOptions;
@@ -377,7 +380,7 @@ mod tests {
 
     async fn reset_db(pool: &PgPool) {
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, chunks, run_steps RESTART IDENTITY"
             )
             .execute(pool)
             .await
@@ -407,7 +410,20 @@ mod tests {
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
         // Insert a run into the database
-        let thread = create_thread(&pool, &user_id.to_string()).await.unwrap();
+        let thread = create_thread(
+            &pool,
+            &Thread {
+                inner: ThreadObject {
+                    id: user_id.to_string(),
+                    object: "".to_string(),
+                    created_at: 0,
+                    metadata: None,
+                },
+                user_id: Uuid::default().to_string(),
+            },
+        )
+        .await
+        .unwrap();
         let run = create_run(
             &pool,
             &thread.inner.id,

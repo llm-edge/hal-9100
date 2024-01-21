@@ -1099,7 +1099,7 @@ mod tests {
     use assistants_core::runs::{get_run, create_run_and_produce_to_executor_queue};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
-        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra, RunStepObject,
+        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra, RunStepObject, ThreadObject,
     };
     use assistants_core::models::{Assistant, Message, Run, Thread};
     use serde_json::json;
@@ -2194,7 +2194,15 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread = create_thread(&pool, &Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        })
             .await
             .unwrap();
 
@@ -2299,7 +2307,15 @@ mod tests {
         }).await.unwrap();
 
         // Create a thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread = create_thread(&pool, &Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        })
             .await
             .unwrap();
 
@@ -2467,7 +2483,15 @@ mod tests {
         }).await.unwrap();
 
         // Create a thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread = create_thread(&pool, &Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        })
             .await
             .unwrap();
 
@@ -2614,7 +2638,15 @@ mod tests {
         }).await.unwrap();
 
         // Create a thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread = create_thread(&pool, &Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        })
             .await
             .unwrap();
 
@@ -2806,7 +2838,15 @@ mod tests {
         }).await.unwrap();
 
         // Create a thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread = create_thread(&pool, &Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        })
             .await
             .unwrap();
 

@@ -473,7 +473,7 @@ mod tests {
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
         )
         .execute(pool)
         .await
