@@ -1,6 +1,6 @@
 use async_openai::types::{
     AssistantTools, FunctionCall, MessageContent, MessageContentTextObject, MessageRole,
-    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData,
+    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData, RunStepType, StepDetails, RunStepDetailsMessageCreationObject, MessageCreation, RunStepDetailsToolCallsObject, RunStepDetailsToolCalls, RunStepDetailsToolCallsCodeObject, CodeInterpreter, CodeInterpreterOutput, RunStepDetailsToolCallsCodeOutputLogsObject, RunStepDetailsToolCallsRetrievalObject, RunStepDetailsToolCallsFunctionObject, RunStepFunctionObject,
 };
 use log::{error, info};
 use redis::AsyncCommands;
@@ -37,6 +37,7 @@ use crate::function_calling::execute_request;
 use crate::openapi::ActionRequest;
 use crate::prompts::{format_messages, build_instructions};
 use crate::retrieval;
+use crate::run_steps::create_step;
 
 
 
@@ -369,6 +370,7 @@ pub async fn run_executor(
         thread_id: thread_id.to_string(),
         user_id: user_id.to_string(),
     })?;
+    let assistant_id = assistant.inner.id.clone();
 
     // Update run status to "running"
     run = update_run_status(
@@ -417,6 +419,7 @@ pub async fn run_executor(
     let mut retrieval_files: Vec<String> = vec![];
     let mut retrieval_chunks: Vec<Chunk> = vec![];
     let mut code_output: Option<String> = None;
+    let mut code: Option<String> = None;
 
     let mut tool_calls_db: Vec<SubmittedToolCall> = vec![];
     // Check if the run has a required action
@@ -447,6 +450,33 @@ pub async fn run_executor(
         )
         .await.map_err(|e| RunError {
             message: format!("Failed to get tool calls: {}", e),
+            run_id: run_id.to_string(),
+            thread_id: thread_id.to_string(),
+            user_id: user_id.to_string(),
+        })?;
+
+        create_step(
+            pool,
+            &run.inner.id,
+            &assistant_id,
+            &run.inner.thread_id,
+            RunStepType::ToolCalls,
+            RunStatus::InProgress,
+            StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                r#type: "function".to_string(),
+                tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                    id: uuid::Uuid::new_v4().to_string(),
+                    r#type: "function".to_string(),
+                    function: RunStepFunctionObject {
+                        name: "".to_string(), // TODO: 
+                        arguments: "".to_string(), // TODO: 
+                        output: None,
+                    }
+                })],
+            }),
+            &run.user_id,
+        ).await.map_err(|e| RunError {
+            message: format!("Failed to create step: {}", e),
             run_id: run_id.to_string(),
             thread_id: thread_id.to_string(),
             user_id: user_id.to_string(),
@@ -541,22 +571,6 @@ pub async fn run_executor(
                     info!("Skipping function call because there is a required action");
                     continue;
                 }
-                run = update_run_status(
-                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
-                    pool,
-                    thread_id,
-                    &run.inner.id,
-                    RunStatus::Queued,
-                    &run.user_id,
-                    None,
-        None,
-                )
-                .await.map_err(|e| RunError {
-                    message: format!("Failed to update run status: {}", e),
-                    run_id: run_id.to_string(),
-                    thread_id: thread_id.to_string(),
-                    user_id: user_id.to_string(),
-                })?;
 
                 info!("Generating function to call");
 
@@ -605,6 +619,7 @@ pub async fn run_executor(
                         thread_id: thread_id.to_string(),
                         user_id: user_id.to_string(),
                     })?;
+                    
                     info!(
                         "Run updated to requires_action with {:?}",
                         run.inner.required_action
@@ -646,6 +661,29 @@ pub async fn run_executor(
                     vec![]
                 });
 
+                create_step(
+                    pool,
+                    &run.inner.id,
+                    &assistant_id,
+                    &run.inner.thread_id,
+                    RunStepType::ToolCalls,
+                    RunStatus::InProgress,
+                    StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                        r#type: "retrieval".to_string(),
+                        tool_calls: vec![RunStepDetailsToolCalls::Retrieval(RunStepDetailsToolCallsRetrievalObject{
+                            id: uuid::Uuid::new_v4().to_string(),
+                            r#type: "retrieval".to_string(),
+                            retrieval: HashMap::new(), // TODO
+                        })],
+                    }),
+                    &run.user_id,
+                ).await.map_err(|e| RunError {
+                    message: format!("Failed to create step: {}", e),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                })?;
+
                 // Include the file contents and previous messages in the instructions.
                 instructions = build_instructions(
                     &instructions,
@@ -669,7 +707,7 @@ pub async fn run_executor(
             }
             "code_interpreter" => {
                 // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
-                code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
+                let interpreter_results = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
                     model_name: model.clone(),
                     model_url: url.clone().into(),
                     max_tokens_to_sample: -1,
@@ -678,10 +716,10 @@ pub async fn run_executor(
                     top_k: None,
                     metadata: None,
                 }).await {
-                    Ok(result) => {
+                    Ok((code_output, code)) => {
                         // Handle the successful execution of the code
                         // You might want to store the result or send it back to the user
-                        Some(result)
+                        (code_output, code)
                     }
                     Err(e) => {
                         // Handle the error from the interpreter
@@ -695,6 +733,8 @@ pub async fn run_executor(
                         })
                     }
                 };
+                code_output = Some(interpreter_results.0);
+                code = Some(interpreter_results.1);
 
                 if code_output.is_none() {
                     return Err(RunError {
@@ -704,6 +744,35 @@ pub async fn run_executor(
                         user_id: user_id.to_string(),
                     });
                 }
+
+                create_step(
+                    pool,
+                    &run.inner.id,
+                    &assistant_id,
+                    &run.inner.thread_id,
+                    RunStepType::ToolCalls,
+                    RunStatus::InProgress,
+                    StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                        r#type: "code_interpreter".to_string(),
+                        tool_calls: vec![RunStepDetailsToolCalls::Code(RunStepDetailsToolCallsCodeObject{
+                            id: uuid::Uuid::new_v4().to_string(),
+                            r#type: "code_interpreter".to_string(),
+                            code_interpreter: CodeInterpreter {
+                                input: code.unwrap(),
+                                outputs: vec![CodeInterpreterOutput::Log(RunStepDetailsToolCallsCodeOutputLogsObject{
+                                    r#type: "log".to_string(),
+                                    logs: code_output.clone().unwrap(),
+                                })],
+                            },
+                        })],
+                    }),
+                    &run.user_id,
+                ).await.map_err(|e| RunError {
+                    message: format!("Failed to create step: {}", e),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                })?;
 
                 // Call file retrieval here
                 // Initialize an empty vector to hold all file IDs
@@ -745,7 +814,7 @@ pub async fn run_executor(
                     &retrieval_files,
                     &formatted_messages,
                     &function_calls,
-                    code_output.as_deref(),
+                    code_output.clone().as_deref(),
                     &retrieval_chunks.iter().map(|c| 
                         serde_json::to_string(&json!({
                             "data": c.data,
@@ -763,23 +832,6 @@ pub async fn run_executor(
                 // 1. generate function call
                 // 2. execute 
 
-                run = update_run_status(
-                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
-                    pool,
-                    thread_id,
-                    &run.inner.id,
-                    RunStatus::Queued,
-                    &run.user_id,
-                    None,
-        None,
-                )
-                .await.map_err(|e| RunError {
-                    message: format!("Failed to update run status: {}", e),
-                    run_id: run_id.to_string(),
-                    thread_id: thread_id.to_string(),
-                    user_id: user_id.to_string(),
-                })?;
-
                 info!("Generating function to call");
 
                 let function_results =
@@ -796,6 +848,7 @@ pub async fn run_executor(
                 info!("Function results: {:?}", function_results);
 
                 for function in function_results {
+                    // TODO: create step here for each?
                     let metadata = function.metadata.unwrap();
                     // println!("function: {:?}", function.clone());
                     let output = execute_request(ActionRequest{
@@ -890,7 +943,7 @@ These are additional instructions from the user that you must obey absolutely:
                     annotations: vec![],
                 },
             })];
-            add_message_to_thread(
+            let message = add_message_to_thread(
                 pool,
                 &thread.inner.id,
                 MessageRole::Assistant,
@@ -900,6 +953,28 @@ These are additional instructions from the user that you must obey absolutely:
             )
             .await.map_err(|e| RunError {
                 message: format!("Failed to add message to thread: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?;
+            create_step(
+                pool,
+                &run.inner.id,
+                &assistant.inner.id,
+                &thread.inner.id,
+                RunStepType::MessageCreation,
+                RunStatus::Completed,
+                StepDetails::MessageCreation(RunStepDetailsMessageCreationObject {
+                    r#type: "message_creation".to_string(),
+                    message_creation: MessageCreation {
+                        message_id: message.inner.id,
+                    }
+                }),
+                &run.user_id.to_string(),
+            )
+            .await
+            .map_err(|e| RunError {
+                message: format!("Failed to create step: {}", e),
                 run_id: run_id.to_string(),
                 thread_id: thread_id.to_string(),
                 user_id: user_id.to_string(),
@@ -945,6 +1020,7 @@ mod tests {
     use sqlx::types::Uuid;
 
     use crate::models::SubmittedToolCall;
+    use crate::run_steps::list_steps;
     use crate::runs::{create_run, submit_tool_outputs};
     use crate::test_data::OPENAPI_SPEC;
 
@@ -981,7 +1057,7 @@ mod tests {
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
         )
         .execute(pool)
         .await
@@ -2059,5 +2135,98 @@ mod tests {
         } else {
             panic!("Expected a Text message, but got something else.");
         }
+    }
+
+    #[tokio::test]
+    async fn test_create_step_after_assistant_message() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        // Create an assistant
+        let assistant = create_assistant(&pool, &Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        }).await.unwrap();
+
+        // Create a thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a user message to the thread
+        let user_message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            vec![MessageContent::Text(MessageContentTextObject {
+                r#type: "text".to_string(),
+                text: TextData {
+                    value: "User message".to_string(),
+                    annotations: vec![],
+                },
+            })],
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find a random fact.",
+             assistant.user_id.as_str(), 
+             con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+        // Fetch the steps from the database
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // Check the steps
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].inner.r#type, RunStepType::MessageCreation);
+        info!("steps: {:?}", steps);
+        // match steps[0].inner.step_details.clone() {
+        //     StepDetails::MessageCreation(details) => {
+        //         assert_eq!(details.message_creation.message_id, assistant_message.inner.id);
+        //     },
+        //     _ => panic!("Expected a MessageCreation step, but got something else."),
+        // }
     }
 }

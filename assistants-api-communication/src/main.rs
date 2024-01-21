@@ -168,6 +168,14 @@ fn app(app_state: AppState) -> Router {
             delete(delete_run_handler),
         )
         .route("/threads/:thread_id/runs", get(list_runs_handler))
+        // GET https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}/steps
+        // .route(
+        //     "/threads/:thread_id/runs/:run_id/steps",
+        //     get(list_run_steps_handler),
+        // )
+        // GET https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}/steps/{step_id}
+        // .route("/threads/:thread_id/runs/:run_id/steps/:step_id", get(get_run_step_handler))
+
         .route(
             "/threads/:thread_id/runs/:run_id/submit_tool_outputs",
             post(submit_tool_outputs_handler),
