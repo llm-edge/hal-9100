@@ -1,23 +1,45 @@
 use async_openai::types::ThreadObject;
-use log::{error, info};
+use log::{error, info, warn};
 use serde_json::{self, Value};
 use sqlx::PgPool;
 
 use assistants_core::models::Thread;
 use sqlx::types::Uuid;
-use std::error::Error;
+use std::{error::Error, collections::HashMap};
+use serde_json::Value as JsonValue;
 
-pub async fn create_thread(pool: &PgPool, user_id: &str) -> Result<Thread, Box<dyn Error>> {
-    info!("Creating thread for user_id: {}", user_id);
-    let user_id = Uuid::try_parse(user_id)?;
+pub async fn create_thread(pool: &PgPool, thread: &Thread) -> Result<Thread, Box<dyn Error>> {
+    info!("Creating thread for user_id: {}", &thread.user_id);
+    let user_id = Uuid::try_parse(&thread.user_id)?;
+
+    let metadata = thread.inner.metadata.clone();
+    let metadata_json = metadata.map(|metadata| {
+        let mut new_map = HashMap::new();
+        for (key, value) in &metadata {
+            // Check if the value is a string and get its length
+            if let JsonValue::String(ref s) = value {
+                if s.len() > 512 {
+                    warn!("Metadata value of key '{}' exceeds 512 characters, OpenAI API will not accept this metadata", key);
+                }
+                new_map.insert(key.clone(), JsonValue::String(s.clone()));
+            } else {
+                // Handle the case where the value is not a string (optional)
+                warn!("Metadata value for key '{}' is not a string.", key);
+            }
+        }
+        serde_json::to_value(new_map).unwrap()
+    }).unwrap_or(Value::Null);
+
+    
 
     let row = sqlx::query!(
         r#"
-        INSERT INTO threads (user_id)
-        VALUES ($1)
+        INSERT INTO threads (user_id, metadata)
+        VALUES ($1, $2)
         RETURNING *
         "#,
         user_id,
+        &metadata_json,
     )
     .fetch_one(pool)
     .await?;
@@ -200,7 +222,16 @@ mod tests {
     async fn test_create_thread() {
         let pool = setup().await;
         reset_db(&pool).await;
-        let result = create_thread(&pool, &Uuid::default().to_string()).await;
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let result = create_thread(&pool,&thread_object).await;
         assert!(result.is_ok());
     }
 }

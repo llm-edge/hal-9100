@@ -941,6 +941,7 @@ mod tests {
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra,
     };
+    use assistants_core::models::{Assistant, Message, Run, Thread};
     use serde_json::json;
     use sqlx::types::Uuid;
 
@@ -1036,7 +1037,17 @@ mod tests {
         assert_eq!(assistant.inner.file_ids, vec![file_id]);
 
         // 2. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let thread = create_thread(&pool, &thread_object)
             .await
             .unwrap();
 
@@ -1371,7 +1382,17 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // 5. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let thread = create_thread(&pool, &thread_object)
             .await
             .unwrap();
 
@@ -1533,7 +1554,17 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
     
         // 2. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let thread = create_thread(&pool, &thread_object)
             .await
             .unwrap();
     
@@ -1666,7 +1697,17 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // 2. Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let thread = create_thread(&pool, &thread_object)
             .await
             .unwrap();
 
@@ -1803,7 +1844,17 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // Create a Thread
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+
+        let thread = create_thread(&pool, &thread_object)
         .await
         .unwrap();
 
