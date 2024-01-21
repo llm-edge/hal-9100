@@ -224,8 +224,9 @@ mod tests {
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, MessageContentTextObject, MessageObject,
-        MessageRole, RunObject, TextData,
+        MessageRole, RunObject, TextData, ThreadObject
     };
+    use assistants_core::models::{Thread}; 
     use serde_json::json;
     use sqlx::types::Uuid;
 
@@ -281,7 +282,16 @@ mod tests {
     async fn test_add_message_to_thread() {
         let pool = setup().await;
         reset_db(&pool).await;
-        let thread = create_thread(&pool, &Uuid::default().to_string())
+        let thread_object = Thread {
+            inner: ThreadObject {
+                id: "".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        };
+        let thread = create_thread(&pool, &thread_object)
             .await
             .unwrap(); // Create a new thread
         let content = vec![MessageContent::Text(MessageContentTextObject {
