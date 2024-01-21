@@ -45,12 +45,13 @@ pub fn format_messages(messages: &Vec<Message>) -> String {
 /// If a part doesn't fit within the context size limit, it is not added to the final instructions.
 pub fn build_instructions(
     original_instructions: &str,
-    file_contents: &Vec<String>,
+    retrieval_files: &Vec<String>,
     previous_messages: &str,
-    tools: &str,
+    function_calls: &str,
     code_output: Option<&str>,
     retrieval_chunks: &Vec<String>,
     context_size: Option<usize>,
+    action_calls: &str,
 ) -> String {
     let bpe = p50k_base().unwrap();
 
@@ -67,27 +68,29 @@ pub fn build_instructions(
         "<instructions>\n{}\n</instructions>\n",
         original_instructions
     );
-    let file_contents_part = format!("<file>\n{:?}\n</file>\n", file_contents);
+    let retrieval_files_part = format!("<file>\n{:?}\n</file>\n", retrieval_files);
     let retrieval_chunks_part = format!("<chunk>\n{:?}\n</chunk>\n", retrieval_chunks);
-    let tools_part = format!("<tools>\n{}\n</tools>\n", tools);
+    let function_calls_part = format!("<function_calls>\n{}\n</function_calls>\n", function_calls);
     let code_output_part = match code_output {
         Some(output) => format!("<math_solution>\n{}\n</math_solution>\n", output),
         None => String::new(),
     };
     let previous_messages_part = format!(
-        "<previous_messages>\n{}\n</previous_messages>",
+        "<previous_messages>\n{}\n</previous_messages>\n",
         previous_messages
     );
+    let action_calls_part = format!("<action_calls>\n{}\n</action_calls>\n", action_calls);
 
     // Initialize the final instructions with the highest priority part
     let mut final_instructions = instructions_part;
 
     // List of other parts ordered by priority
     let mut other_parts = [
-        tools_part,
+        function_calls_part,
+        action_calls_part,
         previous_messages_part,
         code_output_part,
-        file_contents_part.clone(),
+        retrieval_files_part.clone(),
         retrieval_chunks_part.clone(),
     ];
     // TODO: probably this could be made customisable if someone has a usecase where code is very important for example
@@ -125,22 +128,24 @@ mod tests {
             "# Another Python script\nprint('Hello, world!')\n".to_string(),
         ];
         let previous_messages = "<message>\n{\"role\": \"user\", \"content\": \"Can you solve a quadratic equation for me?\"}\n</message>\n<message>\n{\"role\": \"assistant\", \"content\": \"Sure, I can help with that. What's the equation?\"}\n</message>\n";
-        let tools = "code_interpreter";
+        let function_calls = "code_interpreter";
         let code_output = Some("The solutions are (-2+0j) and (-3+0j)");
         let context_size = 200; // Set a realistic context size
         let retrieval_chunks = vec![
             "Here's a chunk of text retrieved from a large document...".to_string(),
             "And here's another chunk of text...".to_string(),
         ];
+        let action_calls = "somehting";
 
         let instructions = build_instructions(
             original_instructions,
             &file_contents,
             previous_messages,
-            tools,
+            function_calls,
             code_output,
             &retrieval_chunks,
             Some(context_size),
+            action_calls,
         );
 
         // Use tiktoken to count tokens
@@ -159,7 +164,7 @@ mod tests {
             "The instructions do not contain the original instructions"
         );
         assert!(
-            instructions.contains(tools),
+            instructions.contains(function_calls),
             "The instructions do not contain the tools"
         );
         assert!(

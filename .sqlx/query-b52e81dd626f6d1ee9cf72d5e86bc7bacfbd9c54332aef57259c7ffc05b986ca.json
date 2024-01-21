@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE assistants \n        SET instructions = $2, name = $3, tools = $4, model = $5, metadata = $8, file_ids = $7\n        WHERE id::text = $1 AND user_id::text = $6\n        RETURNING *\n        ",
+  "query": "\n        UPDATE assistants \n        SET instructions = COALESCE($1, instructions),\n            name = COALESCE($2, name),\n            tools = COALESCE($3, tools),\n            model = COALESCE($4, model),\n            metadata = COALESCE($5, metadata),\n            file_ids = COALESCE($6, file_ids)\n        WHERE id::text = $7 AND user_id::text = $8\n        RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -63,12 +63,12 @@
       "Left": [
         "Text",
         "Text",
-        "Text",
         "JsonbArray",
         "Text",
-        "Text",
+        "Jsonb",
         "TextArray",
-        "Jsonb"
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
@@ -85,5 +85,5 @@
       true
     ]
   },
-  "hash": "93863a0780eb7e3efb42814df188e594d54cb3658179389b39ff175f13706931"
+  "hash": "b52e81dd626f6d1ee9cf72d5e86bc7bacfbd9c54332aef57259c7ffc05b986ca"
 }
