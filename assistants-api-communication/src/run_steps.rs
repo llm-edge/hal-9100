@@ -70,7 +70,7 @@ mod tests {
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsFunction, CreateAssistantRequest,
         CreateRunRequest, FunctionObject, ListMessagesResponse, MessageContent, MessageRole,
-        RunObject, RunStatus, ThreadObject,
+        RunObject, RunStatus, RunStepType, ThreadObject,
     };
     use axum::response::Response;
     use axum::routing::{get, post};
@@ -449,5 +449,51 @@ mod tests {
         } else {
             panic!("Expected a Text message, but got something else.");
         }
+
+        // Fetch the steps from the database
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/runs/{}/steps", thread.id, run.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let steps: Vec<RunStepObject> = serde_json::from_slice(&body).unwrap();
+
+        // Check the steps
+        assert!(!steps.is_empty(), "Expected some steps, but got none.");
+        // Check there are 3 steps
+        assert_eq!(steps.len(), 3, "Expected 3 steps, but got {}.", steps.len());
+
+        // There should be 2 tool call steps
+        let tool_call_steps = steps
+            .iter()
+            .filter(|step| step.r#type == RunStepType::ToolCalls)
+            .collect::<Vec<&RunStepObject>>();
+        assert_eq!(
+            tool_call_steps.len(),
+            2,
+            "Expected 2 tool call steps, but got {}.",
+            tool_call_steps.len()
+        );
+
+        // Check the ID of the tool call steps match the tool call IDs
+        let tool_call_step_ids = serde_json::to_string(&steps).unwrap();
+        assert!(
+            tool_call_step_ids.contains(&weather_call_id),
+            "Expected to find weather call ID in step IDs, but didn't."
+        );
+        assert!(
+            tool_call_step_ids.contains(&name_call_id),
+            "Expected to find name call ID in step IDs, but didn't."
+        );
     }
 }
