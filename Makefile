@@ -73,6 +73,9 @@ docker-push-code-interpreter-amd64: ## Push the Docker image for the code interp
 	docker tag code-interpreter-amd64:latest louis030195/assistants-code-interpreter:latest
 	docker push louis030195/assistants-code-interpreter:latest
 
+clean/rust: 
+	cargo clean
+
 clean/js:
 	rm -rf node_modules package-lock.json package.json
 

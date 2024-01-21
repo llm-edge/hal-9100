@@ -1,6 +1,6 @@
 use async_openai::types::{
     AssistantTools, FunctionCall, MessageContent, MessageContentTextObject, MessageRole,
-    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData,
+    RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData, RunStepType, StepDetails, RunStepDetailsMessageCreationObject, MessageCreation, RunStepDetailsToolCallsObject, RunStepDetailsToolCalls, RunStepDetailsToolCallsCodeObject, CodeInterpreter, CodeInterpreterOutput, RunStepDetailsToolCallsCodeOutputLogsObject, RunStepDetailsToolCallsRetrievalObject, RunStepDetailsToolCallsFunctionObject, RunStepFunctionObject,
 };
 use log::{error, info};
 use redis::AsyncCommands;
@@ -34,12 +34,35 @@ use assistants_core::models::Chunk;
 use assistants_core::retrieval::generate_queries_and_fetch_chunks;
 
 use crate::function_calling::execute_request;
+use crate::models::RunStep;
 use crate::openapi::ActionRequest;
 use crate::prompts::{format_messages, build_instructions};
-use crate::retrieval;
+use crate::run_steps::{create_step, update_step, list_steps, set_all_steps_status};
 
+pub fn extract_step_id_and_function_output(steps: Vec<RunStep>, tool_calls: Vec<SubmittedToolCall>) -> Vec<(String, String, RunStepFunctionObject)> {
+    let mut result = Vec::new();
 
+    for step in steps {
+        if let StepDetails::ToolCalls(step_details) = &step.inner.step_details {
+            // result.push((step.inner.id))
+            for step_tool_call in &step_details.tool_calls {
+                if let RunStepDetailsToolCalls::Function(step_function) = step_tool_call {
+                    for tool_call in tool_calls.iter() {
+                        if step_function.id == tool_call.id {
+                            result.push((step.inner.id.clone(), tool_call.id.clone(), RunStepFunctionObject {
+                                name: step_function.function.name.clone(),
+                                arguments: step_function.function.arguments.clone(),
+                                output: Some(tool_call.output.clone()),
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
 
+    result
+}
 
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
@@ -303,7 +326,13 @@ pub async fn try_run_executor(
 ) -> Result<Run, RunError> {
     match run_executor(&pool, con).await {
         Ok(run) => { 
-            info!("Run completed: {:?}", run);
+            info!("Execution done: {:?}", run);
+            set_all_steps_status(&pool, &run.inner.id, &run.user_id, RunStatus::Completed).await.map_err(|e| RunError {
+                message: format!("Failed to set all steps status: {}", e),
+                run_id: run.inner.id.clone(),
+                thread_id: run.inner.thread_id.clone(),
+                user_id: run.user_id.clone(),
+            })?;
             Ok(run)
          }
         Err(run_error) => {
@@ -322,6 +351,13 @@ pub async fn try_run_executor(
                 Some(last_run_error),
             )
             .await;
+            // TODO: add data error in step
+            set_all_steps_status(&pool, &run_error.run_id, &run_error.user_id, RunStatus::Failed).await.map_err(|e| RunError {
+                message: format!("Failed to set all steps status: {}", e),
+                run_id: run_error.run_id.clone(),
+                thread_id: run_error.thread_id.clone(),
+                user_id: run_error.user_id.clone(),
+            })?;
             Err(run_error)
         }
     }
@@ -369,6 +405,7 @@ pub async fn run_executor(
         thread_id: thread_id.to_string(),
         user_id: user_id.to_string(),
     })?;
+    let assistant_id = assistant.inner.id.clone();
 
     // Update run status to "running"
     run = update_run_status(
@@ -417,8 +454,9 @@ pub async fn run_executor(
     let mut retrieval_files: Vec<String> = vec![];
     let mut retrieval_chunks: Vec<Chunk> = vec![];
     let mut code_output: Option<String> = None;
-
+    let mut code: Option<String> = None;
     let mut tool_calls_db: Vec<SubmittedToolCall> = vec![];
+
     // Check if the run has a required action
     if let Some(required_action) = &run.inner.required_action {
         // skip if there is required action and no tool output yet
@@ -451,6 +489,46 @@ pub async fn run_executor(
             thread_id: thread_id.to_string(),
             user_id: user_id.to_string(),
         })?;
+
+        // for each function call sent by the user, update the run step in database
+
+        // first fetch the steps for this run 
+
+        let steps = list_steps(
+            pool,
+            &run.inner.id,
+            &run.user_id,
+        ).await.map_err(|e| RunError {
+            message: format!("Failed to list steps: {}", e),
+            run_id: run_id.to_string(),
+            thread_id: thread_id.to_string(),
+            user_id: user_id.to_string(),
+        })?;
+
+        let details = extract_step_id_and_function_output(steps, tool_calls_db.clone());
+
+        for (step_id, tool_call_id, function_data) in details {
+            
+            update_step(
+                pool,
+                &step_id,
+                RunStatus::Completed,
+                StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                    r#type: "function".to_string(),
+                    tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                        id: tool_call_id,
+                        r#type: "function".to_string(),
+                        function: function_data,
+                    })],
+                }),
+                &run.user_id,
+            ).await.map_err(|e| RunError {
+                message: format!("Failed to update step: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?;
+        }
 
         // Use the tool call data to build the prompt like Input "functions" Output ""..."" DUMB MODE
         function_calls = required_action
@@ -541,22 +619,6 @@ pub async fn run_executor(
                     info!("Skipping function call because there is a required action");
                     continue;
                 }
-                run = update_run_status(
-                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
-                    pool,
-                    thread_id,
-                    &run.inner.id,
-                    RunStatus::Queued,
-                    &run.user_id,
-                    None,
-        None,
-                )
-                .await.map_err(|e| RunError {
-                    message: format!("Failed to update run status: {}", e),
-                    run_id: run_id.to_string(),
-                    thread_id: thread_id.to_string(),
-                    user_id: user_id.to_string(),
-                })?;
 
                 info!("Generating function to call");
 
@@ -574,6 +636,7 @@ pub async fn run_executor(
                 info!("Function results: {:?}", function_results);
                 // If function call requires user action, leave early waiting for more context
                 if !function_results.is_empty() {
+                    let mut tool_call_ids = Vec::new();
                     // Update run status to "requires_action"
                     run = update_run_status(
                         pool,
@@ -586,14 +649,17 @@ pub async fn run_executor(
                             submit_tool_outputs: SubmitToolOutputs {
                                 tool_calls: function_results
                                     .iter()
-                                    .map(|f| RunToolCallObject {
-                                        id: uuid::Uuid::new_v4().to_string(),
-                                        r#type: "function".to_string(), // TODO hardcoded
-                                        function: FunctionCall {
-                                            name: f.clone().name,
-                                            arguments: f.clone().arguments,
-                                        },
-                                    })
+                                    .map(|f| {
+                                        let id = uuid::Uuid::new_v4().to_string();
+                                        tool_call_ids.push(id.clone());
+                                        RunToolCallObject {
+                                            id,
+                                            r#type: "function".to_string(), // TODO hardcoded
+                                            function: FunctionCall {
+                                                name: f.clone().name,
+                                                arguments: f.clone().arguments,
+                                        }
+                            }})
                                     .collect::<Vec<RunToolCallObject>>(),
                             },
                         }),
@@ -605,6 +671,40 @@ pub async fn run_executor(
                         thread_id: thread_id.to_string(),
                         user_id: user_id.to_string(),
                     })?;
+
+                    // create a step with output None for each function call
+
+                    // TODO: parallel
+                    for (i, function) in function_results.iter().enumerate() {
+                        create_step(
+                            pool,
+                            &run.inner.id,
+                            &assistant_id,
+                            &run.inner.thread_id,
+                            RunStepType::ToolCalls,
+                            RunStatus::InProgress,
+                            StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                                r#type: "function".to_string(),
+                                tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                                    id: tool_call_ids[i].clone(),
+                                    r#type: "function".to_string(),
+                                    function: RunStepFunctionObject {
+                                        name: function.name.clone(),
+                                        arguments: function.arguments.clone(),
+                                        output: None,
+                                    }
+                                })],
+                            }),
+                            &run.user_id,
+                        ).await.map_err(|e| RunError {
+                            message: format!("Failed to create step: {}", e),
+                            run_id: run_id.to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                        })?;
+                    }
+
+                    
                     info!(
                         "Run updated to requires_action with {:?}",
                         run.inner.required_action
@@ -646,6 +746,29 @@ pub async fn run_executor(
                     vec![]
                 });
 
+                create_step(
+                    pool,
+                    &run.inner.id,
+                    &assistant_id,
+                    &run.inner.thread_id,
+                    RunStepType::ToolCalls,
+                    RunStatus::InProgress,
+                    StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                        r#type: "retrieval".to_string(),
+                        tool_calls: vec![RunStepDetailsToolCalls::Retrieval(RunStepDetailsToolCallsRetrievalObject{
+                            id: uuid::Uuid::new_v4().to_string(),
+                            r#type: "retrieval".to_string(),
+                            retrieval: HashMap::new(), // TODO
+                        })],
+                    }),
+                    &run.user_id,
+                ).await.map_err(|e| RunError {
+                    message: format!("Failed to create step: {}", e),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                })?;
+
                 // Include the file contents and previous messages in the instructions.
                 instructions = build_instructions(
                     &instructions,
@@ -669,7 +792,7 @@ pub async fn run_executor(
             }
             "code_interpreter" => {
                 // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
-                code_output = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
+                let interpreter_results = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
                     model_name: model.clone(),
                     model_url: url.clone().into(),
                     max_tokens_to_sample: -1,
@@ -678,10 +801,10 @@ pub async fn run_executor(
                     top_k: None,
                     metadata: None,
                 }).await {
-                    Ok(result) => {
+                    Ok((code_output, code)) => {
                         // Handle the successful execution of the code
                         // You might want to store the result or send it back to the user
-                        Some(result)
+                        (code_output, code)
                     }
                     Err(e) => {
                         // Handle the error from the interpreter
@@ -695,6 +818,8 @@ pub async fn run_executor(
                         })
                     }
                 };
+                code_output = Some(interpreter_results.0);
+                code = Some(interpreter_results.1);
 
                 if code_output.is_none() {
                     return Err(RunError {
@@ -704,6 +829,35 @@ pub async fn run_executor(
                         user_id: user_id.to_string(),
                     });
                 }
+
+                create_step(
+                    pool,
+                    &run.inner.id,
+                    &assistant_id,
+                    &run.inner.thread_id,
+                    RunStepType::ToolCalls,
+                    RunStatus::InProgress,
+                    StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                        r#type: "code_interpreter".to_string(),
+                        tool_calls: vec![RunStepDetailsToolCalls::Code(RunStepDetailsToolCallsCodeObject{
+                            id: uuid::Uuid::new_v4().to_string(),
+                            r#type: "code_interpreter".to_string(),
+                            code_interpreter: CodeInterpreter {
+                                input: code.unwrap(),
+                                outputs: vec![CodeInterpreterOutput::Log(RunStepDetailsToolCallsCodeOutputLogsObject{
+                                    r#type: "log".to_string(),
+                                    logs: code_output.clone().unwrap(),
+                                })],
+                            },
+                        })],
+                    }),
+                    &run.user_id,
+                ).await.map_err(|e| RunError {
+                    message: format!("Failed to create step: {}", e),
+                    run_id: run_id.to_string(),
+                    thread_id: thread_id.to_string(),
+                    user_id: user_id.to_string(),
+                })?;
 
                 // Call file retrieval here
                 // Initialize an empty vector to hold all file IDs
@@ -745,7 +899,7 @@ pub async fn run_executor(
                     &retrieval_files,
                     &formatted_messages,
                     &function_calls,
-                    code_output.as_deref(),
+                    code_output.clone().as_deref(),
                     &retrieval_chunks.iter().map(|c| 
                         serde_json::to_string(&json!({
                             "data": c.data,
@@ -763,23 +917,6 @@ pub async fn run_executor(
                 // 1. generate function call
                 // 2. execute 
 
-                run = update_run_status(
-                    // TODO: unclear if the pending is properly placed here https://platform.openai.com/docs/assistants/tools/function-calling
-                    pool,
-                    thread_id,
-                    &run.inner.id,
-                    RunStatus::Queued,
-                    &run.user_id,
-                    None,
-        None,
-                )
-                .await.map_err(|e| RunError {
-                    message: format!("Failed to update run status: {}", e),
-                    run_id: run_id.to_string(),
-                    thread_id: thread_id.to_string(),
-                    user_id: user_id.to_string(),
-                })?;
-
                 info!("Generating function to call");
 
                 let function_results =
@@ -796,6 +933,7 @@ pub async fn run_executor(
                 info!("Function results: {:?}", function_results);
 
                 for function in function_results {
+                    // TODO: create step here for each?
                     let metadata = function.metadata.unwrap();
                     // println!("function: {:?}", function.clone());
                     let output = execute_request(ActionRequest{
@@ -890,7 +1028,7 @@ These are additional instructions from the user that you must obey absolutely:
                     annotations: vec![],
                 },
             })];
-            add_message_to_thread(
+            let message = add_message_to_thread(
                 pool,
                 &thread.inner.id,
                 MessageRole::Assistant,
@@ -900,6 +1038,28 @@ These are additional instructions from the user that you must obey absolutely:
             )
             .await.map_err(|e| RunError {
                 message: format!("Failed to add message to thread: {}", e),
+                run_id: run_id.to_string(),
+                thread_id: thread_id.to_string(),
+                user_id: user_id.to_string(),
+            })?;
+            create_step(
+                pool,
+                &run.inner.id,
+                &assistant.inner.id,
+                &thread.inner.id,
+                RunStepType::MessageCreation,
+                RunStatus::Completed,
+                StepDetails::MessageCreation(RunStepDetailsMessageCreationObject {
+                    r#type: "message_creation".to_string(),
+                    message_creation: MessageCreation {
+                        message_id: message.inner.id,
+                    }
+                }),
+                &run.user_id.to_string(),
+            )
+            .await
+            .map_err(|e| RunError {
+                message: format!("Failed to create step: {}", e),
                 run_id: run_id.to_string(),
                 thread_id: thread_id.to_string(),
                 user_id: user_id.to_string(),
@@ -939,13 +1099,14 @@ mod tests {
     use assistants_core::runs::{get_run, create_run_and_produce_to_executor_queue};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
-        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra,
+        AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra, RunStepObject,
     };
     use assistants_core::models::{Assistant, Message, Run, Thread};
     use serde_json::json;
     use sqlx::types::Uuid;
 
     use crate::models::SubmittedToolCall;
+    use crate::run_steps::list_steps;
     use crate::runs::{create_run, submit_tool_outputs};
     use crate::test_data::OPENAPI_SPEC;
 
@@ -982,7 +1143,7 @@ mod tests {
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
         )
         .execute(pool)
         .await
@@ -2110,5 +2271,687 @@ mod tests {
         } else {
             panic!("Expected a Text message, but got something else.");
         }
+    }
+
+    #[tokio::test]
+    async fn test_create_step_after_assistant_message() {
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        // Create an assistant
+        let assistant = create_assistant(&pool, &Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "You are a personal math tutor. Write and run code to answer math questions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![],
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        }).await.unwrap();
+
+        // Create a thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a user message to the thread
+        let user_message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            vec![MessageContent::Text(MessageContentTextObject {
+                r#type: "text".to_string(),
+                text: TextData {
+                    value: "User message".to_string(),
+                    annotations: vec![],
+                },
+            })],
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find a random fact.",
+             assistant.user_id.as_str(), 
+             con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+        // Fetch the steps from the database
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // Check the steps
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].inner.r#type, RunStepType::MessageCreation);
+        info!("steps: {:?}", steps);
+        // match steps[0].inner.step_details.clone() {
+        //     StepDetails::MessageCreation(details) => {
+        //         assert_eq!(details.message_creation.message_id, assistant_message.inner.id);
+        //     },
+        //     _ => panic!("Expected a MessageCreation step, but got something else."),
+        // }
+    }
+
+    #[test]
+    fn test_extract_step_id_and_function_output() {
+        // Create a mock step
+        let step = RunStep {
+            inner: RunStepObject {
+                id: "step-abcd".to_string(),
+                object: "".to_string(),
+                created_at: 0,
+                assistant_id: Some("".to_string()),
+                thread_id: "".to_string(),
+                run_id: "".to_string(),
+                r#type: RunStepType::ToolCalls,
+                status: RunStatus::InProgress,
+                last_error: None,
+                expired_at: None,
+                cancelled_at: None,
+                failed_at: None,
+                completed_at: None,
+                metadata: None,
+                step_details: StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                    r#type: "function".to_string(),
+                    tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject {
+                        id: "call-abcd".to_string(),
+                        r#type: "function".to_string(),
+                        function: RunStepFunctionObject {
+                            name: "test_function".to_string(),
+                            arguments: "test_arguments".to_string(),
+                            output: None,
+                        },
+                    })],
+                }),
+            },
+            user_id: "1".to_string(),
+        };
+
+        // Create a mock tool call
+        let tool_call = SubmittedToolCall {
+            id: "call-abcd".to_string(),
+            output: "dog".to_string(),
+            run_id: "1".to_string(),
+            created_at: 0,
+            user_id: "1".to_string(),
+        };
+
+        // Call the function with the mock data
+        let result = extract_step_id_and_function_output(vec![step], vec![tool_call]);
+
+        // Check the result
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "step-abcd");
+        assert_eq!(result[0].1, "call-abcd");
+        assert_eq!(result[0].2.name, "test_function");
+        assert_eq!(result[0].2.output.clone().unwrap(), "dog");
+    }
+
+    #[tokio::test]
+    async fn test_extract_step_id_and_function_output_integration() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        // Create an assistant
+        let assistant = create_assistant(&pool, &Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "Help me using functions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![AssistantTools::Function(AssistantToolsFunction {
+                    r#type: "function".to_string(),
+                    function: FunctionObject {
+                        description: Some("A calculator function".to_string()),
+                        name: "calculator".to_string(),
+                        parameters: Some(json!({
+                            "type": "object",
+                            "properties": {
+                                "a": {
+                                    "type": "number",
+                                    "description": "The first number."
+                                },
+                                "b": {
+                                    "type": "number",
+                                    "description": "The second number."
+                                }
+                            }
+                        })),
+                    },
+                })],
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        }).await.unwrap();
+
+        // Create a thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a user message to the thread
+        let user_message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            vec![MessageContent::Text(MessageContentTextObject {
+                r#type: "text".to_string(),
+                text: TextData {
+                    value: "Please calculate 2 + 2.".to_string(),
+                    annotations: vec![],
+                },
+            })],
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find by using the function tool.",
+            assistant.user_id.as_str(), 
+            con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::RequiresAction);
+
+        let tool_call_id = run
+            .inner
+            .required_action
+            .unwrap()
+            .submit_tool_outputs
+            .tool_calls[0]
+            .id
+            .clone();
+        // Submit tool outputs
+        let tool_outputs = vec![SubmittedToolCall {
+            id: tool_call_id.clone(),
+            output: "4".to_string(),
+            run_id: run.inner.id.clone(),
+            created_at: 0,
+            user_id: assistant.user_id.clone(),
+        }];
+        let con = client.get_async_connection().await.unwrap();
+
+        submit_tool_outputs(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            assistant.user_id.clone().as_str(),
+            tool_outputs.clone(),
+            con,
+        )
+        .await
+        .unwrap();
+
+        let run = get_run(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            &assistant.user_id,
+        ).await.unwrap();
+
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        let step_id = steps[0].inner.id.clone();
+        let result = extract_step_id_and_function_output(steps, tool_outputs);
+
+        // Check the result
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, step_id);
+        assert_eq!(result[0].1, tool_call_id);
+        assert_eq!(result[0].2.name, "calculator");
+        assert_eq!(result[0].2.output.clone().unwrap(), "4");
+    }
+
+    #[tokio::test]
+    async fn test_step_update_with_function_output() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        // Create an assistant
+        let assistant = create_assistant(&pool, &Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "Help me using functions."
+                        .to_string(),
+                ),
+                name: Some("Math Tutor".to_string()),
+                tools: vec![AssistantTools::Function(AssistantToolsFunction {
+                    r#type: "function".to_string(),
+                    function: FunctionObject {
+                        description: Some("A calculator function".to_string()),
+                        name: "calculator".to_string(),
+                        parameters: Some(json!({
+                            "type": "object",
+                            "properties": {
+                                "a": {
+                                    "type": "number",
+                                    "description": "The first number."
+                                },
+                                "b": {
+                                    "type": "number",
+                                    "description": "The second number."
+                                }
+                            }
+                        })),
+                    },
+                })],
+                // model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                model: "l/mistral-tiny".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        }).await.unwrap();
+
+        // Create a thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a user message to the thread
+        let user_message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            vec![MessageContent::Text(MessageContentTextObject {
+                r#type: "text".to_string(),
+                text: TextData {
+                    value: "Please calculate 2 + 2.".to_string(),
+                    annotations: vec![],
+                },
+            })],
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find by using the function tool.",
+            assistant.user_id.as_str(), 
+            con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::RequiresAction);
+
+        let tool_call_id = run
+            .inner
+            .required_action
+            .unwrap()
+            .submit_tool_outputs
+            .tool_calls[0]
+            .id
+            .clone();
+
+        // Fetch the steps from the database
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // Check the step before tool output submission
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].inner.r#type, RunStepType::ToolCalls);
+        if let StepDetails::ToolCalls(details) = &steps[0].inner.step_details {
+            if let RunStepDetailsToolCalls::Function(function) = &details.tool_calls[0] {
+                assert_eq!(function.id, tool_call_id);
+                assert_eq!(function.function.name, "calculator");
+                assert!(function.function.output.is_none());
+            } else {
+                panic!("Expected a Function tool call, but got something else.");
+            }
+        } else {
+            panic!("Expected a ToolCalls step, but got something else.");
+        }
+
+        // Submit tool outputs
+        let tool_outputs = vec![SubmittedToolCall {
+            id: tool_call_id.clone(),
+            output: "4".to_string(),
+            run_id: run.inner.id.clone(),
+            created_at: 0,
+            user_id: assistant.user_id.clone(),
+        }];
+        let con = client.get_async_connection().await.unwrap();
+
+        submit_tool_outputs(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            &assistant.user_id,
+            tool_outputs,
+            con,
+        )
+        .await
+        .unwrap();
+
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+
+        // Fetch the steps from the database again
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        // Check the step after tool output submission
+        assert_eq!(steps.len(), 2);
+
+        // Find the tool call step
+        let tool_call_step = steps.iter().find(|step| step.inner.r#type == RunStepType::ToolCalls).unwrap();
+
+        if let StepDetails::ToolCalls(details) = &tool_call_step.inner.step_details {
+            if let RunStepDetailsToolCalls::Function(function) = &details.tool_calls[0] {
+                assert_eq!(function.id, tool_call_id);
+                assert_eq!(function.function.name, "calculator");
+                assert_eq!(function.function.output.as_ref().unwrap(), "4");
+            } else {
+                panic!("Expected a Function tool call, but got something else.");
+            }
+        } else {
+            panic!("Expected a ToolCalls step, but got something else.");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_step_update_with_multiple_function_output() {
+        // Setup
+        let pool = setup().await;
+        reset_db(&pool).await;
+
+        // Create an assistant with two functions: 'get_weather' and 'celsius_to_kelvin'
+        let assistant = create_assistant(&pool, &Assistant {
+            inner: AssistantObject {
+                id: "".to_string(),
+                instructions: Some(
+                    "Help me using functions."
+                        .to_string(),
+                ),
+                name: Some("Weather Assistant".to_string()),
+                tools: vec![
+                    AssistantTools::Function(AssistantToolsFunction {
+                        r#type: "function".to_string(),
+                        function: FunctionObject {
+                            description: Some("A function to get weather".to_string()),
+                            name: "get_weather".to_string(),
+                            parameters: Some(json!({
+                                "type": "object",
+                                "properties": {
+                                    "location": {
+                                        "type": "string",
+                                        "description": "The location to get weather for."
+                                    }
+                                }
+                            })),
+                        },
+                    }),
+                    AssistantTools::Function(AssistantToolsFunction {
+                        r#type: "function".to_string(),
+                        function: FunctionObject {
+                            description: Some("A function to get my name".to_string()),
+                            name: "get_name".to_string(),
+                            parameters: Some(json!({
+                                "type": "object",
+                                "properties": {}
+                            })),
+                        },
+                    })
+                ],
+                // model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                model: "l/mistral-tiny".to_string(),
+                file_ids: vec![],
+                object: "object_value".to_string(),
+                created_at: 0,
+                description: Some("description_value".to_string()),
+                metadata: None,
+            },
+            user_id: Uuid::default().to_string(),
+        }).await.unwrap();
+
+        // Create a thread
+        let thread = create_thread(&pool, &Uuid::default().to_string())
+            .await
+            .unwrap();
+
+        // Add a user message to the thread
+        let user_message = add_message_to_thread(
+            &pool,
+            &thread.inner.id,
+            MessageRole::User,
+            vec![MessageContent::Text(MessageContentTextObject {
+                r#type: "text".to_string(),
+                text: TextData {
+                    value: "Please tell me the weather and say my name by using functions.".to_string(),
+                    annotations: vec![],
+                },
+            })],
+            &Uuid::default().to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Run the Assistant
+        // Get Redis URL from environment variable
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        
+        let run = create_run_and_produce_to_executor_queue(
+            &pool, &thread.inner.id, 
+            &assistant.inner.id, 
+            "Please help me find the weather and say my name by using functions.",
+            assistant.user_id.as_str(), 
+            con
+        ).await.unwrap();
+
+        assert_eq!(run.inner.status, RunStatus::Queued);
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::RequiresAction);
+        
+        let r_a = run
+            .inner
+            .required_action;
+
+        // get the id of the weather tool call
+        let weather_call_id = r_a.clone()
+            .unwrap()
+            .submit_tool_outputs
+            .tool_calls
+            .iter()
+            .find(|tool_call| tool_call.function.name == "get_weather")
+            .unwrap()
+            .id
+            .clone();
+    
+        let name_call_id = r_a.clone()
+            .unwrap()
+            .submit_tool_outputs
+            .tool_calls
+            .iter()
+            .find(|tool_call| tool_call.function.name == "get_name")
+            .unwrap()
+            .id
+            .clone();
+        
+        // Submit tool outputs
+        let tool_outputs = vec![
+            SubmittedToolCall {
+                id: weather_call_id.clone(),
+                output: "20".to_string(), // Let's say the weather in New York is 20 Celsius
+                run_id: run.inner.id.clone(),
+                created_at: 0,
+                user_id: assistant.user_id.clone(),
+            },
+            SubmittedToolCall {
+                id: name_call_id.clone(),
+                output: "Bob is my name".to_string(),
+                run_id: run.inner.id.clone(),
+                created_at: 0,
+                user_id: assistant.user_id.clone(),
+            },
+        ];
+        let con = client.get_async_connection().await.unwrap();
+        
+        submit_tool_outputs(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id,
+            &assistant.user_id,
+            tool_outputs,
+            con,
+        )
+        .await
+        .unwrap();
+
+        // Run the queue consumer again
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool, &mut con).await;
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let run = result.unwrap();
+
+        // Check the result
+        assert_eq!(run.inner.status, RunStatus::Completed);
+
+        // Check the final message
+        let messages = list_messages(&pool, &thread.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        assert_eq!(messages.len(), 2); 
+
+        let assistant_message = &messages[1];
+        assert_eq!(assistant_message.inner.role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &assistant_message.inner.content[0] {
+            assert_eq!(text_object.text.value.contains("20"), true);
+            assert_eq!(text_object.text.value.contains("Bob"), true);
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+
+        // check there are 3 steps 
+
+        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+            .await
+            .unwrap();
+
+        assert_eq!(steps.len(), 3);
+        // there should be 2 tool call steps
+        let tool_call_steps = steps.iter().filter(|step| step.inner.r#type == RunStepType::ToolCalls).collect::<Vec<&RunStep>>();
+        assert_eq!(tool_call_steps.len(), 2);
+
+        // check the id of the tool call steps match the tool call ids
+
+        let tool_call_step_ids = serde_json::to_string(&steps).unwrap();
+        assert_eq!(tool_call_step_ids.contains(&weather_call_id), true);
+        assert_eq!(tool_call_step_ids.contains(&name_call_id), true);
     }
 }

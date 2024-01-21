@@ -90,6 +90,7 @@ pub async fn submit_tool_outputs(
 
     // Iterate over tool_outputs and update each tool_call in the database
     for tool_output in tool_outputs {
+        info!("Updating tool call for tool_call_id: {}", tool_output.id);
         // TODO parallel
         sqlx::query!(
             r#"
@@ -495,6 +496,7 @@ pub async fn update_run_status(
     if let Some(action) = required_action {
         futures::stream::iter(action.submit_tool_outputs.tool_calls.iter())
             .then(|tool_call| async move {
+                info!("Creating tool call for tool_call_id: {}", tool_call.id);
                 let _ = sqlx::query!(
                     r#"
                     INSERT INTO tool_calls (id, run_id, user_id)
@@ -735,7 +737,7 @@ mod tests {
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
         sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls RESTART IDENTITY"
+            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
         )
         .execute(pool)
         .await

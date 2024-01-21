@@ -1,7 +1,8 @@
 use assistants_extra::anthropic;
 use async_openai::types::{
-    AssistantObject, ChatCompletionFunctions, FunctionObject, MessageObject, MessageRole,
-    RunObject, RunStatus, ThreadObject,
+    AssistantObject, ChatCompletionFunctions, FunctionObject, MessageCreation, MessageObject,
+    MessageRole, RunObject, RunStatus, RunStepDetailsMessageCreationObject, RunStepObject,
+    RunStepType, StepDetails, ThreadObject,
 };
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
@@ -195,4 +196,40 @@ pub struct PartialChunk {
     pub data: String,
     pub start_index: i32,
     pub end_index: i32,
+}
+
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+pub struct RunStep {
+    pub inner: RunStepObject,
+    pub user_id: String,
+}
+
+impl Default for RunStep {
+    fn default() -> Self {
+        Self {
+            inner: RunStepObject {
+                id: Uuid::new_v4().to_string(),
+                object: String::new(),
+                created_at: 0,
+                assistant_id: Some(Uuid::new_v4().to_string()),
+                thread_id: Uuid::new_v4().to_string(),
+                run_id: Uuid::new_v4().to_string(),
+                r#type: RunStepType::MessageCreation,
+                status: RunStatus::Queued,
+                step_details: StepDetails::MessageCreation(RunStepDetailsMessageCreationObject {
+                    r#type: String::new(),
+                    message_creation: MessageCreation {
+                        message_id: Uuid::new_v4().to_string(),
+                    },
+                }),
+                last_error: None,
+                expired_at: Some(0),
+                cancelled_at: None,
+                failed_at: None,
+                completed_at: None,
+                metadata: None,
+            },
+            user_id: String::new(),
+        }
+    }
 }

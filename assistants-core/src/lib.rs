@@ -12,6 +12,7 @@ pub mod openapi;
 pub mod pdf_utils;
 pub mod prompts;
 pub mod retrieval;
+pub mod run_steps;
 pub mod runs;
 pub mod test_data;
 pub mod threads;
