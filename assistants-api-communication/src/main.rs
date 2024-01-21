@@ -9,6 +9,7 @@ use assistants_api_communication::messages::{
     update_message_handler,
 };
 use assistants_api_communication::models::AppState;
+use assistants_api_communication::run_steps::{get_step_handler, list_steps_handler};
 use assistants_api_communication::runs::{
     create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
     submit_tool_outputs_handler, update_run_handler,
@@ -169,13 +170,15 @@ fn app(app_state: AppState) -> Router {
         )
         .route("/threads/:thread_id/runs", get(list_runs_handler))
         // GET https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}/steps
-        // .route(
-        //     "/threads/:thread_id/runs/:run_id/steps",
-        //     get(list_run_steps_handler),
-        // )
+        .route(
+            "/threads/:thread_id/runs/:run_id/steps",
+            get(list_steps_handler),
+        )
         // GET https://api.openai.com/v1/threads/{thread_id}/runs/{run_id}/steps/{step_id}
-        // .route("/threads/:thread_id/runs/:run_id/steps/:step_id", get(get_run_step_handler))
-
+        .route(
+            "/threads/:thread_id/runs/:run_id/steps/:step_id",
+            get(get_step_handler),
+        )
         .route(
             "/threads/:thread_id/runs/:run_id/submit_tool_outputs",
             post(submit_tool_outputs_handler),

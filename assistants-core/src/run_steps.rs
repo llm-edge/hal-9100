@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use crate::models::RunStep;
 use async_openai::types::{RunStatus, RunStepObject, RunStepType, StepDetails};
+use chrono::Utc;
 use log::info;
-use sqlx::{types::Uuid, PgPool};
+use sqlx::{postgres::PgRow, types::Uuid, PgPool, Row};
 
 pub async fn create_step(
     pool: &PgPool,
@@ -82,6 +83,156 @@ pub async fn create_step(
             ),
         },
         user_id: row.user_id.unwrap_or_default().to_string(),
+    })
+}
+
+pub async fn update_step(
+    pool: &PgPool,
+    step_id: &str,
+    status: RunStatus,
+    step_details: StepDetails,
+    user_id: &str,
+) -> Result<RunStep, sqlx::Error> {
+    info!("Updating step for step_id: {}", step_id);
+    let row = sqlx::query!(
+        r#"
+        UPDATE run_steps 
+        SET status = $2, step_details = $3, completed_at = $5, failed_at = $6, cancelled_at = $7, expired_at = $8
+        WHERE id::text = $1 AND user_id::text = $4
+        RETURNING *
+        "#,
+        step_id,
+        match status {
+            RunStatus::Queued => "queued",
+            RunStatus::InProgress => "in_progress",
+            RunStatus::RequiresAction => "requires_action",
+            RunStatus::Completed => "completed",
+            RunStatus::Failed => "failed",
+            RunStatus::Cancelled => "cancelled",
+            RunStatus::Expired => "expired",
+            RunStatus::Cancelling => "cancelling",
+        },
+        serde_json::to_value(step_details).unwrap(),
+        user_id,
+        if status == RunStatus::Completed { Some(Utc::now().timestamp() as i32) } else { None },
+        if status == RunStatus::Failed { Some(Utc::now().timestamp() as i32) } else { None },
+        if status == RunStatus::Cancelled { Some(Utc::now().timestamp() as i32) } else { None },
+        if status == RunStatus::Expired { Some(Utc::now().timestamp() as i32) } else { None },
+    )
+    .fetch_one(pool)
+    .await?;
+
+    // Map the returned row to a RunStep object and return it
+    Ok(RunStep {
+        inner: RunStepObject {
+            id: row.id.to_string(),
+            object: row.object.unwrap_or_default(),
+            created_at: row.created_at,
+            assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+            thread_id: row.thread_id.unwrap_or_default().to_string(),
+            run_id: row.run_id.unwrap_or_default().to_string(),
+            r#type: if row.r#type.unwrap() == "message_creation" {
+                RunStepType::MessageCreation
+            } else {
+                RunStepType::ToolCalls
+            },
+            status: match row.status.unwrap_or_default().as_str() {
+                "queued" => RunStatus::Queued,
+                "in_progress" => RunStatus::InProgress,
+                "requires_action" => RunStatus::RequiresAction,
+                "completed" => RunStatus::Completed,
+                "failed" => RunStatus::Failed,
+                "cancelled" => RunStatus::Cancelled,
+                _ => RunStatus::Queued,
+            },
+            step_details: serde_json::from_value(row.step_details.unwrap_or_default()).unwrap(),
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                .unwrap_or_default(),
+            expired_at: row.expired_at,
+            cancelled_at: row.cancelled_at,
+            failed_at: row.failed_at,
+            completed_at: row.completed_at,
+            metadata: Some(
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                    row.metadata.unwrap_or_default(),
+                )
+                .unwrap_or_default(),
+            ),
+        },
+        user_id: row.user_id.unwrap_or_default().to_string(),
+    })
+}
+
+pub async fn set_all_steps_status(
+    pool: &PgPool,
+    run_id: &str,
+    user_id: &str,
+    status: RunStatus,
+) -> Result<Vec<RunStep>, sqlx::Error> {
+    sqlx::query!(
+        r#"
+        UPDATE run_steps
+        SET status = $1
+        WHERE run_id::text = $2 AND user_id::text = $3
+        RETURNING *
+        "#,
+        match status {
+            RunStatus::Queued => "queued",
+            RunStatus::InProgress => "in_progress",
+            RunStatus::RequiresAction => "requires_action",
+            RunStatus::Completed => "completed",
+            RunStatus::Failed => "failed",
+            RunStatus::Cancelled => "cancelled",
+            RunStatus::Expired => "expired",
+            RunStatus::Cancelling => "cancelling",
+        },
+        run_id,
+        user_id,
+    )
+    .fetch_all(pool)
+    .await
+    .map(|rows| {
+        rows.into_iter()
+            .map(|row| RunStep {
+                inner: RunStepObject {
+                    id: row.id.to_string(),
+                    object: row.object.unwrap_or_default(),
+                    created_at: row.created_at,
+                    assistant_id: Some(row.assistant_id.unwrap_or_default().to_string()),
+                    thread_id: row.thread_id.unwrap_or_default().to_string(),
+                    run_id: row.run_id.unwrap_or_default().to_string(),
+                    r#type: if row.r#type.unwrap() == "message_creation" {
+                        RunStepType::MessageCreation
+                    } else {
+                        RunStepType::ToolCalls
+                    },
+                    status: match row.status.unwrap_or_default().as_str() {
+                        "queued" => RunStatus::Queued,
+                        "in_progress" => RunStatus::InProgress,
+                        "requires_action" => RunStatus::RequiresAction,
+                        "completed" => RunStatus::Completed,
+                        "failed" => RunStatus::Failed,
+                        "cancelled" => RunStatus::Cancelled,
+                        _ => RunStatus::Queued,
+                    },
+                    step_details: serde_json::from_value(row.step_details.unwrap_or_default())
+                        .unwrap(),
+                    last_error: serde_json::from_value(row.last_error.unwrap_or_default())
+                        .unwrap_or_default(),
+                    expired_at: row.expired_at,
+                    cancelled_at: row.cancelled_at,
+                    failed_at: row.failed_at,
+                    completed_at: row.completed_at,
+                    metadata: Some(
+                        serde_json::from_value::<HashMap<String, serde_json::Value>>(
+                            row.metadata.unwrap_or_default(),
+                        )
+                        .unwrap_or_default(),
+                    ),
+                },
+                user_id: row.user_id.unwrap_or_default().to_string(),
+            })
+            .collect()
     })
 }
 

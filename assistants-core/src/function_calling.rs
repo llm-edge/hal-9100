@@ -106,6 +106,10 @@ Please provide the name of the function you want to use and the arguments in the
 Rules:
 - The function name must be one of the functions available.
 - The arguments must be a subset of the arguments available.
+- Generate a single function at a time!
+- Generate a single JSON object at a time or it will break!
+- Do not return your input as output! Just return the function call!
+- Do not escape characters!
 - The arguments must be in the correct format (e.g. string, integer, etc.).
 - The arguments must be required by the function (e.g. if the function requires a parameter called 'city', then you must provide a value for 'city').
 - The arguments must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
@@ -119,31 +123,31 @@ Examples:
 
 1. Fetching a user's profile
 
-Prompt:
+You receive:
 {\"function\": {\"description\": \"Fetch a user's profile\",\"name\": \"get_user_profile\",\"parameters\": {\"username\": {\"properties\": {},\"required\": [\"username\"],\"type\": \"string\"}}},\"user_context\": \"I want to see the profile of user 'john_doe'.\"}
-Answer:
+Your answer:
 { \"name\": \"get_user_profile\", \"arguments\": { \"username\": \"john_doe\" } }
 
 2. Sending a message
 
-Prompt:
+You receive:
 {\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
-Answer:
+Your answer:
 { \"name\": \"send_message\", \"arguments\": { \"recipient\": \"jane_doe\", \"message\": \"Hello, how are you?\" } }
 
 Negative examples:
 
-Prompt:
+You receive:
 {\"function\": {\"description\": \"Get the weather for a city\",\"name\": \"weather\",\"parameters\": {\"city\": {\"properties\": {},\"required\": [\"city\"],\"type\": \"string\"}}},\"user_context\": \"Give me a weather report for Toronto, Canada.\"}
-Incorrect Answer:
+Your Incorrect Answer:
 { \"name\": \"weather\", \"arguments\": { \"city\": \"Toronto, Canada\" } }
 
 In this case, the function weather expects a city parameter, but the llm provided a city and country (\"Toronto, Canada\") instead of just the city (\"Toronto\"). This would cause the function call to fail because the weather function does not know how to handle a city and country as input.
 
 
-Prompt:
+You receive:
 {\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
-Incorrect Answer:
+Your Incorrect Answer:
 {\"function\": {\"description\": \"Send a message to a user\",\"name\": \"send_message\",\"parameters\": {\"recipient\": {\"properties\": {},\"required\": [\"recipient\"],\"type\": \"string\"}, \"message\": {\"properties\": {},\"required\": [\"message\"],\"type\": \"string\"}}},\"user_context\": \"I want to send 'Hello, how are you?' to 'jane_doe'.\"}
 
 In this case, the LLM simply returned the exact same input as output, which is not a valid function call.
