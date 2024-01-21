@@ -152,7 +152,8 @@ Your Incorrect Answer:
 
 In this case, the LLM simply returned the exact same input as output, which is not a valid function call.
 
-Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.";
+Your answer will be used to call the function so it must be in JSON format, do not say anything but the function name and the parameters.
+Function call:";
 
 #[derive(Debug)]
 pub enum FunctionCallError {

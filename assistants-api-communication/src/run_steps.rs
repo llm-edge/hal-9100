@@ -58,7 +58,8 @@ mod tests {
         models::AppState,
         runs::{
             create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
-            update_run_handler, ApiSubmittedToolCall, SubmitToolOutputsRequest,
+            submit_tool_outputs_handler, update_run_handler, ApiSubmittedToolCall,
+            SubmitToolOutputsRequest,
         },
         threads::{
             create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
@@ -127,6 +128,10 @@ mod tests {
             .route(
                 "/threads/:thread_id/runs/:run_id/steps",
                 get(list_steps_handler),
+            )
+            .route(
+                "/threads/:thread_id/runs/:run_id/submit_tool_outputs",
+                post(submit_tool_outputs_handler),
             )
             .route(
                 "/threads/:thread_id/runs/:run_id/steps/:step_id",
