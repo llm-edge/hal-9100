@@ -87,7 +87,7 @@ pub async fn safe_interpreter(
     attempt: usize,
     max_attempts: usize,
     model_config: InterpreterModelConfig,
-) -> Result<String, InterpreterError> {
+) -> Result<(String, String), InterpreterError> {
     if attempt >= max_attempts {
         return Err(InterpreterError {
             message: String::from("Max attempts reached"),
@@ -96,7 +96,7 @@ pub async fn safe_interpreter(
     }
 
     match interpreter(user_input.clone(), model_config.clone()).await {
-        Ok((result, _model_output)) => Ok(result),
+        Ok((code_output, code)) => Ok((code_output, code)),
         Err(e) => {
             eprintln!("Error: {}", e);
             let input = format!(
@@ -377,10 +377,10 @@ mod tests {
                 input,
                 result
             );
-            let result_string = result.unwrap();
+            let (code_output, code) = result.unwrap();
             println!(
                 "Problem to solve: {}. \nOutput: {}\nExpected output: {}",
-                input, result_string, expected_output
+                input, code_output, expected_output
             );
 
             let p = "You are an AI that checks the correctness of math results. 
@@ -399,7 +399,7 @@ Rules:
                 p,
                 &format!(
                     "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
-                    input, result_string, expected_output
+                    input, code_output, expected_output
                 ),
                 Some(0.0),
                 -1,

@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS runs;
 DROP TABLE IF EXISTS functions;
 DROP TABLE IF EXISTS tool_calls;
 DROP TABLE IF EXISTS chunks;
+DROP TABLE IF EXISTS run_steps;
 
 -- Create assistants table
 CREATE TABLE assistants (
@@ -112,6 +113,27 @@ CREATE TABLE chunks (
     -- embedding VECTOR(8192), -- hardcoded atm https://huggingface.co/jinaai/jina-embeddings-v2-base-en
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))
 );
+
+CREATE TABLE run_steps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    object TEXT,
+    created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())),
+    run_id UUID REFERENCES runs(id),
+    assistant_id UUID REFERENCES assistants(id),
+    thread_id UUID REFERENCES threads(id),
+    type TEXT,
+    status TEXT,
+    cancelled_at INTEGER,
+    completed_at INTEGER,
+    expired_at INTEGER,
+    failed_at INTEGER,
+    last_error JSONB,
+    step_details JSONB,
+    usage JSONB,
+    metadata JSONB,
+    user_id UUID
+);
+-- TODO INDEXES
 -- CREATE INDEX ON chunks USING hnsw (embedding vector_l2_ops);
 -- CREATE INDEX ON chunks USING hnsw (embedding vector_ip_ops);
 -- CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
