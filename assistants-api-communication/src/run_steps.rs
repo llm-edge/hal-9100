@@ -472,7 +472,7 @@ mod tests {
         let steps: Vec<RunStepObject> = serde_json::from_slice(&body).unwrap();
 
         // Check the steps
-        assert!(!steps.is_empty(), "Expected some steps, but got none.");
+        assert!(steps.is_empty(), "Expected some steps, but got none.");
         // Check there are 3 steps
         assert_eq!(steps.len(), 3, "Expected 3 steps, but got {}.", steps.len());
 
