@@ -54,32 +54,61 @@ Run the [quickstart](./examples/quickstart.js):
 node examples/quickstart.js
 ```
 
-## Why Open Source Edge Assistants API?
-- **Full Control**: Own your data, your models, and your destiny.
-- **No Hidden Costs**: Absolutely free. Seriously, no strings attached.
-- **Customizable**: Tailor the AI to your specific needs and use cases.
-- **Offline Capabilities**: Perfect for edge cases or internet-free zones.
-- **OpenAI Compatibility**: Love OpenAI's API? We play nice with that too.
-- **Integration**: Easy to connect to other infrastructures.
-- **Non-woke style**: No OpenAI Woke style.
+## 📏 Principles
 
-## What's Cooking? – Latest News
+Assistants is a tool that is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
+
+<details>
+<summary><strong>Edge-first</strong></summary>
+<p>
+
+Assistants does not require internet access by focusing on open source LLMs. Which means you own your data and your models.
+
+</p>
+</details>
+
+<details>
+<summary><strong>OpenAI-compatible</strong></summary>
+<p>
+
+OpenAI spent a large amount of the best brain power to design this API, which makes it an incredible experience for developers.
+
+</p>
+</details>
+
+<details>
+<summary><strong>Reliable and deterministic</strong></summary>
+<p>
+
+Assistants focus on reliability and being as deterministic as possible by default. That's why everything has to be tested and benchmarked.
+
+</p>
+</details>
+
+<details>
+<summary><strong>Flexible</strong></summary>
+<p>
+
+A minimal number of hard-coded prompts and behaviors, a wide range of models, infrastructure components and deployment options and it play well with the open-source ecosystem, while only integrating projects that have stood the test of time.
+
+</p>
+</details>
+
+
+
+## ⭐️ Latest News
 
 - [2024/01/19] 🔥 Action tool. Let your Assistant make requests to APIs.
 - [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
 - [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
 - [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
-## Key Features
+## ✨ Key Features
 - [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (beta)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
 - [x] **Function Calling**: Defines and executes custom functions.
+- [x] **Actions**: Execute requests to external APIs, automatically.
 - [x] **File Handling**: Supports a range of file formats.
-- [ ] **Multimodal**: Supports audio, images, and text.
-  - [ ] image audio text 
-  - [ ] audio text
-  - [ ] image text (soon)
-  - [x] text
 
 ## Join the Movement
 - **For Developers**: We've got the docs, tools, and a community ready to help you build what's next.
@@ -100,6 +129,7 @@ Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
 - [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
 
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
+- MC-LLM
 - [FastChat (good if you have a mac)](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
 - [Perplexity API](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
@@ -111,6 +141,8 @@ Examples of LLM APIs that does support OpenAI API-like, that you can use:
 <details>
 <summary>What's the difference with LangChain?</summary>
 LangChain offers detailed control over AI conversations, while OpenAI's Assistants API simplifies the process, managing conversation history, data/vector store, and tool switching for you.
+
+Assistants is focused on edge use cases with high reliability requirements.
 </details>
 
 <details>
@@ -126,5 +158,4 @@ We recommend switching to the Assistants API for a more streamlined experience, 
 <details>
 <summary>Does the Assistants API support audio and images?</summary>
 Images soon, working on it.
-Audio in a few weeks.
 </details>
