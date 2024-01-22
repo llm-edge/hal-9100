@@ -1,23 +1,26 @@
 
 <p align="center">
 <img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
-  <h1 align="center">⭐️ Open Source Assistants API</h1>
-  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
-  <h4 align="center">75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
+  <h1 align="center">⭐️ Open Source Edge Assistants API</h1>
+  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms, That run on the Edge</h2>
+  <h4 align="center">100% Privacy, 75% Cheaper & 23x Faster Assistants. For the Edge. Same API/SDK.</h4>
   <p align="center">
     <a href='https://codespaces.new/stellar-amenities/assistants?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
     <br />
     <a href="https://discord.gg/pj5VRqqs84"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
-    <hr />
-    <a href="https://cal.com/louis030195/unleash-llms">📞 Need Support? We're here for you.</a>
-    <br />
-    <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ How it Works – Visual Guide</a>
-    <br />
-    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Suggest a Feature</a>
-    <br />
-    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Found a Bug? Let us know.</a>
   </p>
 </p>
+
+
+-----
+
+<p align="center">
+    <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ Infra</a>
+    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
+    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
+</p>
+
+-----
 
 
 # Quickstart
@@ -51,31 +54,14 @@ Run the [quickstart](./examples/quickstart.js):
 node examples/quickstart.js
 ```
 
-## Table of contents
-
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#why-open-source-assistants-api">Why Open Source Assistants API?</a></li>
-    <li><a href="#whats-cooking-latest-news">What's Cooking? – Latest News</a></li>
-    <li><a href="#key-features">Key Features</a></li>
-    <li><a href="#what-can-you-build-with-assistants">What Can You Build with Assistants?</a></li>
-    <li><a href="#join-the-movement">Join the Movement</a></li>
-    <li><a href="#deployment">Deployment</a></li>
-    <li><a href="#faq">FAQ</a></li>
-  </ol>
-</details>
-
-
-## Why Open Source Assistants API?
+## Why Open Source Edge Assistants API?
 - **Full Control**: Own your data, your models, and your destiny.
 - **No Hidden Costs**: Absolutely free. Seriously, no strings attached.
 - **Customizable**: Tailor the AI to your specific needs and use cases.
 - **Offline Capabilities**: Perfect for edge cases or internet-free zones.
 - **OpenAI Compatibility**: Love OpenAI's API? We play nice with that too.
-- **Simplicity**: Easy setup, no steep learning curve.
-- **Non-woke style**: Get rid of OpenAI Woke/Brainwashed/PC models.
-- **Unleashed code interpreter**: OpenAI Code interpreter is not allowed to do other things than processing data (e.g. cannot do web scrapping, etc.). This one is unleashed.
+- **Integration**: Easy to connect to other infrastructures.
+- **Non-woke style**: No OpenAI Woke style.
 
 ## What's Cooking? – Latest News
 
