@@ -25,6 +25,8 @@
 
 # Quickstart
 
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
+
 Get started in less than a minute through GitHub Codespaces:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants?quickstart=1)
@@ -53,6 +55,7 @@ Run the [quickstart](./examples/quickstart.js):
 ```bash
 node examples/quickstart.js
 ```
+
 
 ## 📏 Principles
 
