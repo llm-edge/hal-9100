@@ -1,6 +1,6 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/353b4cdc-41c1-42fd-a294-d37a7b30b2d7">
   <h1 align="center">⭐️ Open Source Edge Assistants API</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms, That run on the Edge</h2>
   <h4 align="center">100% Privacy, 75% Cheaper & 23x Faster Assistants. For the Edge. Same API/SDK.</h4>
