@@ -1772,7 +1772,7 @@ mod tests {
                     "type": "retrieval"
                 }
             ],
-            "model": "claude-2.1",
+            "model": "mistralai/mixtral-8x7b-instruct",
             "file_ids": [file_id], // Associate the uploaded file with the assistant
         });
         let response = app
