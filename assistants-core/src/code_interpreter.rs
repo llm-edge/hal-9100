@@ -361,7 +361,7 @@ mod tests {
                 0,
                 3,
                 InterpreterModelConfig {
-                    model_name: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model_name: ENV_MODEL_NAME.to_string(),
                     model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
                     max_tokens_to_sample: 100,
                     stop_sequences: None,

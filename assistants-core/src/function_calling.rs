@@ -671,7 +671,7 @@ mod tests {
                 instructions: Some("".to_string()),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                model: ENV_MODEL_NAME.to_string(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -707,7 +707,7 @@ mod tests {
         let user_context = String::from("Give me a weather report for Toronto, Canada.");
 
         let model_config = ModelConfig {
-            model_name: String::from("mistralai/mixtral-8x7b-instruct"),
+            model_name: String::from(ENV_MODEL_NAME),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
@@ -836,7 +836,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model: ENV_MODEL_NAME.to_string(),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),

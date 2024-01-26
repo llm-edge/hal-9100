@@ -232,7 +232,7 @@ mod tests {
                 .with_api_base("https://api.mistral.ai/v1"),
         );
         let request = match CreateChatCompletionRequestArgs::default()
-            // .model("mistralai/mixtral-8x7b-instruct")
+            // .model(ENV_MODEL_NAME)
             .model("mistral-tiny")
             .max_tokens(512u16)
             .messages([messages])
@@ -294,7 +294,7 @@ mod tests {
         let app = app();
 
         let chat_input = json!({
-            "model": "mistralai/mixtral-8x7b-instruct",
+            "model": ENV_MODEL_NAME,
             // "model": "gpt4",
             "messages": [
                 {
@@ -337,7 +337,7 @@ mod tests {
 
         // Mock a request with a tool that requires a function call
         let chat_input = json!({
-            "model": "mistralai/mixtral-8x7b-instruct",
+            "model": ENV_MODEL_NAME,
             "messages": [
                 {
                     "role": "user",

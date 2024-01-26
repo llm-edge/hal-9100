@@ -228,7 +228,7 @@ mod tests {
                     },
                 }),
             ]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: ENV_MODEL_NAME.to_string(),
             // model: "l/mistral-tiny".to_string(),
             file_ids: None,
             description: None,

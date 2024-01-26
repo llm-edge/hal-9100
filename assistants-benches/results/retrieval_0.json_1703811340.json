@@ -1,5 +1,5 @@
 {
-  "mistralai/mixtral-8x7b-instruct": [
+  ENV_MODEL_NAME: [
     {
       "endpoint": "http://localhost:3000/assistants",
       "method": "POST",

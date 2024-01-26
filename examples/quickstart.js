@@ -13,7 +13,7 @@ async function getCurrentWeather(location) {
 async function createAssistant() {
     const assistant = await openai.beta.assistants.create({
         instructions: "You are a weather bot. Use the provided functions to answer questions.",
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: ENV_MODEL_NAME,
         name: "Weather Bot",
         tools: [{
             "type": "function",

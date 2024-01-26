@@ -997,7 +997,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model: ENV_MODEL_NAME.to_string(),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),

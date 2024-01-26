@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask us on Discord!?
+    url: https://discord.gg/nhQzQ8wjAh
+    about: Join the Discord and give us your suggestions
+  - name: Contact Us via Support Ticket!?
+    url: https://cal.com/louis030195/unleash-llms?duration=30 
+    about: Schedule a call with the lead maintainer
