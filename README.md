@@ -162,3 +162,12 @@ We recommend switching to the Assistants API for a more streamlined experience, 
 <summary>Does the Assistants API support audio and images?</summary>
 Images soon, working on it.
 </details>
+
+
+# Core
+
+`DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase REDIS_URL=redis://127.0.0.1/ cargo run`
+
+# API
+
+`DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase REDIS_URL=redis://127.0.0.1/ S3_ENDPOINT=http://localhost:9000 S3_ACCESS_KEY=minioadmin S3_SECRET_KEY=minioadmin S3_BUCKET_NAME=mybucket cargo run`
