@@ -32,7 +32,8 @@ impl Tools {
             Some(tools) => tools
                 .iter()
                 .map(|tool| {
-                    let type_field = tool.get("type").and_then(Value::as_str);
+                    let type_field = tool.get("type").unwrap().as_str();
+                    let data = tool.get("data");
                     match type_field {
                         Some("function") => {
                             let function_tool = serde_json::from_value(tool.clone())?;
@@ -47,7 +48,9 @@ impl Tools {
                             Ok(AssistantTools::Code(code_tool))
                         }
                         Some("action") => {
-                            let action_tool = serde_json::from_value(tool.clone())?;
+                            let mut action_tool: async_openai::types::AssistantToolsExtra =
+                                serde_json::from_value(tool.clone())?;
+
                             Ok(AssistantTools::Extra(action_tool))
                         }
                         _ => Err(Box::new(SerdeError::custom(format!(
@@ -208,26 +211,29 @@ pub async fn create_assistant(
             });
             futures.push(future);
         } else if let AssistantTools::Extra(extra_tool) = tool {
-            let f = extra_tool.data.clone();
-            let openapi_spec_str = serde_json::to_string(&f).unwrap().clone();
-            let future = Box::pin(async move {
-                println!("f: {:?}", f);
-                match register_openapi_functions(
-                    pool,
-                    openapi_spec_str,
-                    &row.id.to_string(),
-                    &assistant.user_id,
-                )
-                .await
-                {
-                    Ok(_) => Ok(info!("Function registered successfully")),
-                    Err(e) => {
-                        error!("Failed to register function: {:?}", e);
-                        return Err(e);
-                    }
+            if let Some(data) = &extra_tool.data {
+                if let Some(openapi_spec) = data.get("openapi_spec") {
+                    let openapi_spec_str: String = openapi_spec.as_str().unwrap().to_string();
+                    let future = Box::pin(async move {
+                        println!("f: {:?}", data);
+                        match register_openapi_functions(
+                            pool,
+                            openapi_spec_str,
+                            &row.id.to_string(),
+                            &assistant.user_id,
+                        )
+                        .await
+                        {
+                            Ok(_) => Ok(info!("Function registered successfully")),
+                            Err(e) => {
+                                error!("Failed to register function: {:?}", e);
+                                return Err(e);
+                            }
+                        }
+                    });
+                    futures.push(future);
                 }
-            });
-            futures.push(future);
+            }
         }
     });
     let futures_results = join_all(futures).await;
