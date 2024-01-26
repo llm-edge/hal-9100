@@ -28,3 +28,4 @@ package.json
 
 
 .DS_Store
+.venv
