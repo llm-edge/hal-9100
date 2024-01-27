@@ -50,6 +50,8 @@ mod tests {
         trace::TraceLayer,
     }; // for `oneshot` and `ready`
 
+    
+
     /// Having a function that produces our app makes it easy to call it from tests
     /// without having to create an HTTP server.
     #[allow(dead_code)]
@@ -142,6 +144,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
 
+        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
         let assistant = CreateAssistantRequest {
             instructions: Some(
                 "You are a personal assistant. Use the MediaWiki API to fetch random facts."
@@ -152,7 +155,7 @@ mod tests {
                 r#type: "action".to_string(),
                 data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap()),
             })]),
-            model: ENV_MODEL_NAME.to_string(),
+            model: env_model_name.to_string(),
             file_ids: None,
             description: None,
             metadata: None,

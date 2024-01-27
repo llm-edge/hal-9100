@@ -231,9 +231,10 @@ mod tests {
                 .with_api_key(&std::env::var("MODEL_API_KEY").unwrap_or_default())
                 .with_api_base("https://api.mistral.ai/v1"),
         );
+        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
         let request = match CreateChatCompletionRequestArgs::default()
             // .model(ENV_MODEL_NAME)
-            .model("mistral-tiny")
+            .model(&env_model_name)
             .max_tokens(512u16)
             .messages([messages])
             .build()
