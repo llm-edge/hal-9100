@@ -32,7 +32,7 @@ docker: ## Run docker compose up
 ## Stop and remove containers
 clean: ## Stop and remove docker-postgres-1, docker-redis-1, docker-minio-1 containers
 	docker stop $$(docker ps -a -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || echo "No containers to stop"
-	docker rm $$(docker ps -a -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || true 
+	docker rm $$(docker ps -a -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || true
 	docker volume rm $$(docker volume ls -q --filter name=pg --filter name=redis --filter name=minio1) > /dev/null 2>&1 || true
 
 ## Clean and run docker compose up
@@ -64,7 +64,7 @@ check: ## Check db/queue content
 	@echo "docker exec -it pg psql -U postgres -d mydatabase -c \"SELECT * FROM runs;\""
 	@echo "Here's a one-liner Docker CLI command to display the content of your Redis instance:"
 	@echo "docker exec -it redis redis-cli LRANGE run_queue 0 -1"
-	
+
 ## Build the Docker image for the code interpreter
 docker-build-code-interpreter-amd64: ## Build the Docker image for the code interpreter for Linux amd64
 	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 .
@@ -73,7 +73,7 @@ docker-push-code-interpreter-amd64: ## Push the Docker image for the code interp
 	docker tag code-interpreter-amd64:latest louis030195/assistants-code-interpreter:latest
 	docker push louis030195/assistants-code-interpreter:latest
 
-clean/rust: 
+clean/rust:
 	cargo clean
 
 clean/js:
@@ -81,3 +81,7 @@ clean/js:
 
 clean/docker:
 	docker system prune --volumes
+
+
+runcoqofrust:
+	cargo coq-of-rust > coq-of-rust.txt 2>&1
