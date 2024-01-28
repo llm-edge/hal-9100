@@ -34,8 +34,12 @@ Definition Forms : UU := total2 (
 (fun monsters : Set => total2
 (fun treasure : Set => total2
 (fun doors: Set => total2
-(fun hallways: Set => total2                     (fun rooms: nat => total2
-(fun traps: nat => total2))))))).
+                     (fun hallways: Set => total2
+                   (fun rooms: nat => total2
+                                        (fun traps: nat =>
+                                           (fun output : String => unit)
+
+                           ))))))).
 
                    
 Definition TowerDefenseGame : UU := total2 (
@@ -98,4 +102,4 @@ Definition Request : UU := total2 (
    (fun top_n : nat => total2 (fun output : String => unit)))))).
 
 
-WriteMeATowerDefenseGame -> jsonserde
+(* WriteMeATowerDefenseGame -> jsonserde *)

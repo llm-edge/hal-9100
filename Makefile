@@ -84,4 +84,5 @@ clean/docker:
 
 
 runcoqofrust:
-	cargo coq-of-rust > coq-of-rust.txt 2>&1
+
+	export LD_LIBRARY_PATH=/home/mdupont/.rustup/toolchains/nightly-2023-12-15-x86_64-unknown-linux-gnu/lib/:$LD_LIBRARY_PATH  cargo coq-of-rust > coq-of-rust.txt 2>&1

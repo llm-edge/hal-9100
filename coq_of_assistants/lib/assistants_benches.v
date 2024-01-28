@@ -21,15 +21,57 @@ Module String.
 
 End String.
 
+Module map.
+  Module  Map.
+  Section Map.
+    Context (K V : Set).
+    
+    Record t : Set (* := { *)
+    (*   map : ltac:(map.MapImpl K V); *)
+    (* } *).
+
+
+  End Map.
+
+
+  End Map.
+
+
+  Module value.
+  Module Value.
+    Inductive t : Set :=
+    | Null
+    | Bool (_ : bool.t)
+    | Number (_ : number.Number.t)
+    | String (_ : string.String.t)
+    |
+      Array
+      (_ : Vec.t value.Value.t vec.Vec.Default.A)
+    |
+      Object
+      (_ : map.Map.t string.String.t value.Value.t).
+    
+    .
+    
+Module  Values.
+  Section Values.
+    Record t : Set (* := { *)
+      (*   iter : ltac:(map.ValuesImpl); *)
+      (* } *).
+    
+
+  End Values.
+End Values.
+
 Module  Step.
 Section Step.
   Record t : Set := {
     endpoint : String.t;
     method : String.t;
-    request : serde_json.value.Value.t;
-    expected_response : serde_json.value.Value.t;
+    request : value.Value.t;
+    expected_response : value.Value.t;
     save_response_to_variable :
-      Vec.t serde_json.value.Value.t Vec.Default.A;
+      Vec.t value.Value.t Vec.Default.A;
   }.
   
   Definition Get_endpoint :=
@@ -3485,10 +3527,10 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M (M.Val String.t)
             ] in
         M.copy α6 in
-      let __field2 : M.Val serde_json.value.Value.t :=
+      let __field2 : M.Val value.Value.t :=
         let α0 :
             (core.result.Result.t
-                (core.option.Option.t serde_json.value.Value.t)
+                (core.option.Option.t value.Value.t)
                 _)
               ->
               M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -3496,37 +3538,37 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
             core.ops.try_trait.Try.branch
               (Self :=
                 core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _)
               (Trait := ℐ))) in
         let α1 :
             (mut_ref __A) ->
               M
                 (core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.de.SeqAccess.next_element
               (Self := __A)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 :
             core.result.Result.t
-              (core.option.Option.t serde_json.value.Value.t)
+              (core.option.Option.t value.Value.t)
               _ :=
           M.call (α1 (borrow_mut __seq)) in
         let α3 :
             core.ops.control_flow.ControlFlow.t
               (core.result.Result.t core.convert.Infallible.t _)
-              (core.option.Option.t serde_json.value.Value.t) :=
+              (core.option.Option.t value.Value.t) :=
           M.call (α0 α2) in
         let α4 :
             M.Val
               (core.ops.control_flow.ControlFlow.t
                 (core.result.Result.t core.convert.Infallible.t _)
-                (core.option.Option.t serde_json.value.Value.t)) :=
+                (core.option.Option.t value.Value.t)) :=
           M.alloc α3 in
-        let α5 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+        let α5 : M.Val (core.option.Option.t value.Value.t) :=
           match_operator
             α4
             [
@@ -3551,12 +3593,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                     M.call (α0 α1) in
                   let α3 : M.Val never.t := return_ α2 in
                   let α4 := M.read α3 in
-                  let α5 : core.option.Option.t serde_json.value.Value.t :=
+                  let α5 : core.option.Option.t value.Value.t :=
                     never_to_any α4 in
                   M.alloc α5
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t));
+                M (M.Val (core.option.Option.t value.Value.t));
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -3567,9 +3609,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure val
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t))
+                M (M.Val (core.option.Option.t value.Value.t))
             ] in
-        let α6 : M.Val serde_json.value.Value.t :=
+        let α6 : M.Val value.Value.t :=
           match_operator
             α5
             [
@@ -3582,7 +3624,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __value
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -3603,17 +3645,17 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α2 : M.Val never.t :=
                     return_ (core.result.Result.Err α1) in
                   let α3 := M.read α2 in
-                  let α4 : serde_json.value.Value.t := never_to_any α3 in
+                  let α4 : value.Value.t := never_to_any α3 in
                   M.alloc α4
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α6 in
-      let __field3 : M.Val serde_json.value.Value.t :=
+      let __field3 : M.Val value.Value.t :=
         let α0 :
             (core.result.Result.t
-                (core.option.Option.t serde_json.value.Value.t)
+                (core.option.Option.t value.Value.t)
                 _)
               ->
               M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -3621,37 +3663,37 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
             core.ops.try_trait.Try.branch
               (Self :=
                 core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _)
               (Trait := ℐ))) in
         let α1 :
             (mut_ref __A) ->
               M
                 (core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.de.SeqAccess.next_element
               (Self := __A)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 :
             core.result.Result.t
-              (core.option.Option.t serde_json.value.Value.t)
+              (core.option.Option.t value.Value.t)
               _ :=
           M.call (α1 (borrow_mut __seq)) in
         let α3 :
             core.ops.control_flow.ControlFlow.t
               (core.result.Result.t core.convert.Infallible.t _)
-              (core.option.Option.t serde_json.value.Value.t) :=
+              (core.option.Option.t value.Value.t) :=
           M.call (α0 α2) in
         let α4 :
             M.Val
               (core.ops.control_flow.ControlFlow.t
                 (core.result.Result.t core.convert.Infallible.t _)
-                (core.option.Option.t serde_json.value.Value.t)) :=
+                (core.option.Option.t value.Value.t)) :=
           M.alloc α3 in
-        let α5 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+        let α5 : M.Val (core.option.Option.t value.Value.t) :=
           match_operator
             α4
             [
@@ -3676,12 +3718,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                     M.call (α0 α1) in
                   let α3 : M.Val never.t := return_ α2 in
                   let α4 := M.read α3 in
-                  let α5 : core.option.Option.t serde_json.value.Value.t :=
+                  let α5 : core.option.Option.t value.Value.t :=
                     never_to_any α4 in
                   M.alloc α5
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t));
+                M (M.Val (core.option.Option.t value.Value.t));
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -3692,9 +3734,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure val
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t))
+                M (M.Val (core.option.Option.t value.Value.t))
             ] in
-        let α6 : M.Val serde_json.value.Value.t :=
+        let α6 : M.Val value.Value.t :=
           match_operator
             α5
             [
@@ -3707,7 +3749,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __value
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -3728,21 +3770,21 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α2 : M.Val never.t :=
                     return_ (core.result.Result.Err α1) in
                   let α3 := M.read α2 in
-                  let α4 : serde_json.value.Value.t := never_to_any α3 in
+                  let α4 : value.Value.t := never_to_any α3 in
                   M.alloc α4
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α6 in
       let __field4 :
           M.Val
-            (Vec.t serde_json.value.Value.t alloc.alloc.Global.t) :=
+            (Vec.t value.Value.t alloc.alloc.Global.t) :=
         let α0 :
             (core.result.Result.t
                 (core.option.Option.t
                   (Vec.t
-                    serde_json.value.Value.t
+                    value.Value.t
                     alloc.alloc.Global.t))
                 _)
               ->
@@ -3753,7 +3795,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 core.result.Result.t
                   (core.option.Option.t
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t))
                   _)
               (Trait := ℐ))) in
@@ -3763,19 +3805,19 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 (core.result.Result.t
                   (core.option.Option.t
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t))
                   _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.de.SeqAccess.next_element
               (Self := __A)
               (T :=
-                Vec.t serde_json.value.Value.t alloc.alloc.Global.t)
+                Vec.t value.Value.t alloc.alloc.Global.t)
               (Trait := ℐ))) in
         let α2 :
             core.result.Result.t
               (core.option.Option.t
-                (Vec.t serde_json.value.Value.t alloc.alloc.Global.t))
+                (Vec.t value.Value.t alloc.alloc.Global.t))
               _ :=
           M.call (α1 (borrow_mut __seq)) in
         let α3 :
@@ -3783,7 +3825,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
               (core.result.Result.t core.convert.Infallible.t _)
               (core.option.Option.t
                 (Vec.t
-                  serde_json.value.Value.t
+                  value.Value.t
                   alloc.alloc.Global.t)) :=
           M.call (α0 α2) in
         let α4 :
@@ -3792,14 +3834,14 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 (core.result.Result.t core.convert.Infallible.t _)
                 (core.option.Option.t
                   (Vec.t
-                    serde_json.value.Value.t
+                    value.Value.t
                     alloc.alloc.Global.t))) :=
           M.alloc α3 in
         let α5 :
             M.Val
               (core.option.Option.t
                 (Vec.t
-                  serde_json.value.Value.t
+                  value.Value.t
                   alloc.alloc.Global.t)) :=
           match_operator
             α4
@@ -3828,7 +3870,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α5 :
                       core.option.Option.t
                         (Vec.t
-                          serde_json.value.Value.t
+                          value.Value.t
                           alloc.alloc.Global.t) :=
                     never_to_any α4 in
                   M.alloc α5
@@ -3838,7 +3880,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   (M.Val
                     (core.option.Option.t
                       (Vec.t
-                        serde_json.value.Value.t
+                        value.Value.t
                         alloc.alloc.Global.t)));
               fun γ =>
                 (let α0 := M.read γ in
@@ -3854,12 +3896,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   (M.Val
                     (core.option.Option.t
                       (Vec.t
-                        serde_json.value.Value.t
+                        value.Value.t
                         alloc.alloc.Global.t)))
             ] in
         let α6 :
             M.Val
-              (Vec.t serde_json.value.Value.t alloc.alloc.Global.t) :=
+              (Vec.t value.Value.t alloc.alloc.Global.t) :=
           match_operator
             α5
             [
@@ -3875,7 +3917,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M
                   (M.Val
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t));
               fun γ =>
                 (let α0 := M.read γ in
@@ -3899,7 +3941,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α3 := M.read α2 in
                   let α4 :
                       Vec.t
-                        serde_json.value.Value.t
+                        value.Value.t
                         alloc.alloc.Global.t :=
                     never_to_any α3 in
                   M.alloc α4
@@ -3908,15 +3950,15 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M
                   (M.Val
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t))
             ] in
         M.copy α6 in
       let α0 : String.t := M.read __field0 in
       let α1 : String.t := M.read __field1 in
-      let α2 : serde_json.value.Value.t := M.read __field2 in
-      let α3 : serde_json.value.Value.t := M.read __field3 in
-      let α4 : Vec.t serde_json.value.Value.t alloc.alloc.Global.t :=
+      let α2 : value.Value.t := M.read __field2 in
+      let α3 : value.Value.t := M.read __field3 in
+      let α4 : Vec.t value.Value.t alloc.alloc.Global.t :=
         M.read __field4 in
       let α0 : M.Val (core.result.Result.t assistants_benches.Step.t _) :=
         M.alloc
@@ -3955,15 +3997,15 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
         M.alloc core.option.Option.None in
       let __field1 : M.Val (core.option.Option.t String.t) :=
         M.alloc core.option.Option.None in
-      let __field2 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+      let __field2 : M.Val (core.option.Option.t value.Value.t) :=
         M.alloc core.option.Option.None in
-      let __field3 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+      let __field3 : M.Val (core.option.Option.t value.Value.t) :=
         M.alloc core.option.Option.None in
       let __field4 :
           M.Val
             (core.option.Option.t
               (Vec.t
-                serde_json.value.Value.t
+                value.Value.t
                 alloc.alloc.Global.t)) :=
         M.alloc core.option.Option.None in
       let _ : M.Val unit :=
@@ -4382,7 +4424,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             let α0 : bool.t :=
                               M.call
                                 ((core.option.Option.t
-                                      serde_json.value.Value.t)::["is_some"]
+                                      value.Value.t)::["is_some"]
                                   (borrow __field2)) in
                             let α1 : M.Val bool.t := M.alloc α0 in
                             let α2 : bool.t := M.read (use α1) in
@@ -4405,7 +4447,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           let _ : M.Val unit :=
                             let α0 :
                                 (core.result.Result.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     _)
                                   ->
                                   M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -4413,23 +4455,23 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                 core.ops.try_trait.Try.branch
                                   (Self :=
                                     core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _)
                                   (Trait := ℐ))) in
                             let α1 :
                                 (mut_ref __A) ->
                                   M
                                     (core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _) :=
                               ltac:(M.get_method (fun ℐ =>
                                 serde.de.MapAccess.next_value
                                   (Self := __A)
-                                  (V := serde_json.value.Value.t)
+                                  (V := value.Value.t)
                                   (Trait := ℐ))) in
                             let α2 :
                                 core.result.Result.t
-                                  serde_json.value.Value.t
+                                  value.Value.t
                                   _ :=
                               M.call (α1 (borrow_mut __map)) in
                             let α3 :
@@ -4437,7 +4479,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (core.result.Result.t
                                     core.convert.Infallible.t
                                     _)
-                                  serde_json.value.Value.t :=
+                                  value.Value.t :=
                               M.call (α0 α2) in
                             let α4 :
                                 M.Val
@@ -4445,9 +4487,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     (core.result.Result.t
                                       core.convert.Infallible.t
                                       _)
-                                    serde_json.value.Value.t) :=
+                                    value.Value.t) :=
                               M.alloc α3 in
-                            let α5 : M.Val serde_json.value.Value.t :=
+                            let α5 : M.Val value.Value.t :=
                               match_operator
                                 α4
                                 [
@@ -4494,12 +4536,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                         M.call (α0 α1) in
                                       let α3 : M.Val never.t := return_ α2 in
                                       let α4 := M.read α3 in
-                                      let α5 : serde_json.value.Value.t :=
+                                      let α5 : value.Value.t :=
                                         never_to_any α4 in
                                       M.alloc α5
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t);
+                                    M (M.Val value.Value.t);
                                   fun γ =>
                                     (let α0 := M.read γ in
                                     match α0 with
@@ -4514,9 +4556,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       M.pure val
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t)
+                                    M (M.Val value.Value.t)
                                 ] in
-                            let α6 : serde_json.value.Value.t := M.read α5 in
+                            let α6 : value.Value.t := M.read α5 in
                             assign __field2 (core.option.Option.Some α6) in
                           M.alloc tt
                         | _ => M.break_match
@@ -4530,7 +4572,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             let α0 : bool.t :=
                               M.call
                                 ((core.option.Option.t
-                                      serde_json.value.Value.t)::["is_some"]
+                                      value.Value.t)::["is_some"]
                                   (borrow __field3)) in
                             let α1 : M.Val bool.t := M.alloc α0 in
                             let α2 : bool.t := M.read (use α1) in
@@ -4553,7 +4595,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           let _ : M.Val unit :=
                             let α0 :
                                 (core.result.Result.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     _)
                                   ->
                                   M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -4561,23 +4603,23 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                 core.ops.try_trait.Try.branch
                                   (Self :=
                                     core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _)
                                   (Trait := ℐ))) in
                             let α1 :
                                 (mut_ref __A) ->
                                   M
                                     (core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _) :=
                               ltac:(M.get_method (fun ℐ =>
                                 serde.de.MapAccess.next_value
                                   (Self := __A)
-                                  (V := serde_json.value.Value.t)
+                                  (V := value.Value.t)
                                   (Trait := ℐ))) in
                             let α2 :
                                 core.result.Result.t
-                                  serde_json.value.Value.t
+                                  value.Value.t
                                   _ :=
                               M.call (α1 (borrow_mut __map)) in
                             let α3 :
@@ -4585,7 +4627,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (core.result.Result.t
                                     core.convert.Infallible.t
                                     _)
-                                  serde_json.value.Value.t :=
+                                  value.Value.t :=
                               M.call (α0 α2) in
                             let α4 :
                                 M.Val
@@ -4593,9 +4635,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     (core.result.Result.t
                                       core.convert.Infallible.t
                                       _)
-                                    serde_json.value.Value.t) :=
+                                    value.Value.t) :=
                               M.alloc α3 in
-                            let α5 : M.Val serde_json.value.Value.t :=
+                            let α5 : M.Val value.Value.t :=
                               match_operator
                                 α4
                                 [
@@ -4642,12 +4684,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                         M.call (α0 α1) in
                                       let α3 : M.Val never.t := return_ α2 in
                                       let α4 := M.read α3 in
-                                      let α5 : serde_json.value.Value.t :=
+                                      let α5 : value.Value.t :=
                                         never_to_any α4 in
                                       M.alloc α5
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t);
+                                    M (M.Val value.Value.t);
                                   fun γ =>
                                     (let α0 := M.read γ in
                                     match α0 with
@@ -4662,9 +4704,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       M.pure val
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t)
+                                    M (M.Val value.Value.t)
                                 ] in
-                            let α6 : serde_json.value.Value.t := M.read α5 in
+                            let α6 : value.Value.t := M.read α5 in
                             assign __field3 (core.option.Option.Some α6) in
                           M.alloc tt
                         | _ => M.break_match
@@ -4679,7 +4721,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                               M.call
                                 ((core.option.Option.t
                                       (Vec.t
-                                        serde_json.value.Value.t
+                                        value.Value.t
                                         alloc.alloc.Global.t))::["is_some"]
                                   (borrow __field4)) in
                             let α1 : M.Val bool.t := M.alloc α0 in
@@ -4704,7 +4746,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             let α0 :
                                 (core.result.Result.t
                                     (Vec.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       alloc.alloc.Global.t)
                                     _)
                                   ->
@@ -4714,7 +4756,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (Self :=
                                     core.result.Result.t
                                       (Vec.t
-                                        serde_json.value.Value.t
+                                        value.Value.t
                                         alloc.alloc.Global.t)
                                       _)
                                   (Trait := ℐ))) in
@@ -4723,7 +4765,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   M
                                     (core.result.Result.t
                                       (Vec.t
-                                        serde_json.value.Value.t
+                                        value.Value.t
                                         alloc.alloc.Global.t)
                                       _) :=
                               ltac:(M.get_method (fun ℐ =>
@@ -4731,13 +4773,13 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (Self := __A)
                                   (V :=
                                     Vec.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       alloc.alloc.Global.t)
                                   (Trait := ℐ))) in
                             let α2 :
                                 core.result.Result.t
                                   (Vec.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     alloc.alloc.Global.t)
                                   _ :=
                               M.call (α1 (borrow_mut __map)) in
@@ -4747,7 +4789,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     core.convert.Infallible.t
                                     _)
                                   (Vec.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     alloc.alloc.Global.t) :=
                               M.call (α0 α2) in
                             let α4 :
@@ -4757,13 +4799,13 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       core.convert.Infallible.t
                                       _)
                                     (Vec.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       alloc.alloc.Global.t)) :=
                               M.alloc α3 in
                             let α5 :
                                 M.Val
                                   (Vec.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     alloc.alloc.Global.t) :=
                               match_operator
                                 α4
@@ -4813,7 +4855,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       let α4 := M.read α3 in
                                       let α5 :
                                           Vec.t
-                                            serde_json.value.Value.t
+                                            value.Value.t
                                             alloc.alloc.Global.t :=
                                         never_to_any α4 in
                                       M.alloc α5
@@ -4822,7 +4864,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     M
                                       (M.Val
                                         (Vec.t
-                                          serde_json.value.Value.t
+                                          value.Value.t
                                           alloc.alloc.Global.t));
                                   fun γ =>
                                     (let α0 := M.read γ in
@@ -4841,12 +4883,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     M
                                       (M.Val
                                         (Vec.t
-                                          serde_json.value.Value.t
+                                          value.Value.t
                                           alloc.alloc.Global.t))
                                 ] in
                             let α6 :
                                 Vec.t
-                                  serde_json.value.Value.t
+                                  value.Value.t
                                   alloc.alloc.Global.t :=
                               M.read α5 in
                             assign __field4 (core.option.Option.Some α6) in
@@ -5188,8 +5230,8 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M (M.Val String.t)
             ] in
         M.copy α0 in
-      let __field2 : M.Val serde_json.value.Value.t :=
-        let α0 : M.Val serde_json.value.Value.t :=
+      let __field2 : M.Val value.Value.t :=
+        let α0 : M.Val value.Value.t :=
           match_operator
             __field2
             [
@@ -5202,32 +5244,32 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __field2
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
                 | core.option.Option.None =>
                   let α0 :
-                      (core.result.Result.t serde_json.value.Value.t _) ->
+                      (core.result.Result.t value.Value.t _) ->
                         M (core.ops.control_flow.ControlFlow.t _ _) :=
                     ltac:(M.get_method (fun ℐ =>
                       core.ops.try_trait.Try.branch
                         (Self :=
-                          core.result.Result.t serde_json.value.Value.t _)
+                          core.result.Result.t value.Value.t _)
                         (Trait := ℐ))) in
                   let α1 : ref str.t := M.read (mk_str "request") in
-                  let α2 : core.result.Result.t serde_json.value.Value.t _ :=
+                  let α2 : core.result.Result.t value.Value.t _ :=
                     M.call (serde.__private.de.missing_field α1) in
                   let α3 :
                       core.ops.control_flow.ControlFlow.t
                         (core.result.Result.t core.convert.Infallible.t _)
-                        serde_json.value.Value.t :=
+                        value.Value.t :=
                     M.call (α0 α2) in
                   let α4 :
                       M.Val
                         (core.ops.control_flow.ControlFlow.t
                           (core.result.Result.t core.convert.Infallible.t _)
-                          serde_json.value.Value.t) :=
+                          value.Value.t) :=
                     M.alloc α3 in
                   match_operator
                     α4
@@ -5269,12 +5311,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             M.call (α0 α1) in
                           let α3 : M.Val never.t := return_ α2 in
                           let α4 := M.read α3 in
-                          let α5 : serde_json.value.Value.t :=
+                          let α5 : value.Value.t :=
                             never_to_any α4 in
                           M.alloc α5
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t);
+                        M (M.Val value.Value.t);
                       fun γ =>
                         (let α0 := M.read γ in
                         match α0 with
@@ -5286,15 +5328,15 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           M.pure val
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t)
+                        M (M.Val value.Value.t)
                     ]
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α0 in
-      let __field3 : M.Val serde_json.value.Value.t :=
-        let α0 : M.Val serde_json.value.Value.t :=
+      let __field3 : M.Val value.Value.t :=
+        let α0 : M.Val value.Value.t :=
           match_operator
             __field3
             [
@@ -5307,32 +5349,32 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __field3
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
                 | core.option.Option.None =>
                   let α0 :
-                      (core.result.Result.t serde_json.value.Value.t _) ->
+                      (core.result.Result.t value.Value.t _) ->
                         M (core.ops.control_flow.ControlFlow.t _ _) :=
                     ltac:(M.get_method (fun ℐ =>
                       core.ops.try_trait.Try.branch
                         (Self :=
-                          core.result.Result.t serde_json.value.Value.t _)
+                          core.result.Result.t value.Value.t _)
                         (Trait := ℐ))) in
                   let α1 : ref str.t := M.read (mk_str "expected_response") in
-                  let α2 : core.result.Result.t serde_json.value.Value.t _ :=
+                  let α2 : core.result.Result.t value.Value.t _ :=
                     M.call (serde.__private.de.missing_field α1) in
                   let α3 :
                       core.ops.control_flow.ControlFlow.t
                         (core.result.Result.t core.convert.Infallible.t _)
-                        serde_json.value.Value.t :=
+                        value.Value.t :=
                     M.call (α0 α2) in
                   let α4 :
                       M.Val
                         (core.ops.control_flow.ControlFlow.t
                           (core.result.Result.t core.convert.Infallible.t _)
-                          serde_json.value.Value.t) :=
+                          value.Value.t) :=
                     M.alloc α3 in
                   match_operator
                     α4
@@ -5374,12 +5416,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             M.call (α0 α1) in
                           let α3 : M.Val never.t := return_ α2 in
                           let α4 := M.read α3 in
-                          let α5 : serde_json.value.Value.t :=
+                          let α5 : value.Value.t :=
                             never_to_any α4 in
                           M.alloc α5
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t);
+                        M (M.Val value.Value.t);
                       fun γ =>
                         (let α0 := M.read γ in
                         match α0 with
@@ -5391,19 +5433,19 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           M.pure val
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t)
+                        M (M.Val value.Value.t)
                     ]
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α0 in
       let __field4 :
           M.Val
-            (Vec.t serde_json.value.Value.t alloc.alloc.Global.t) :=
+            (Vec.t value.Value.t alloc.alloc.Global.t) :=
         let α0 :
             M.Val
-              (Vec.t serde_json.value.Value.t alloc.alloc.Global.t) :=
+              (Vec.t value.Value.t alloc.alloc.Global.t) :=
           match_operator
             __field4
             [
@@ -5419,7 +5461,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M
                   (M.Val
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t));
               fun γ =>
                 (let α0 := M.read γ in
@@ -5428,7 +5470,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α0 :
                       (core.result.Result.t
                           (Vec.t
-                            serde_json.value.Value.t
+                            value.Value.t
                             alloc.alloc.Global.t)
                           _)
                         ->
@@ -5438,7 +5480,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                         (Self :=
                           core.result.Result.t
                             (Vec.t
-                              serde_json.value.Value.t
+                              value.Value.t
                               alloc.alloc.Global.t)
                             _)
                         (Trait := ℐ))) in
@@ -5447,7 +5489,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α2 :
                       core.result.Result.t
                         (Vec.t
-                          serde_json.value.Value.t
+                          value.Value.t
                           alloc.alloc.Global.t)
                         _ :=
                     M.call (serde.__private.de.missing_field α1) in
@@ -5455,7 +5497,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                       core.ops.control_flow.ControlFlow.t
                         (core.result.Result.t core.convert.Infallible.t _)
                         (Vec.t
-                          serde_json.value.Value.t
+                          value.Value.t
                           alloc.alloc.Global.t) :=
                     M.call (α0 α2) in
                   let α4 :
@@ -5463,7 +5505,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                         (core.ops.control_flow.ControlFlow.t
                           (core.result.Result.t core.convert.Infallible.t _)
                           (Vec.t
-                            serde_json.value.Value.t
+                            value.Value.t
                             alloc.alloc.Global.t)) :=
                     M.alloc α3 in
                   match_operator
@@ -5508,7 +5550,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           let α4 := M.read α3 in
                           let α5 :
                               Vec.t
-                                serde_json.value.Value.t
+                                value.Value.t
                                 alloc.alloc.Global.t :=
                             never_to_any α4 in
                           M.alloc α5
@@ -5517,7 +5559,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                         M
                           (M.Val
                             (Vec.t
-                              serde_json.value.Value.t
+                              value.Value.t
                               alloc.alloc.Global.t));
                       fun γ =>
                         (let α0 := M.read γ in
@@ -5533,7 +5575,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                         M
                           (M.Val
                             (Vec.t
-                              serde_json.value.Value.t
+                              value.Value.t
                               alloc.alloc.Global.t))
                     ]
                 | _ => M.break_match
@@ -5541,15 +5583,15 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M
                   (M.Val
                     (Vec.t
-                      serde_json.value.Value.t
+                      value.Value.t
                       alloc.alloc.Global.t))
             ] in
         M.copy α0 in
       let α0 : String.t := M.read __field0 in
       let α1 : String.t := M.read __field1 in
-      let α2 : serde_json.value.Value.t := M.read __field2 in
-      let α3 : serde_json.value.Value.t := M.read __field3 in
-      let α4 : Vec.t serde_json.value.Value.t alloc.alloc.Global.t :=
+      let α2 : value.Value.t := M.read __field2 in
+      let α3 : value.Value.t := M.read __field3 in
+      let α4 : Vec.t value.Value.t alloc.alloc.Global.t :=
         M.read __field4 in
       let α0 : M.Val (core.result.Result.t assistants_benches.Step.t _) :=
         M.alloc
@@ -5878,12 +5920,12 @@ Section Impl_serde_ser_Serialize_for_assistants_benches_Step_t.
         let α1 :
             (mut_ref _) ->
               (ref str.t) ->
-              (ref serde_json.value.Value.t) ->
+              (ref value.Value.t) ->
               M (core.result.Result.t unit _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.ser.SerializeStruct.serialize_field
               (Self := _)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 : ref str.t := M.read (mk_str "request") in
         let α3 : ref assistants_benches.Step.t := M.read self in
@@ -5954,12 +5996,12 @@ Section Impl_serde_ser_Serialize_for_assistants_benches_Step_t.
         let α1 :
             (mut_ref _) ->
               (ref str.t) ->
-              (ref serde_json.value.Value.t) ->
+              (ref value.Value.t) ->
               M (core.result.Result.t unit _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.ser.SerializeStruct.serialize_field
               (Self := _)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 : ref str.t := M.read (mk_str "expected_response") in
         let α3 : ref assistants_benches.Step.t := M.read self in
@@ -6032,14 +6074,14 @@ Section Impl_serde_ser_Serialize_for_assistants_benches_Step_t.
             (mut_ref _) ->
               (ref str.t) ->
               (ref
-                (Vec.t serde_json.value.Value.t alloc.alloc.Global.t))
+                (Vec.t value.Value.t alloc.alloc.Global.t))
               ->
               M (core.result.Result.t unit _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.ser.SerializeStruct.serialize_field
               (Self := _)
               (T :=
-                Vec.t serde_json.value.Value.t alloc.alloc.Global.t)
+                Vec.t value.Value.t alloc.alloc.Global.t)
               (Trait := ℐ))) in
         let α2 : ref str.t := M.read (mk_str "save_response_to_variable") in
         let α3 : ref assistants_benches.Step.t := M.read self in
@@ -6130,8 +6172,8 @@ Section ScoredStep.
   Record t : Set := {
     endpoint : String.t;
     method : String.t;
-    request : serde_json.value.Value.t;
-    expected_response : serde_json.value.Value.t;
+    request : value.Value.t;
+    expected_response : value.Value.t;
     score : core.option.Option.t f64.t;
     start_time : u64.t;
     end_time : u64.t;
@@ -7088,10 +7130,10 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M (M.Val String.t)
             ] in
         M.copy α6 in
-      let __field2 : M.Val serde_json.value.Value.t :=
+      let __field2 : M.Val value.Value.t :=
         let α0 :
             (core.result.Result.t
-                (core.option.Option.t serde_json.value.Value.t)
+                (core.option.Option.t value.Value.t)
                 _)
               ->
               M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -7099,37 +7141,37 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
             core.ops.try_trait.Try.branch
               (Self :=
                 core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _)
               (Trait := ℐ))) in
         let α1 :
             (mut_ref __A) ->
               M
                 (core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.de.SeqAccess.next_element
               (Self := __A)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 :
             core.result.Result.t
-              (core.option.Option.t serde_json.value.Value.t)
+              (core.option.Option.t value.Value.t)
               _ :=
           M.call (α1 (borrow_mut __seq)) in
         let α3 :
             core.ops.control_flow.ControlFlow.t
               (core.result.Result.t core.convert.Infallible.t _)
-              (core.option.Option.t serde_json.value.Value.t) :=
+              (core.option.Option.t value.Value.t) :=
           M.call (α0 α2) in
         let α4 :
             M.Val
               (core.ops.control_flow.ControlFlow.t
                 (core.result.Result.t core.convert.Infallible.t _)
-                (core.option.Option.t serde_json.value.Value.t)) :=
+                (core.option.Option.t value.Value.t)) :=
           M.alloc α3 in
-        let α5 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+        let α5 : M.Val (core.option.Option.t value.Value.t) :=
           match_operator
             α4
             [
@@ -7160,12 +7202,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                     M.call (α0 α1) in
                   let α3 : M.Val never.t := return_ α2 in
                   let α4 := M.read α3 in
-                  let α5 : core.option.Option.t serde_json.value.Value.t :=
+                  let α5 : core.option.Option.t value.Value.t :=
                     never_to_any α4 in
                   M.alloc α5
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t));
+                M (M.Val (core.option.Option.t value.Value.t));
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -7176,9 +7218,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure val
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t))
+                M (M.Val (core.option.Option.t value.Value.t))
             ] in
-        let α6 : M.Val serde_json.value.Value.t :=
+        let α6 : M.Val value.Value.t :=
           match_operator
             α5
             [
@@ -7191,7 +7233,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __value
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -7213,17 +7255,17 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α2 : M.Val never.t :=
                     return_ (core.result.Result.Err α1) in
                   let α3 := M.read α2 in
-                  let α4 : serde_json.value.Value.t := never_to_any α3 in
+                  let α4 : value.Value.t := never_to_any α3 in
                   M.alloc α4
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α6 in
-      let __field3 : M.Val serde_json.value.Value.t :=
+      let __field3 : M.Val value.Value.t :=
         let α0 :
             (core.result.Result.t
-                (core.option.Option.t serde_json.value.Value.t)
+                (core.option.Option.t value.Value.t)
                 _)
               ->
               M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -7231,37 +7273,37 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
             core.ops.try_trait.Try.branch
               (Self :=
                 core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _)
               (Trait := ℐ))) in
         let α1 :
             (mut_ref __A) ->
               M
                 (core.result.Result.t
-                  (core.option.Option.t serde_json.value.Value.t)
+                  (core.option.Option.t value.Value.t)
                   _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.de.SeqAccess.next_element
               (Self := __A)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 :
             core.result.Result.t
-              (core.option.Option.t serde_json.value.Value.t)
+              (core.option.Option.t value.Value.t)
               _ :=
           M.call (α1 (borrow_mut __seq)) in
         let α3 :
             core.ops.control_flow.ControlFlow.t
               (core.result.Result.t core.convert.Infallible.t _)
-              (core.option.Option.t serde_json.value.Value.t) :=
+              (core.option.Option.t value.Value.t) :=
           M.call (α0 α2) in
         let α4 :
             M.Val
               (core.ops.control_flow.ControlFlow.t
                 (core.result.Result.t core.convert.Infallible.t _)
-                (core.option.Option.t serde_json.value.Value.t)) :=
+                (core.option.Option.t value.Value.t)) :=
           M.alloc α3 in
-        let α5 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+        let α5 : M.Val (core.option.Option.t value.Value.t) :=
           match_operator
             α4
             [
@@ -7292,12 +7334,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                     M.call (α0 α1) in
                   let α3 : M.Val never.t := return_ α2 in
                   let α4 := M.read α3 in
-                  let α5 : core.option.Option.t serde_json.value.Value.t :=
+                  let α5 : core.option.Option.t value.Value.t :=
                     never_to_any α4 in
                   M.alloc α5
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t));
+                M (M.Val (core.option.Option.t value.Value.t));
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -7308,9 +7350,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure val
                 | _ => M.break_match
                 end) :
-                M (M.Val (core.option.Option.t serde_json.value.Value.t))
+                M (M.Val (core.option.Option.t value.Value.t))
             ] in
-        let α6 : M.Val serde_json.value.Value.t :=
+        let α6 : M.Val value.Value.t :=
           match_operator
             α5
             [
@@ -7323,7 +7365,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __value
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
@@ -7345,11 +7387,11 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   let α2 : M.Val never.t :=
                     return_ (core.result.Result.Err α1) in
                   let α3 := M.read α2 in
-                  let α4 : serde_json.value.Value.t := never_to_any α3 in
+                  let α4 : value.Value.t := never_to_any α3 in
                   M.alloc α4
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α6 in
       let __field4 : M.Val (core.option.Option.t f64.t) :=
@@ -7843,8 +7885,8 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
         M.copy α6 in
       let α0 : String.t := M.read __field0 in
       let α1 : String.t := M.read __field1 in
-      let α2 : serde_json.value.Value.t := M.read __field2 in
-      let α3 : serde_json.value.Value.t := M.read __field3 in
+      let α2 : value.Value.t := M.read __field2 in
+      let α3 : value.Value.t := M.read __field3 in
       let α4 : core.option.Option.t f64.t := M.read __field4 in
       let α5 : u64.t := M.read __field5 in
       let α6 : u64.t := M.read __field6 in
@@ -7890,9 +7932,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
         M.alloc core.option.Option.None in
       let __field1 : M.Val (core.option.Option.t String.t) :=
         M.alloc core.option.Option.None in
-      let __field2 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+      let __field2 : M.Val (core.option.Option.t value.Value.t) :=
         M.alloc core.option.Option.None in
-      let __field3 : M.Val (core.option.Option.t serde_json.value.Value.t) :=
+      let __field3 : M.Val (core.option.Option.t value.Value.t) :=
         M.alloc core.option.Option.None in
       let __field4 :
           M.Val (core.option.Option.t (core.option.Option.t f64.t)) :=
@@ -8323,7 +8365,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             let α0 : bool.t :=
                               M.call
                                 ((core.option.Option.t
-                                      serde_json.value.Value.t)::["is_some"]
+                                      value.Value.t)::["is_some"]
                                   (borrow __field2)) in
                             let α1 : M.Val bool.t := M.alloc α0 in
                             let α2 : bool.t := M.read (use α1) in
@@ -8346,7 +8388,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           let _ : M.Val unit :=
                             let α0 :
                                 (core.result.Result.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     _)
                                   ->
                                   M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -8354,23 +8396,23 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                 core.ops.try_trait.Try.branch
                                   (Self :=
                                     core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _)
                                   (Trait := ℐ))) in
                             let α1 :
                                 (mut_ref __A) ->
                                   M
                                     (core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _) :=
                               ltac:(M.get_method (fun ℐ =>
                                 serde.de.MapAccess.next_value
                                   (Self := __A)
-                                  (V := serde_json.value.Value.t)
+                                  (V := value.Value.t)
                                   (Trait := ℐ))) in
                             let α2 :
                                 core.result.Result.t
-                                  serde_json.value.Value.t
+                                  value.Value.t
                                   _ :=
                               M.call (α1 (borrow_mut __map)) in
                             let α3 :
@@ -8378,7 +8420,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (core.result.Result.t
                                     core.convert.Infallible.t
                                     _)
-                                  serde_json.value.Value.t :=
+                                  value.Value.t :=
                               M.call (α0 α2) in
                             let α4 :
                                 M.Val
@@ -8386,9 +8428,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     (core.result.Result.t
                                       core.convert.Infallible.t
                                       _)
-                                    serde_json.value.Value.t) :=
+                                    value.Value.t) :=
                               M.alloc α3 in
-                            let α5 : M.Val serde_json.value.Value.t :=
+                            let α5 : M.Val value.Value.t :=
                               match_operator
                                 α4
                                 [
@@ -8435,12 +8477,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                         M.call (α0 α1) in
                                       let α3 : M.Val never.t := return_ α2 in
                                       let α4 := M.read α3 in
-                                      let α5 : serde_json.value.Value.t :=
+                                      let α5 : value.Value.t :=
                                         never_to_any α4 in
                                       M.alloc α5
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t);
+                                    M (M.Val value.Value.t);
                                   fun γ =>
                                     (let α0 := M.read γ in
                                     match α0 with
@@ -8455,9 +8497,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       M.pure val
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t)
+                                    M (M.Val value.Value.t)
                                 ] in
-                            let α6 : serde_json.value.Value.t := M.read α5 in
+                            let α6 : value.Value.t := M.read α5 in
                             assign __field2 (core.option.Option.Some α6) in
                           M.alloc tt
                         | _ => M.break_match
@@ -8471,7 +8513,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             let α0 : bool.t :=
                               M.call
                                 ((core.option.Option.t
-                                      serde_json.value.Value.t)::["is_some"]
+                                      value.Value.t)::["is_some"]
                                   (borrow __field3)) in
                             let α1 : M.Val bool.t := M.alloc α0 in
                             let α2 : bool.t := M.read (use α1) in
@@ -8494,7 +8536,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           let _ : M.Val unit :=
                             let α0 :
                                 (core.result.Result.t
-                                    serde_json.value.Value.t
+                                    value.Value.t
                                     _)
                                   ->
                                   M (core.ops.control_flow.ControlFlow.t _ _) :=
@@ -8502,23 +8544,23 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                 core.ops.try_trait.Try.branch
                                   (Self :=
                                     core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _)
                                   (Trait := ℐ))) in
                             let α1 :
                                 (mut_ref __A) ->
                                   M
                                     (core.result.Result.t
-                                      serde_json.value.Value.t
+                                      value.Value.t
                                       _) :=
                               ltac:(M.get_method (fun ℐ =>
                                 serde.de.MapAccess.next_value
                                   (Self := __A)
-                                  (V := serde_json.value.Value.t)
+                                  (V := value.Value.t)
                                   (Trait := ℐ))) in
                             let α2 :
                                 core.result.Result.t
-                                  serde_json.value.Value.t
+                                  value.Value.t
                                   _ :=
                               M.call (α1 (borrow_mut __map)) in
                             let α3 :
@@ -8526,7 +8568,7 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                   (core.result.Result.t
                                     core.convert.Infallible.t
                                     _)
-                                  serde_json.value.Value.t :=
+                                  value.Value.t :=
                               M.call (α0 α2) in
                             let α4 :
                                 M.Val
@@ -8534,9 +8576,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                     (core.result.Result.t
                                       core.convert.Infallible.t
                                       _)
-                                    serde_json.value.Value.t) :=
+                                    value.Value.t) :=
                               M.alloc α3 in
-                            let α5 : M.Val serde_json.value.Value.t :=
+                            let α5 : M.Val value.Value.t :=
                               match_operator
                                 α4
                                 [
@@ -8583,12 +8625,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                         M.call (α0 α1) in
                                       let α3 : M.Val never.t := return_ α2 in
                                       let α4 := M.read α3 in
-                                      let α5 : serde_json.value.Value.t :=
+                                      let α5 : value.Value.t :=
                                         never_to_any α4 in
                                       M.alloc α5
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t);
+                                    M (M.Val value.Value.t);
                                   fun γ =>
                                     (let α0 := M.read γ in
                                     match α0 with
@@ -8603,9 +8645,9 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                                       M.pure val
                                     | _ => M.break_match
                                     end) :
-                                    M (M.Val serde_json.value.Value.t)
+                                    M (M.Val value.Value.t)
                                 ] in
-                            let α6 : serde_json.value.Value.t := M.read α5 in
+                            let α6 : value.Value.t := M.read α5 in
                             assign __field3 (core.option.Option.Some α6) in
                           M.alloc tt
                         | _ => M.break_match
@@ -9494,8 +9536,8 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                 M (M.Val String.t)
             ] in
         M.copy α0 in
-      let __field2 : M.Val serde_json.value.Value.t :=
-        let α0 : M.Val serde_json.value.Value.t :=
+      let __field2 : M.Val value.Value.t :=
+        let α0 : M.Val value.Value.t :=
           match_operator
             __field2
             [
@@ -9508,32 +9550,32 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __field2
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
                 | core.option.Option.None =>
                   let α0 :
-                      (core.result.Result.t serde_json.value.Value.t _) ->
+                      (core.result.Result.t value.Value.t _) ->
                         M (core.ops.control_flow.ControlFlow.t _ _) :=
                     ltac:(M.get_method (fun ℐ =>
                       core.ops.try_trait.Try.branch
                         (Self :=
-                          core.result.Result.t serde_json.value.Value.t _)
+                          core.result.Result.t value.Value.t _)
                         (Trait := ℐ))) in
                   let α1 : ref str.t := M.read (mk_str "request") in
-                  let α2 : core.result.Result.t serde_json.value.Value.t _ :=
+                  let α2 : core.result.Result.t value.Value.t _ :=
                     M.call (serde.__private.de.missing_field α1) in
                   let α3 :
                       core.ops.control_flow.ControlFlow.t
                         (core.result.Result.t core.convert.Infallible.t _)
-                        serde_json.value.Value.t :=
+                        value.Value.t :=
                     M.call (α0 α2) in
                   let α4 :
                       M.Val
                         (core.ops.control_flow.ControlFlow.t
                           (core.result.Result.t core.convert.Infallible.t _)
-                          serde_json.value.Value.t) :=
+                          value.Value.t) :=
                     M.alloc α3 in
                   match_operator
                     α4
@@ -9575,12 +9617,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             M.call (α0 α1) in
                           let α3 : M.Val never.t := return_ α2 in
                           let α4 := M.read α3 in
-                          let α5 : serde_json.value.Value.t :=
+                          let α5 : value.Value.t :=
                             never_to_any α4 in
                           M.alloc α5
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t);
+                        M (M.Val value.Value.t);
                       fun γ =>
                         (let α0 := M.read γ in
                         match α0 with
@@ -9592,15 +9634,15 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           M.pure val
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t)
+                        M (M.Val value.Value.t)
                     ]
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α0 in
-      let __field3 : M.Val serde_json.value.Value.t :=
-        let α0 : M.Val serde_json.value.Value.t :=
+      let __field3 : M.Val value.Value.t :=
+        let α0 : M.Val value.Value.t :=
           match_operator
             __field3
             [
@@ -9613,32 +9655,32 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                   M.pure __field3
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t);
+                M (M.Val value.Value.t);
               fun γ =>
                 (let α0 := M.read γ in
                 match α0 with
                 | core.option.Option.None =>
                   let α0 :
-                      (core.result.Result.t serde_json.value.Value.t _) ->
+                      (core.result.Result.t value.Value.t _) ->
                         M (core.ops.control_flow.ControlFlow.t _ _) :=
                     ltac:(M.get_method (fun ℐ =>
                       core.ops.try_trait.Try.branch
                         (Self :=
-                          core.result.Result.t serde_json.value.Value.t _)
+                          core.result.Result.t value.Value.t _)
                         (Trait := ℐ))) in
                   let α1 : ref str.t := M.read (mk_str "expected_response") in
-                  let α2 : core.result.Result.t serde_json.value.Value.t _ :=
+                  let α2 : core.result.Result.t value.Value.t _ :=
                     M.call (serde.__private.de.missing_field α1) in
                   let α3 :
                       core.ops.control_flow.ControlFlow.t
                         (core.result.Result.t core.convert.Infallible.t _)
-                        serde_json.value.Value.t :=
+                        value.Value.t :=
                     M.call (α0 α2) in
                   let α4 :
                       M.Val
                         (core.ops.control_flow.ControlFlow.t
                           (core.result.Result.t core.convert.Infallible.t _)
-                          serde_json.value.Value.t) :=
+                          value.Value.t) :=
                     M.alloc α3 in
                   match_operator
                     α4
@@ -9680,12 +9722,12 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                             M.call (α0 α1) in
                           let α3 : M.Val never.t := return_ α2 in
                           let α4 := M.read α3 in
-                          let α5 : serde_json.value.Value.t :=
+                          let α5 : value.Value.t :=
                             never_to_any α4 in
                           M.alloc α5
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t);
+                        M (M.Val value.Value.t);
                       fun γ =>
                         (let α0 := M.read γ in
                         match α0 with
@@ -9697,11 +9739,11 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
                           M.pure val
                         | _ => M.break_match
                         end) :
-                        M (M.Val serde_json.value.Value.t)
+                        M (M.Val value.Value.t)
                     ]
                 | _ => M.break_match
                 end) :
-                M (M.Val serde_json.value.Value.t)
+                M (M.Val value.Value.t)
             ] in
         M.copy α0 in
       let __field4 : M.Val (core.option.Option.t f64.t) :=
@@ -10121,8 +10163,8 @@ Section Impl_serde_de_Visitor_for_assistants_benches___deserialize___Visitor_t.
         M.copy α0 in
       let α0 : String.t := M.read __field0 in
       let α1 : String.t := M.read __field1 in
-      let α2 : serde_json.value.Value.t := M.read __field2 in
-      let α3 : serde_json.value.Value.t := M.read __field3 in
+      let α2 : value.Value.t := M.read __field2 in
+      let α3 : value.Value.t := M.read __field3 in
       let α4 : core.option.Option.t f64.t := M.read __field4 in
       let α5 : u64.t := M.read __field5 in
       let α6 : u64.t := M.read __field6 in
@@ -10467,12 +10509,12 @@ Section Impl_serde_ser_Serialize_for_assistants_benches_ScoredStep_t.
         let α1 :
             (mut_ref _) ->
               (ref str.t) ->
-              (ref serde_json.value.Value.t) ->
+              (ref value.Value.t) ->
               M (core.result.Result.t unit _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.ser.SerializeStruct.serialize_field
               (Self := _)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 : ref str.t := M.read (mk_str "request") in
         let α3 : ref assistants_benches.ScoredStep.t := M.read self in
@@ -10544,12 +10586,12 @@ Section Impl_serde_ser_Serialize_for_assistants_benches_ScoredStep_t.
         let α1 :
             (mut_ref _) ->
               (ref str.t) ->
-              (ref serde_json.value.Value.t) ->
+              (ref value.Value.t) ->
               M (core.result.Result.t unit _) :=
           ltac:(M.get_method (fun ℐ =>
             serde.ser.SerializeStruct.serialize_field
               (Self := _)
-              (T := serde_json.value.Value.t)
+              (T := value.Value.t)
               (Trait := ℐ))) in
         let α2 : ref str.t := M.read (mk_str "expected_response") in
         let α3 : ref assistants_benches.ScoredStep.t := M.read self in
@@ -13344,7 +13386,7 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                       (Vec.t
                         assistants_benches.TestCase.t
                         alloc.alloc.Global.t)
-                      serde_json.error.Error.t)
+                      error.Error.t)
                     ->
                     M (core.ops.control_flow.ControlFlow.t _ _) :=
                 ltac:(M.get_method (fun ℐ =>
@@ -13354,7 +13396,7 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                         (Vec.t
                           assistants_benches.TestCase.t
                           alloc.alloc.Global.t)
-                        serde_json.error.Error.t)
+                        error.Error.t)
                     (Trait := ℐ))) in
               let α1 : std.io.buffered.bufreader.BufReader.t std.fs.File.t :=
                 M.read reader in
@@ -13363,13 +13405,13 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                     (Vec.t
                       assistants_benches.TestCase.t
                       alloc.alloc.Global.t)
-                    serde_json.error.Error.t :=
-                M.call (serde_json.de.from_reader α1) in
+                    error.Error.t :=
+                M.call (de.from_reader α1) in
               let α3 :
                   core.ops.control_flow.ControlFlow.t
                     (core.result.Result.t
                       core.convert.Infallible.t
-                      serde_json.error.Error.t)
+                      error.Error.t)
                     (Vec.t
                       assistants_benches.TestCase.t
                       alloc.alloc.Global.t) :=
@@ -13379,7 +13421,7 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                     (core.ops.control_flow.ControlFlow.t
                       (core.result.Result.t
                         core.convert.Infallible.t
-                        serde_json.error.Error.t)
+                        error.Error.t)
                       (Vec.t
                         assistants_benches.TestCase.t
                         alloc.alloc.Global.t)) :=
@@ -13402,7 +13444,7 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                         let α0 :
                             (core.result.Result.t
                                 core.convert.Infallible.t
-                                serde_json.error.Error.t)
+                                error.Error.t)
                               ->
                               M
                                 (core.result.Result.t
@@ -13421,12 +13463,12 @@ Definition run_test_cases (filename : ref str.t) : M OpaqueDef :=
                               (R :=
                                 core.result.Result.t
                                   core.convert.Infallible.t
-                                  serde_json.error.Error.t)
+                                  error.Error.t)
                               (Trait := ℐ))) in
                         let α1 :
                             core.result.Result.t
                               core.convert.Infallible.t
-                              serde_json.error.Error.t :=
+                              error.Error.t :=
                           M.read residual in
                         let α2 :
                             core.result.Result.t
@@ -13923,11 +13965,11 @@ Rules:
                                                                                     α1 :
                                                                                   core.option.Option.t
                                                                                     (mut_ref
-                                                                                      (serde_json.map.Map.t
+                                                                                      (map.Map.t
                                                                                         String.t
-                                                                                        serde_json.value.Value.t)) :=
+                                                                                        value.Value.t)) :=
                                                                                 M.call
-                                                                                  (serde_json.value.Value.t::["as_object_mut"]
+                                                                                  (value.Value.t::["as_object_mut"]
                                                                                     (borrow_mut
                                                                                       (assistants_benches.Step.Get_request
                                                                                         (deref
@@ -13937,9 +13979,9 @@ Rules:
                                                                                   M.Val
                                                                                     (core.option.Option.t
                                                                                       (mut_ref
-                                                                                        (serde_json.map.Map.t
+                                                                                        (map.Map.t
                                                                                           String.t
-                                                                                          serde_json.value.Value.t))) :=
+                                                                                          value.Value.t))) :=
                                                                                 M.alloc
                                                                                   α1 in
                                                                               match_operator
@@ -13969,9 +14011,9 @@ Rules:
                                                                                       let
                                                                                             α0 :
                                                                                           mut_ref
-                                                                                            (serde_json.map.Map.t
+                                                                                            (map.Map.t
                                                                                               String.t
-                                                                                              serde_json.value.Value.t) :=
+                                                                                              value.Value.t) :=
                                                                                         M.read
                                                                                           request_map in
                                                                                       let
@@ -13985,11 +14027,11 @@ Rules:
                                                                                             α2 :
                                                                                           core.option.Option.t
                                                                                             (mut_ref
-                                                                                              serde_json.value.Value.t) :=
+                                                                                              value.Value.t) :=
                                                                                         M.call
-                                                                                          ((serde_json.map.Map.t
+                                                                                          ((map.Map.t
                                                                                                 String.t
-                                                                                                serde_json.value.Value.t)::["get_mut"]
+                                                                                                value.Value.t)::["get_mut"]
                                                                                             α0
                                                                                             α1) in
                                                                                       let
@@ -13997,7 +14039,7 @@ Rules:
                                                                                           M.Val
                                                                                             (core.option.Option.t
                                                                                               (mut_ref
-                                                                                                serde_json.value.Value.t)) :=
+                                                                                                value.Value.t)) :=
                                                                                         M.alloc
                                                                                           α2 in
                                                                                       match_operator
@@ -14031,25 +14073,25 @@ Rules:
                                                                                                 let
                                                                                                       α0 :
                                                                                                     mut_ref
-                                                                                                      serde_json.value.Value.t :=
+                                                                                                      value.Value.t :=
                                                                                                   M.read
                                                                                                     model_id in
                                                                                                 let
                                                                                                       α1 :
                                                                                                     core.result.Result.t
-                                                                                                      serde_json.value.Value.t
-                                                                                                      serde_json.error.Error.t :=
+                                                                                                      value.Value.t
+                                                                                                      error.Error.t :=
                                                                                                   M.call
-                                                                                                    (serde_json.value.to_value
+                                                                                                    (value.to_value
                                                                                                       (borrow
                                                                                                         model)) in
                                                                                                 let
                                                                                                       α2 :
-                                                                                                    serde_json.value.Value.t :=
+                                                                                                    value.Value.t :=
                                                                                                   M.call
                                                                                                     ((core.result.Result.t
-                                                                                                          serde_json.value.Value.t
-                                                                                                          serde_json.error.Error.t)::["unwrap"]
+                                                                                                          value.Value.t
+                                                                                                          error.Error.t)::["unwrap"]
                                                                                                       α1) in
                                                                                                 assign
                                                                                                   (deref
@@ -14565,9 +14607,9 @@ Rules:
                                                                                                     let
                                                                                                           request_map :
                                                                                                         M.Val
-                                                                                                          (serde_json.map.Map.t
+                                                                                                          (map.Map.t
                                                                                                             String.t
-                                                                                                            serde_json.value.Value.t) :=
+                                                                                                            value.Value.t) :=
                                                                                                       let
                                                                                                             α0 :
                                                                                                           mut_ref
@@ -14578,11 +14620,11 @@ Rules:
                                                                                                             α1 :
                                                                                                           core.option.Option.t
                                                                                                             (ref
-                                                                                                              (serde_json.map.Map.t
+                                                                                                              (map.Map.t
                                                                                                                 String.t
-                                                                                                                serde_json.value.Value.t)) :=
+                                                                                                                value.Value.t)) :=
                                                                                                         M.call
-                                                                                                          (serde_json.value.Value.t::["as_object"]
+                                                                                                          (value.Value.t::["as_object"]
                                                                                                             (borrow
                                                                                                               (assistants_benches.Step.Get_request
                                                                                                                 (deref
@@ -14592,17 +14634,17 @@ Rules:
                                                                                                           M.Val
                                                                                                             (core.option.Option.t
                                                                                                               (ref
-                                                                                                                (serde_json.map.Map.t
+                                                                                                                (map.Map.t
                                                                                                                   String.t
-                                                                                                                  serde_json.value.Value.t))) :=
+                                                                                                                  value.Value.t))) :=
                                                                                                         M.alloc
                                                                                                           α1 in
                                                                                                       let
                                                                                                             α3 :
                                                                                                           M.Val
-                                                                                                            (serde_json.map.Map.t
+                                                                                                            (map.Map.t
                                                                                                               String.t
-                                                                                                              serde_json.value.Value.t) :=
+                                                                                                              value.Value.t) :=
                                                                                                         match_operator
                                                                                                           α2
                                                                                                           [
@@ -14630,34 +14672,34 @@ Rules:
                                                                                                                 let
                                                                                                                       α0 :
                                                                                                                     (ref
-                                                                                                                        (serde_json.map.Map.t
+                                                                                                                        (map.Map.t
                                                                                                                           String.t
-                                                                                                                          serde_json.value.Value.t))
+                                                                                                                          value.Value.t))
                                                                                                                       ->
                                                                                                                       M
-                                                                                                                        (serde_json.map.Map.t
+                                                                                                                        (map.Map.t
                                                                                                                           String.t
-                                                                                                                          serde_json.value.Value.t) :=
+                                                                                                                          value.Value.t) :=
                                                                                                                   ltac:(M.get_method (fun ℐ =>
                                                                                                                     core.clone.Clone.clone
                                                                                                                       (Self :=
-                                                                                                                        serde_json.map.Map.t
+                                                                                                                        map.Map.t
                                                                                                                           String.t
-                                                                                                                          serde_json.value.Value.t)
+                                                                                                                          value.Value.t)
                                                                                                                       (Trait := ℐ))) in
                                                                                                                 let
                                                                                                                       α1 :
                                                                                                                     ref
-                                                                                                                      (serde_json.map.Map.t
+                                                                                                                      (map.Map.t
                                                                                                                         String.t
-                                                                                                                        serde_json.value.Value.t) :=
+                                                                                                                        value.Value.t) :=
                                                                                                                   M.read
                                                                                                                     obj in
                                                                                                                 let
                                                                                                                       α2 :
-                                                                                                                    serde_json.map.Map.t
+                                                                                                                    map.Map.t
                                                                                                                       String.t
-                                                                                                                      serde_json.value.Value.t :=
+                                                                                                                      value.Value.t :=
                                                                                                                   M.call
                                                                                                                     (α0
                                                                                                                       α1) in
@@ -14670,9 +14712,9 @@ Rules:
                                                                                                               end) :
                                                                                                               M
                                                                                                                 (M.Val
-                                                                                                                  (serde_json.map.Map.t
+                                                                                                                  (map.Map.t
                                                                                                                     String.t
-                                                                                                                    serde_json.value.Value.t));
+                                                                                                                    value.Value.t));
                                                                                                             fun
                                                                                                                 γ =>
                                                                                                               (let
@@ -14724,9 +14766,9 @@ Rules:
                                                                                                                     α3 in
                                                                                                                 let
                                                                                                                       α5 :
-                                                                                                                    serde_json.map.Map.t
+                                                                                                                    map.Map.t
                                                                                                                       String.t
-                                                                                                                      serde_json.value.Value.t :=
+                                                                                                                      value.Value.t :=
                                                                                                                   never_to_any
                                                                                                                     α4 in
                                                                                                                 M.alloc
@@ -14738,9 +14780,9 @@ Rules:
                                                                                                               end) :
                                                                                                               M
                                                                                                                 (M.Val
-                                                                                                                  (serde_json.map.Map.t
+                                                                                                                  (map.Map.t
                                                                                                                     String.t
-                                                                                                                    serde_json.value.Value.t))
+                                                                                                                    value.Value.t))
                                                                                                           ] in
                                                                                                       M.copy
                                                                                                         α3 in
@@ -14750,34 +14792,34 @@ Rules:
                                                                                                           unit :=
                                                                                                       let
                                                                                                             α0 :
-                                                                                                          serde_json.map.IterMut.t
+                                                                                                          map.IterMut.t
                                                                                                             ->
                                                                                                             M
                                                                                                               _ :=
                                                                                                         ltac:(M.get_method (fun ℐ =>
                                                                                                           core.iter.traits.collect.IntoIterator.into_iter
                                                                                                             (Self :=
-                                                                                                              serde_json.map.IterMut.t)
+                                                                                                              map.IterMut.t)
                                                                                                             (Trait := ℐ))) in
                                                                                                       let
                                                                                                             α1 :
-                                                                                                          serde_json.map.IterMut.t :=
+                                                                                                          map.IterMut.t :=
                                                                                                         M.call
-                                                                                                          ((serde_json.map.Map.t
+                                                                                                          ((map.Map.t
                                                                                                                 String.t
-                                                                                                                serde_json.value.Value.t)::["iter_mut"]
+                                                                                                                value.Value.t)::["iter_mut"]
                                                                                                             (borrow_mut
                                                                                                               request_map)) in
                                                                                                       let
                                                                                                             α2 :
-                                                                                                          serde_json.map.IterMut.t :=
+                                                                                                          map.IterMut.t :=
                                                                                                         M.call
                                                                                                           (α0
                                                                                                             α1) in
                                                                                                       let
                                                                                                             α3 :
                                                                                                           M.Val
-                                                                                                            serde_json.map.IterMut.t :=
+                                                                                                            map.IterMut.t :=
                                                                                                         M.alloc
                                                                                                           α2 in
                                                                                                       let
@@ -14801,7 +14843,7 @@ Rules:
                                                                                                                   let
                                                                                                                         α0 :
                                                                                                                       (mut_ref
-                                                                                                                          serde_json.map.IterMut.t)
+                                                                                                                          map.IterMut.t)
                                                                                                                         ->
                                                                                                                         M
                                                                                                                           (core.option.Option.t
@@ -14809,7 +14851,7 @@ Rules:
                                                                                                                     ltac:(M.get_method (fun ℐ =>
                                                                                                                       core.iter.traits.iterator.Iterator.next
                                                                                                                         (Self :=
-                                                                                                                          serde_json.map.IterMut.t)
+                                                                                                                          map.IterMut.t)
                                                                                                                         (Trait := ℐ))) in
                                                                                                                   let
                                                                                                                         α1 :
@@ -14818,7 +14860,7 @@ Rules:
                                                                                                                           String.t)
                                                                                                                         *
                                                                                                                         (mut_ref
-                                                                                                                          serde_json.value.Value.t)) :=
+                                                                                                                          value.Value.t)) :=
                                                                                                                     M.call
                                                                                                                       (α0
                                                                                                                         (borrow_mut
@@ -14831,7 +14873,7 @@ Rules:
                                                                                                                             String.t)
                                                                                                                           *
                                                                                                                           (mut_ref
-                                                                                                                            serde_json.value.Value.t))) :=
+                                                                                                                            value.Value.t))) :=
                                                                                                                     M.alloc
                                                                                                                       α1 in
                                                                                                                   match_operator
@@ -14917,11 +14959,11 @@ Rules:
                                                                                                                                   α0 :
                                                                                                                                 (ref
                                                                                                                                     (mut_ref
-                                                                                                                                      serde_json.value.Value.t))
+                                                                                                                                      value.Value.t))
                                                                                                                                   ->
                                                                                                                                   (ref
                                                                                                                                     (ref
-                                                                                                                                      serde_json.value.Value.t))
+                                                                                                                                      value.Value.t))
                                                                                                                                   ->
                                                                                                                                   M
                                                                                                                                     bool.t :=
@@ -14929,39 +14971,39 @@ Rules:
                                                                                                                                 core.cmp.PartialEq.eq
                                                                                                                                   (Self :=
                                                                                                                                     mut_ref
-                                                                                                                                      serde_json.value.Value.t)
+                                                                                                                                      value.Value.t)
                                                                                                                                   (Rhs :=
                                                                                                                                     ref
-                                                                                                                                      serde_json.value.Value.t)
+                                                                                                                                      value.Value.t)
                                                                                                                                   (Trait := ℐ))) in
                                                                                                                             let
                                                                                                                                   α1 :
                                                                                                                                 core.result.Result.t
-                                                                                                                                  serde_json.value.Value.t
-                                                                                                                                  serde_json.error.Error.t :=
+                                                                                                                                  value.Value.t
+                                                                                                                                  error.Error.t :=
                                                                                                                               M.call
-                                                                                                                                (serde_json.value.to_value
+                                                                                                                                (value.to_value
                                                                                                                                   (borrow
                                                                                                                                     placeholder)) in
                                                                                                                             let
                                                                                                                                   α2 :
-                                                                                                                                serde_json.value.Value.t :=
+                                                                                                                                value.Value.t :=
                                                                                                                               M.call
                                                                                                                                 ((core.result.Result.t
-                                                                                                                                      serde_json.value.Value.t
-                                                                                                                                      serde_json.error.Error.t)::["unwrap"]
+                                                                                                                                      value.Value.t
+                                                                                                                                      error.Error.t)::["unwrap"]
                                                                                                                                   α1) in
                                                                                                                             let
                                                                                                                                   α3 :
                                                                                                                                 M.Val
-                                                                                                                                  serde_json.value.Value.t :=
+                                                                                                                                  value.Value.t :=
                                                                                                                               M.alloc
                                                                                                                                 α2 in
                                                                                                                             let
                                                                                                                                   α4 :
                                                                                                                                 M.Val
                                                                                                                                   (ref
-                                                                                                                                    serde_json.value.Value.t) :=
+                                                                                                                                    value.Value.t) :=
                                                                                                                               M.alloc
                                                                                                                                 (borrow
                                                                                                                                   α3) in
@@ -14996,7 +15038,7 @@ Rules:
                                                                                                                                 let
                                                                                                                                       α0 :
                                                                                                                                     mut_ref
-                                                                                                                                      serde_json.value.Value.t :=
+                                                                                                                                      value.Value.t :=
                                                                                                                                   M.read
                                                                                                                                     value in
                                                                                                                                 let
@@ -15056,19 +15098,19 @@ Rules:
                                                                                                                                 let
                                                                                                                                       α8 :
                                                                                                                                     core.result.Result.t
-                                                                                                                                      serde_json.value.Value.t
-                                                                                                                                      serde_json.error.Error.t :=
+                                                                                                                                      value.Value.t
+                                                                                                                                      error.Error.t :=
                                                                                                                                   M.call
-                                                                                                                                    (serde_json.value.to_value
+                                                                                                                                    (value.to_value
                                                                                                                                       (borrow
                                                                                                                                         α7)) in
                                                                                                                                 let
                                                                                                                                       α9 :
-                                                                                                                                    serde_json.value.Value.t :=
+                                                                                                                                    value.Value.t :=
                                                                                                                                   M.call
                                                                                                                                     ((core.result.Result.t
-                                                                                                                                          serde_json.value.Value.t
-                                                                                                                                          serde_json.error.Error.t)::["unwrap"]
+                                                                                                                                          value.Value.t
+                                                                                                                                          error.Error.t)::["unwrap"]
                                                                                                                                       α8) in
                                                                                                                                 assign
                                                                                                                                   (deref
@@ -15110,16 +15152,16 @@ Rules:
                                                                                                           step in
                                                                                                       let
                                                                                                             α1 :
-                                                                                                          serde_json.map.Map.t
+                                                                                                          map.Map.t
                                                                                                             String.t
-                                                                                                            serde_json.value.Value.t :=
+                                                                                                            value.Value.t :=
                                                                                                         M.read
                                                                                                           request_map in
                                                                                                       assign
                                                                                                         (assistants_benches.Step.Get_request
                                                                                                           (deref
                                                                                                             α0))
-                                                                                                        (serde_json.value.Value.Object
+                                                                                                        (value.Value.Object
                                                                                                           α1) in
                                                                                                     M.alloc
                                                                                                       tt
@@ -15287,11 +15329,11 @@ Rules:
                                                                             let
                                                                                   actual_response :
                                                                                 M.Val
-                                                                                  serde_json.value.Value.t :=
+                                                                                  value.Value.t :=
                                                                               let
                                                                                     α0 :
                                                                                   (core.result.Result.t
-                                                                                      serde_json.value.Value.t
+                                                                                      value.Value.t
                                                                                       reqwest.error.Error.t)
                                                                                     ->
                                                                                     M
@@ -15302,7 +15344,7 @@ Rules:
                                                                                   core.ops.try_trait.Try.branch
                                                                                     (Self :=
                                                                                       core.result.Result.t
-                                                                                        serde_json.value.Value.t
+                                                                                        value.Value.t
                                                                                         reqwest.error.Error.t)
                                                                                     (Trait := ℐ))) in
                                                                               let
@@ -15767,7 +15809,7 @@ Rules:
                                                                                     α21 :
                                                                                   M.Val
                                                                                     (core.result.Result.t
-                                                                                      serde_json.value.Value.t
+                                                                                      value.Value.t
                                                                                       reqwest.error.Error.t) :=
                                                                                 match_operator
                                                                                   α20
@@ -15827,7 +15869,7 @@ Rules:
                                                                                                 α4 :
                                                                                               core.task.poll.Poll.t
                                                                                                 (core.result.Result.t
-                                                                                                  serde_json.value.Value.t
+                                                                                                  value.Value.t
                                                                                                   reqwest.error.Error.t) :=
                                                                                             M.call
                                                                                               (α0
@@ -15838,7 +15880,7 @@ Rules:
                                                                                               M.Val
                                                                                                 (core.task.poll.Poll.t
                                                                                                   (core.result.Result.t
-                                                                                                    serde_json.value.Value.t
+                                                                                                    value.Value.t
                                                                                                     reqwest.error.Error.t)) :=
                                                                                             M.alloc
                                                                                               α4 in
@@ -15942,13 +15984,13 @@ Rules:
                                                                                       M
                                                                                         (M.Val
                                                                                           (core.result.Result.t
-                                                                                            serde_json.value.Value.t
+                                                                                            value.Value.t
                                                                                             reqwest.error.Error.t))
                                                                                   ] in
                                                                               let
                                                                                     α22 :
                                                                                   core.result.Result.t
-                                                                                    serde_json.value.Value.t
+                                                                                    value.Value.t
                                                                                     reqwest.error.Error.t :=
                                                                                 M.read
                                                                                   α21 in
@@ -15958,7 +16000,7 @@ Rules:
                                                                                     (core.result.Result.t
                                                                                       core.convert.Infallible.t
                                                                                       reqwest.error.Error.t)
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 M.call
                                                                                   (α0
                                                                                     α22) in
@@ -15969,13 +16011,13 @@ Rules:
                                                                                       (core.result.Result.t
                                                                                         core.convert.Infallible.t
                                                                                         reqwest.error.Error.t)
-                                                                                      serde_json.value.Value.t) :=
+                                                                                      value.Value.t) :=
                                                                                 M.alloc
                                                                                   α23 in
                                                                               let
                                                                                     α25 :
                                                                                   M.Val
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 match_operator
                                                                                   α24
                                                                                   [
@@ -16057,7 +16099,7 @@ Rules:
                                                                                             α3 in
                                                                                         let
                                                                                               α5 :
-                                                                                            serde_json.value.Value.t :=
+                                                                                            value.Value.t :=
                                                                                           never_to_any
                                                                                             α4 in
                                                                                         M.alloc
@@ -16069,7 +16111,7 @@ Rules:
                                                                                       end) :
                                                                                       M
                                                                                         (M.Val
-                                                                                          serde_json.value.Value.t);
+                                                                                          value.Value.t);
                                                                                     fun
                                                                                         γ =>
                                                                                       (let
@@ -16100,7 +16142,7 @@ Rules:
                                                                                       end) :
                                                                                       M
                                                                                         (M.Val
-                                                                                          serde_json.value.Value.t)
+                                                                                          value.Value.t)
                                                                                   ] in
                                                                               M.copy
                                                                                 α25 in
@@ -16185,7 +16227,7 @@ Rules:
                                                                                     α0 :
                                                                                   (core.result.Result.t
                                                                                       String.t
-                                                                                      serde_json.error.Error.t)
+                                                                                      error.Error.t)
                                                                                     ->
                                                                                     M
                                                                                       (core.ops.control_flow.ControlFlow.t
@@ -16196,23 +16238,23 @@ Rules:
                                                                                     (Self :=
                                                                                       core.result.Result.t
                                                                                         String.t
-                                                                                        serde_json.error.Error.t)
+                                                                                        error.Error.t)
                                                                                     (Trait := ℐ))) in
                                                                               let
                                                                                     object :
                                                                                   M.Val
-                                                                                    (serde_json.map.Map.t
+                                                                                    (map.Map.t
                                                                                       String.t
-                                                                                      serde_json.value.Value.t) :=
+                                                                                      value.Value.t) :=
                                                                                 let
                                                                                       α0 :
-                                                                                    serde_json.map.Map.t
+                                                                                    map.Map.t
                                                                                       String.t
-                                                                                      serde_json.value.Value.t :=
+                                                                                      value.Value.t :=
                                                                                   M.call
-                                                                                    (serde_json.map.Map.t
+                                                                                    (map.Map.t
                                                                                         String.t
-                                                                                        serde_json.value.Value.t)::["new"] in
+                                                                                        value.Value.t)::["new"] in
                                                                                 M.alloc
                                                                                   α0 in
                                                                               let
@@ -16252,30 +16294,30 @@ Rules:
                                                                               let
                                                                                     α4 :
                                                                                   core.result.Result.t
-                                                                                    serde_json.value.Value.t
-                                                                                    serde_json.error.Error.t :=
+                                                                                    value.Value.t
+                                                                                    error.Error.t :=
                                                                                 M.call
-                                                                                  (serde_json.value.to_value
+                                                                                  (value.to_value
                                                                                     (borrow
                                                                                       (assistants_benches.Step.Get_request
                                                                                         (deref
                                                                                           α3)))) in
                                                                               let
                                                                                     α5 :
-                                                                                  serde_json.value.Value.t :=
+                                                                                  value.Value.t :=
                                                                                 M.call
                                                                                   ((core.result.Result.t
-                                                                                        serde_json.value.Value.t
-                                                                                        serde_json.error.Error.t)::["unwrap"]
+                                                                                        value.Value.t
+                                                                                        error.Error.t)::["unwrap"]
                                                                                     α4) in
                                                                               let
                                                                                     α6 :
                                                                                   core.option.Option.t
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 M.call
-                                                                                  ((serde_json.map.Map.t
+                                                                                  ((map.Map.t
                                                                                         String.t
-                                                                                        serde_json.value.Value.t)::["insert"]
+                                                                                        value.Value.t)::["insert"]
                                                                                     (borrow_mut
                                                                                       object)
                                                                                     α2
@@ -16284,15 +16326,15 @@ Rules:
                                                                                     α7 :
                                                                                   M.Val
                                                                                     (core.option.Option.t
-                                                                                      serde_json.value.Value.t) :=
+                                                                                      value.Value.t) :=
                                                                                 M.alloc
                                                                                   α6 in
                                                                               let
                                                                                     α1 :
                                                                                   M.Val
-                                                                                    (serde_json.map.Map.t
+                                                                                    (map.Map.t
                                                                                       String.t
-                                                                                      serde_json.value.Value.t) :=
+                                                                                      value.Value.t) :=
                                                                                 match_operator
                                                                                   α7
                                                                                   [
@@ -16329,28 +16371,28 @@ Rules:
                                                                                       let
                                                                                             α3 :
                                                                                           core.result.Result.t
-                                                                                            serde_json.value.Value.t
-                                                                                            serde_json.error.Error.t :=
+                                                                                            value.Value.t
+                                                                                            error.Error.t :=
                                                                                         M.call
-                                                                                          (serde_json.value.to_value
+                                                                                          (value.to_value
                                                                                             (borrow
                                                                                               actual_response)) in
                                                                                       let
                                                                                             α4 :
-                                                                                          serde_json.value.Value.t :=
+                                                                                          value.Value.t :=
                                                                                         M.call
                                                                                           ((core.result.Result.t
-                                                                                                serde_json.value.Value.t
-                                                                                                serde_json.error.Error.t)::["unwrap"]
+                                                                                                value.Value.t
+                                                                                                error.Error.t)::["unwrap"]
                                                                                             α3) in
                                                                                       let
                                                                                             α5 :
                                                                                           core.option.Option.t
-                                                                                            serde_json.value.Value.t :=
+                                                                                            value.Value.t :=
                                                                                         M.call
-                                                                                          ((serde_json.map.Map.t
+                                                                                          ((map.Map.t
                                                                                                 String.t
-                                                                                                serde_json.value.Value.t)::["insert"]
+                                                                                                value.Value.t)::["insert"]
                                                                                             (borrow_mut
                                                                                               object)
                                                                                             α2
@@ -16359,7 +16401,7 @@ Rules:
                                                                                             α6 :
                                                                                           M.Val
                                                                                             (core.option.Option.t
-                                                                                              serde_json.value.Value.t) :=
+                                                                                              value.Value.t) :=
                                                                                         M.alloc
                                                                                           α5 in
                                                                                       match_operator
@@ -16404,30 +16446,30 @@ Rules:
                                                                                             let
                                                                                                   α4 :
                                                                                                 core.result.Result.t
-                                                                                                  serde_json.value.Value.t
-                                                                                                  serde_json.error.Error.t :=
+                                                                                                  value.Value.t
+                                                                                                  error.Error.t :=
                                                                                               M.call
-                                                                                                (serde_json.value.to_value
+                                                                                                (value.to_value
                                                                                                   (borrow
                                                                                                     (assistants_benches.Step.Get_expected_response
                                                                                                       (deref
                                                                                                         α3)))) in
                                                                                             let
                                                                                                   α5 :
-                                                                                                serde_json.value.Value.t :=
+                                                                                                value.Value.t :=
                                                                                               M.call
                                                                                                 ((core.result.Result.t
-                                                                                                      serde_json.value.Value.t
-                                                                                                      serde_json.error.Error.t)::["unwrap"]
+                                                                                                      value.Value.t
+                                                                                                      error.Error.t)::["unwrap"]
                                                                                                   α4) in
                                                                                             let
                                                                                                   α6 :
                                                                                                 core.option.Option.t
-                                                                                                  serde_json.value.Value.t :=
+                                                                                                  value.Value.t :=
                                                                                               M.call
-                                                                                                ((serde_json.map.Map.t
+                                                                                                ((map.Map.t
                                                                                                       String.t
-                                                                                                      serde_json.value.Value.t)::["insert"]
+                                                                                                      value.Value.t)::["insert"]
                                                                                                   (borrow_mut
                                                                                                     object)
                                                                                                   α2
@@ -16436,7 +16478,7 @@ Rules:
                                                                                                   α7 :
                                                                                                 M.Val
                                                                                                   (core.option.Option.t
-                                                                                                    serde_json.value.Value.t) :=
+                                                                                                    value.Value.t) :=
                                                                                               M.alloc
                                                                                                 α6 in
                                                                                             match_operator
@@ -16448,43 +16490,43 @@ Rules:
                                                                                                     object) :
                                                                                                   M
                                                                                                     (M.Val
-                                                                                                      (serde_json.map.Map.t
+                                                                                                      (map.Map.t
                                                                                                         String.t
-                                                                                                        serde_json.value.Value.t))
+                                                                                                        value.Value.t))
                                                                                               ]) :
                                                                                             M
                                                                                               (M.Val
-                                                                                                (serde_json.map.Map.t
+                                                                                                (map.Map.t
                                                                                                   String.t
-                                                                                                  serde_json.value.Value.t))
+                                                                                                  value.Value.t))
                                                                                         ]) :
                                                                                       M
                                                                                         (M.Val
-                                                                                          (serde_json.map.Map.t
+                                                                                          (map.Map.t
                                                                                             String.t
-                                                                                            serde_json.value.Value.t))
+                                                                                            value.Value.t))
                                                                                   ] in
                                                                               let
                                                                                     α2 :
-                                                                                  serde_json.map.Map.t
+                                                                                  map.Map.t
                                                                                     String.t
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 M.read
                                                                                   α1 in
                                                                               let
                                                                                     α3 :
                                                                                   M.Val
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 M.alloc
-                                                                                  (serde_json.value.Value.Object
+                                                                                  (value.Value.Object
                                                                                     α2) in
                                                                               let
                                                                                     α4 :
                                                                                   core.result.Result.t
                                                                                     String.t
-                                                                                    serde_json.error.Error.t :=
+                                                                                    error.Error.t :=
                                                                                 M.call
-                                                                                  (serde_json.ser.to_string
+                                                                                  (ser.to_string
                                                                                     (borrow
                                                                                       α3)) in
                                                                               let
@@ -16492,7 +16534,7 @@ Rules:
                                                                                   core.ops.control_flow.ControlFlow.t
                                                                                     (core.result.Result.t
                                                                                       core.convert.Infallible.t
-                                                                                      serde_json.error.Error.t)
+                                                                                      error.Error.t)
                                                                                     String.t :=
                                                                                 M.call
                                                                                   (α0
@@ -16503,7 +16545,7 @@ Rules:
                                                                                     (core.ops.control_flow.ControlFlow.t
                                                                                       (core.result.Result.t
                                                                                         core.convert.Infallible.t
-                                                                                        serde_json.error.Error.t)
+                                                                                        error.Error.t)
                                                                                       String.t) :=
                                                                                 M.alloc
                                                                                   α5 in
@@ -16539,7 +16581,7 @@ Rules:
                                                                                               α0 :
                                                                                             (core.result.Result.t
                                                                                                 core.convert.Infallible.t
-                                                                                                serde_json.error.Error.t)
+                                                                                                error.Error.t)
                                                                                               ->
                                                                                               M
                                                                                                 (core.result.Result.t
@@ -16560,13 +16602,13 @@ Rules:
                                                                                               (R :=
                                                                                                 core.result.Result.t
                                                                                                   core.convert.Infallible.t
-                                                                                                  serde_json.error.Error.t)
+                                                                                                  error.Error.t)
                                                                                               (Trait := ℐ))) in
                                                                                         let
                                                                                               α1 :
                                                                                             core.result.Result.t
                                                                                               core.convert.Infallible.t
-                                                                                              serde_json.error.Error.t :=
+                                                                                              error.Error.t :=
                                                                                           M.read
                                                                                             residual in
                                                                                         let
@@ -17368,7 +17410,7 @@ Rules:
                                                                                     α0 :
                                                                                   (ref
                                                                                       (Vec.t
-                                                                                        serde_json.value.Value.t
+                                                                                        value.Value.t
                                                                                         alloc.alloc.Global.t))
                                                                                     ->
                                                                                     M
@@ -17378,7 +17420,7 @@ Rules:
                                                                                     (Self :=
                                                                                       ref
                                                                                         (Vec.t
-                                                                                          serde_json.value.Value.t
+                                                                                          value.Value.t
                                                                                           alloc.alloc.Global.t))
                                                                                     (Trait := ℐ))) in
                                                                               let
@@ -17390,7 +17432,7 @@ Rules:
                                                                               let
                                                                                     α2 :
                                                                                   core.slice.iter.Iter.t
-                                                                                    serde_json.value.Value.t :=
+                                                                                    value.Value.t :=
                                                                                 M.call
                                                                                   (α0
                                                                                     (borrow
@@ -17401,7 +17443,7 @@ Rules:
                                                                                     α3 :
                                                                                   M.Val
                                                                                     (core.slice.iter.Iter.t
-                                                                                      serde_json.value.Value.t) :=
+                                                                                      value.Value.t) :=
                                                                                 M.alloc
                                                                                   α2 in
                                                                               let
@@ -17426,7 +17468,7 @@ Rules:
                                                                                                 α0 :
                                                                                               (mut_ref
                                                                                                   (core.slice.iter.Iter.t
-                                                                                                    serde_json.value.Value.t))
+                                                                                                    value.Value.t))
                                                                                                 ->
                                                                                                 M
                                                                                                   (core.option.Option.t
@@ -17435,13 +17477,13 @@ Rules:
                                                                                               core.iter.traits.iterator.Iterator.next
                                                                                                 (Self :=
                                                                                                   core.slice.iter.Iter.t
-                                                                                                    serde_json.value.Value.t)
+                                                                                                    value.Value.t)
                                                                                                 (Trait := ℐ))) in
                                                                                           let
                                                                                                 α1 :
                                                                                               core.option.Option.t
                                                                                                 (ref
-                                                                                                  serde_json.value.Value.t) :=
+                                                                                                  value.Value.t) :=
                                                                                             M.call
                                                                                               (α0
                                                                                                 (borrow_mut
@@ -17451,7 +17493,7 @@ Rules:
                                                                                               M.Val
                                                                                                 (core.option.Option.t
                                                                                                   (ref
-                                                                                                    serde_json.value.Value.t)) :=
+                                                                                                    value.Value.t)) :=
                                                                                             M.alloc
                                                                                               α1 in
                                                                                           match_operator
@@ -17522,7 +17564,7 @@ Rules:
                                                                                                     let
                                                                                                           α0 :
                                                                                                         (ref
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           ->
                                                                                                           (ref
                                                                                                             str.t)
@@ -17533,7 +17575,7 @@ Rules:
                                                                                                       ltac:(M.get_method (fun ℐ =>
                                                                                                         core.ops.index.Index.index
                                                                                                           (Self :=
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           (Idx :=
                                                                                                             ref
                                                                                                               str.t)
@@ -17541,7 +17583,7 @@ Rules:
                                                                                                     let
                                                                                                           α1 :
                                                                                                         ref
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.read
                                                                                                         variable_to_save in
                                                                                                     let
@@ -17554,7 +17596,7 @@ Rules:
                                                                                                     let
                                                                                                           α3 :
                                                                                                         ref
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.call
                                                                                                         (α0
                                                                                                           α1
@@ -17565,7 +17607,7 @@ Rules:
                                                                                                           (ref
                                                                                                             str.t) :=
                                                                                                       M.call
-                                                                                                        (serde_json.value.Value.t::["as_str"]
+                                                                                                        (value.Value.t::["as_str"]
                                                                                                           α3) in
                                                                                                     let
                                                                                                           α5 :
@@ -17586,7 +17628,7 @@ Rules:
                                                                                                     let
                                                                                                           α0 :
                                                                                                         (ref
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           ->
                                                                                                           (ref
                                                                                                             str.t)
@@ -17597,7 +17639,7 @@ Rules:
                                                                                                       ltac:(M.get_method (fun ℐ =>
                                                                                                         core.ops.index.Index.index
                                                                                                           (Self :=
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           (Idx :=
                                                                                                             ref
                                                                                                               str.t)
@@ -17605,7 +17647,7 @@ Rules:
                                                                                                     let
                                                                                                           α1 :
                                                                                                         ref
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.read
                                                                                                         variable_to_save in
                                                                                                     let
@@ -17618,7 +17660,7 @@ Rules:
                                                                                                     let
                                                                                                           α3 :
                                                                                                         ref
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.call
                                                                                                         (α0
                                                                                                           α1
@@ -17629,7 +17671,7 @@ Rules:
                                                                                                           (ref
                                                                                                             str.t) :=
                                                                                                       M.call
-                                                                                                        (serde_json.value.Value.t::["as_str"]
+                                                                                                        (value.Value.t::["as_str"]
                                                                                                           α3) in
                                                                                                     let
                                                                                                           α5 :
@@ -17649,31 +17691,31 @@ Rules:
                                                                                                     let
                                                                                                           α0 :
                                                                                                         (ref
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           ->
                                                                                                           M
                                                                                                             String.t :=
                                                                                                       ltac:(M.get_method (fun ℐ =>
                                                                                                         ToString.to_string
                                                                                                           (Self :=
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           (Trait := ℐ))) in
                                                                                                     let
                                                                                                           α1 :
                                                                                                         (ref
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           ->
                                                                                                           M
-                                                                                                            serde_json.value.Value.t :=
+                                                                                                            value.Value.t :=
                                                                                                       ltac:(M.get_method (fun ℐ =>
                                                                                                         core.clone.Clone.clone
                                                                                                           (Self :=
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           (Trait := ℐ))) in
                                                                                                     let
                                                                                                           α2 :
                                                                                                         (ref
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           ->
                                                                                                           (ref
                                                                                                             str.t)
@@ -17684,7 +17726,7 @@ Rules:
                                                                                                       ltac:(M.get_method (fun ℐ =>
                                                                                                         core.ops.index.Index.index
                                                                                                           (Self :=
-                                                                                                            serde_json.value.Value.t)
+                                                                                                            value.Value.t)
                                                                                                           (Idx :=
                                                                                                             ref
                                                                                                               str.t)
@@ -17698,7 +17740,7 @@ Rules:
                                                                                                     let
                                                                                                           α4 :
                                                                                                         ref
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.call
                                                                                                         (α2
                                                                                                           (borrow
@@ -17706,14 +17748,14 @@ Rules:
                                                                                                           α3) in
                                                                                                     let
                                                                                                           α5 :
-                                                                                                        serde_json.value.Value.t :=
+                                                                                                        value.Value.t :=
                                                                                                       M.call
                                                                                                         (α1
                                                                                                           α4) in
                                                                                                     let
                                                                                                           α6 :
                                                                                                         M.Val
-                                                                                                          serde_json.value.Value.t :=
+                                                                                                          value.Value.t :=
                                                                                                       M.alloc
                                                                                                         α5 in
                                                                                                     let
@@ -18014,14 +18056,14 @@ Rules:
                                                                               let
                                                                                     α6 :
                                                                                   (ref
-                                                                                      serde_json.value.Value.t)
+                                                                                      value.Value.t)
                                                                                     ->
                                                                                     M
-                                                                                      serde_json.value.Value.t :=
+                                                                                      value.Value.t :=
                                                                                 ltac:(M.get_method (fun ℐ =>
                                                                                   core.clone.Clone.clone
                                                                                     (Self :=
-                                                                                      serde_json.value.Value.t)
+                                                                                      value.Value.t)
                                                                                     (Trait := ℐ))) in
                                                                               let
                                                                                     α7 :
@@ -18031,7 +18073,7 @@ Rules:
                                                                                   step in
                                                                               let
                                                                                     α8 :
-                                                                                  serde_json.value.Value.t :=
+                                                                                  value.Value.t :=
                                                                                 M.call
                                                                                   (α6
                                                                                     (borrow
@@ -18041,14 +18083,14 @@ Rules:
                                                                               let
                                                                                     α9 :
                                                                                   (ref
-                                                                                      serde_json.value.Value.t)
+                                                                                      value.Value.t)
                                                                                     ->
                                                                                     M
-                                                                                      serde_json.value.Value.t :=
+                                                                                      value.Value.t :=
                                                                                 ltac:(M.get_method (fun ℐ =>
                                                                                   core.clone.Clone.clone
                                                                                     (Self :=
-                                                                                      serde_json.value.Value.t)
+                                                                                      value.Value.t)
                                                                                     (Trait := ℐ))) in
                                                                               let
                                                                                     α10 :
@@ -18058,7 +18100,7 @@ Rules:
                                                                                   step in
                                                                               let
                                                                                     α11 :
-                                                                                  serde_json.value.Value.t :=
+                                                                                  value.Value.t :=
                                                                                 M.call
                                                                                   (α9
                                                                                     (borrow
@@ -18893,7 +18935,7 @@ Rules:
                                                         let α2 :
                                                             (core.result.Result.t
                                                                 String.t
-                                                                serde_json.error.Error.t)
+                                                                error.Error.t)
                                                               ->
                                                               M
                                                                 (core.ops.control_flow.ControlFlow.t
@@ -18904,21 +18946,21 @@ Rules:
                                                               (Self :=
                                                                 core.result.Result.t
                                                                   String.t
-                                                                  serde_json.error.Error.t)
+                                                                  error.Error.t)
                                                               (Trait := ℐ))) in
                                                         let α3 :
                                                             core.result.Result.t
                                                               String.t
-                                                              serde_json.error.Error.t :=
+                                                              error.Error.t :=
                                                           M.call
-                                                            (serde_json.ser.to_string_pretty
+                                                            (ser.to_string_pretty
                                                               (borrow
                                                                 scored_test_cases)) in
                                                         let α4 :
                                                             core.ops.control_flow.ControlFlow.t
                                                               (core.result.Result.t
                                                                 core.convert.Infallible.t
-                                                                serde_json.error.Error.t)
+                                                                error.Error.t)
                                                               String.t :=
                                                           M.call (α2 α3) in
                                                         let α5 :
@@ -18926,7 +18968,7 @@ Rules:
                                                               (core.ops.control_flow.ControlFlow.t
                                                                 (core.result.Result.t
                                                                   core.convert.Infallible.t
-                                                                  serde_json.error.Error.t)
+                                                                  error.Error.t)
                                                                 String.t) :=
                                                           M.alloc α4 in
                                                         let α6 :
@@ -18953,7 +18995,7 @@ Rules:
                                                                   let α0 :
                                                                       (core.result.Result.t
                                                                           core.convert.Infallible.t
-                                                                          serde_json.error.Error.t)
+                                                                          error.Error.t)
                                                                         ->
                                                                         M
                                                                           (core.result.Result.t
@@ -18974,12 +19016,12 @@ Rules:
                                                                         (R :=
                                                                           core.result.Result.t
                                                                             core.convert.Infallible.t
-                                                                            serde_json.error.Error.t)
+                                                                            error.Error.t)
                                                                         (Trait := ℐ))) in
                                                                   let α1 :
                                                                       core.result.Result.t
                                                                         core.convert.Infallible.t
-                                                                        serde_json.error.Error.t :=
+                                                                        error.Error.t :=
                                                                     M.read
                                                                       residual in
                                                                   let α2 :
