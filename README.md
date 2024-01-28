@@ -163,3 +163,35 @@ We recommend switching to the Assistants API for a more streamlined experience, 
 Images soon, working on it.
 </details>
 
+
+
+# COQOFRUST
+
+Start with cloning coq of rust
+
+	cd ..
+
+	git clone  https://github.com/formal-land/coq-of-rust
+
+	cd coq-of-rust  
+	rustup update
+	cargo clean
+	~/.cargo/bin/cargo --debug  build --path lib/
+
+	export LD_LIBRARY_PATH=/home/$USER/.rustup/toolchains/nightly-2023-12-15-x86_64-unknown-linux-gnu/lib/:$LD_LIBRARY_PATH
+
+
+
+
+now we can run it
+
+back this project
+
+	cd ../assistants/
+	
+	make runcoqofrust
+
+or
+  
+	cargo coq-of-rust > coq-of-rust.txt 2>&1
+
