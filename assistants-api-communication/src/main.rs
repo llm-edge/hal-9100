@@ -2021,7 +2021,7 @@ mod tests {
                     "type": "code_interpreter"
                 }
             ],
-            "model": "mistralai/mixtral-8x7b-instruct",
+            "model": ENV_MODEL_NAME,
             "file_ids": [file_id]
         });
 
@@ -2210,7 +2210,7 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state.clone());
         reset_db(&app_state.pool).await;
-
+        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
         // Create two Assistants with functions
         let assistant = CreateAssistantRequest {
             instructions: Some(
@@ -2227,7 +2227,7 @@ mod tests {
                     })),
                 },
             })]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: env_model_name.to_string(),
             file_ids: None,
             description: None,
             metadata: None,
@@ -2246,7 +2246,7 @@ mod tests {
                     })),
                 },
             })]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: ENV_MODEL_NAME.to_string(),
             file_ids: None,
             description: None,
             metadata: None,

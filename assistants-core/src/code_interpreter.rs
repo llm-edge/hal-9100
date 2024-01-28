@@ -356,12 +356,13 @@ mod tests {
         ];
 
         for (input, expected_output) in inputs {
+            let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
             let result = safe_interpreter(
                 input.to_string(),
                 0,
                 3,
                 InterpreterModelConfig {
-                    model_name: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model_name: env_model_name.to_string(),
                     model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
                     max_tokens_to_sample: 100,
                     stop_sequences: None,

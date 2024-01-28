@@ -195,7 +195,7 @@ mod tests {
         let pool_clone = app_state.pool.clone();
 
         reset_db(&app_state.pool).await;
-
+        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
         // Create an assistant with get_name and weather functions
         let assistant = CreateAssistantRequest {
             instructions: Some("Help me using functions.".to_string()),
@@ -228,7 +228,7 @@ mod tests {
                     },
                 }),
             ]),
-            model: "mistralai/mixtral-8x7b-instruct".to_string(),
+            model: env_model_name.to_string(),
             // model: "l/mistral-tiny".to_string(),
             file_ids: None,
             description: None,

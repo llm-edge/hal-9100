@@ -661,17 +661,18 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+   #[tokio::test]
     async fn test_generate_function_call_with_mixtral_8x7b() {
         let pool = setup().await;
         let user_id = Uuid::default().to_string();
+        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
                 instructions: Some("".to_string()),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                model: env_model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -707,7 +708,7 @@ mod tests {
         let user_context = String::from("Give me a weather report for Toronto, Canada.");
 
         let model_config = ModelConfig {
-            model_name: String::from("mistralai/mixtral-8x7b-instruct"),
+            model_name: env_model_name.clone(),
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
@@ -836,7 +837,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: "mistralai/mixtral-8x7b-instruct".to_string(),
+                    model: std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string()),
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),
