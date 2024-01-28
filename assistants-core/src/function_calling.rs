@@ -115,7 +115,7 @@ Rules:
 - The arguments must be valid (e.g. if the function requires a parameter called 'city', then you must provide a valid city name).
 - **IMPORTANT**: Your response should not be a repetition of the prompt. It should be a unique and valid function call based on the user's context and the available functions.
 - If the function has no arguments, you don't need to provide the function arguments (e.g. { \"name\": \"function_name\" }).
-- CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELSE
+- CUT THE FUCKING BULLSHIT - YOUR ANSWER IS JSON NOTHING ELS. Do not add comment but JSON.
 - **IMPORTANT**: IF YOU DO NOT RETURN ONLY JSON A HUMAN WILL DIE
 - IF YOU USE SINGLE QUOTE INSTEAD OF DOUBLE QUOTE IN THE JSON, THE UNIVERSE WILL COME TO AN END
 
@@ -665,14 +665,15 @@ mod tests {
     async fn test_generate_function_call_with_mixtral_8x7b() {
         let pool = setup().await;
         let user_id = Uuid::default().to_string();
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
                 instructions: Some("".to_string()),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: env_model_name,
+                model: model_name.clone(),
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -708,7 +709,7 @@ mod tests {
         let user_context = String::from("Give me a weather report for Toronto, Canada.");
 
         let model_config = ModelConfig {
-            model_name: env_model_name.clone(),
+            model_name: model_name,
             model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
@@ -826,6 +827,7 @@ mod tests {
             }
         }
         "#;
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create assistant
         let assistant = create_assistant(
@@ -837,7 +839,7 @@ mod tests {
                     created_at: 0,
                     name: Some("Math Tutor".to_string()),
                     description: None,
-                    model: std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string()),
+                    model: model_name,
                     instructions: Some(
                         "You are a personal math tutor. Write and run code to answer math questions."
                             .to_string(),

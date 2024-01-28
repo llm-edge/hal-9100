@@ -356,14 +356,15 @@ mod tests {
         ];
 
         for (input, expected_output) in inputs {
-            let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+            let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+            let model_url = std::env::var("MODEL_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
             let result = safe_interpreter(
                 input.to_string(),
                 0,
                 3,
                 InterpreterModelConfig {
-                    model_name: env_model_name.to_string(),
-                    model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
+                    model_name: model_name.to_string(),
+                    model_url: Some(model_url.to_string()),
                     max_tokens_to_sample: 100,
                     stop_sequences: None,
                     top_p: None,

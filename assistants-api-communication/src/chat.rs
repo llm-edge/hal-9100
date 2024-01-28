@@ -231,10 +231,9 @@ mod tests {
                 .with_api_key(&std::env::var("MODEL_API_KEY").unwrap_or_default())
                 .with_api_base("https://api.mistral.ai/v1"),
         );
-        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
+        let model_name = std::env::var("TEST_MODEL_NAME").expect("MODEL_NAME must be set");
         let request = match CreateChatCompletionRequestArgs::default()
-            // .model(ENV_MODEL_NAME)
-            .model(&env_model_name)
+            .model(&model_name)
             .max_tokens(512u16)
             .messages([messages])
             .build()
@@ -295,7 +294,7 @@ mod tests {
         let app = app();
 
         let chat_input = json!({
-            "model": ENV_MODEL_NAME,
+            "model": "foo",
             // "model": "gpt4",
             "messages": [
                 {
@@ -335,10 +334,10 @@ mod tests {
         dotenv().ok();
         // Create a Router with the stream_chat_handler route
         let app = Router::new().route("/chat/completions", post(chat_handler));
-
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
         // Mock a request with a tool that requires a function call
         let chat_input = json!({
-            "model": ENV_MODEL_NAME,
+            "model": model_name,
             "messages": [
                 {
                     "role": "user",

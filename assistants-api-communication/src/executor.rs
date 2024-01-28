@@ -143,8 +143,8 @@ mod tests {
         let pool_clone = app_state.pool.clone();
 
         reset_db(&app_state.pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
-        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
         let assistant = CreateAssistantRequest {
             instructions: Some(
                 "You are a personal assistant. Use the MediaWiki API to fetch random facts."
@@ -155,7 +155,7 @@ mod tests {
                 r#type: "action".to_string(),
                 data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap()),
             })]),
-            model: env_model_name.to_string(),
+            model: model_name.to_string(),
             file_ids: None,
             description: None,
             metadata: None,

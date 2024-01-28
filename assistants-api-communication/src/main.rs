@@ -1998,6 +1998,7 @@ mod tests {
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Value = serde_json::from_slice(&body).unwrap();
         let file_id = body["file_id"].as_str().unwrap().to_string();
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // 2. Create an Assistant with function, retrieval, and code interpreter tools
         let assistant = json!({
@@ -2021,7 +2022,7 @@ mod tests {
                     "type": "code_interpreter"
                 }
             ],
-            "model": ENV_MODEL_NAME,
+            "model": model_name,
             "file_ids": [file_id]
         });
 
@@ -2210,7 +2211,8 @@ mod tests {
         let app_state = setup().await;
         let app = app(app_state.clone());
         reset_db(&app_state.pool).await;
-        let env_model_name = std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set");
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
         // Create two Assistants with functions
         let assistant = CreateAssistantRequest {
             instructions: Some(
@@ -2227,7 +2229,7 @@ mod tests {
                     })),
                 },
             })]),
-            model: env_model_name.to_string(),
+            model: model_name.to_string(),
             file_ids: None,
             description: None,
             metadata: None,
@@ -2246,7 +2248,7 @@ mod tests {
                     })),
                 },
             })]),
-            model: ENV_MODEL_NAME.to_string(),
+            model: model_name.to_string(),
             file_ids: None,
             description: None,
             metadata: None,

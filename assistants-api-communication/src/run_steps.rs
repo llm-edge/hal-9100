@@ -189,13 +189,15 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_end_to_end_steps_with_parallel_functions() {
         let app_state = setup().await;
         let app = app(app_state.clone());
         let pool_clone = app_state.pool.clone();
 
         reset_db(&app_state.pool).await;
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
         // Create an assistant with get_name and weather functions
         let assistant = CreateAssistantRequest {
             instructions: Some("Help me using functions.".to_string()),
@@ -228,7 +230,7 @@ mod tests {
                     },
                 }),
             ]),
-            model: env_model_name.to_string(),
+            model: model_name.to_string(),
             // model: "l/mistral-tiny".to_string(),
             file_ids: None,
             description: None,

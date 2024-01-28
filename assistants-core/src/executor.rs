@@ -1174,6 +1174,7 @@ mod tests {
 
         // Upload the temporary file
         let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
         
         // 1. Create an Assistant
         let file_id_clone = file_id.clone();
@@ -1188,7 +1189,7 @@ mod tests {
                 tools: vec![AssistantTools::Retrieval(AssistantToolsRetrieval {
                     r#type: "retrieval".to_string(),
                 })],
-                model: std::env::var("ENV_MODEL_NAME").expect("MODEL_NAME must be set").to_string(),
+                model: model_name,
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1513,6 +1514,7 @@ mod tests {
 
         // 3. Upload the temporary file
         let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // 4. Create an Assistant with function calling tool
         let file_id_clone = file_id.clone();
@@ -1536,7 +1538,7 @@ mod tests {
                         r#type: "retrieval".to_string(),
                     }),
                 ],
-                model: std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model".to_string()),
+                model: model_name,
                 file_ids: vec![file_id_clone],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1838,8 +1840,8 @@ mod tests {
 
         // 4. Create an Assistant with function calling tool
         let file_id_clone = file_id.clone();
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
         
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
         // 1. Create an Assistant
         let assistant = Assistant {
             inner: AssistantObject {
@@ -1852,7 +1854,7 @@ mod tests {
                 tools: vec![AssistantTools::Code(AssistantToolsCode {
                     r#type: "code_interpreter".to_string(),
                 })],
-                model: env_model_name,
+                model: model_name,
                 file_ids: vec![file_id_clone.to_string()], // Add file ID here
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1947,7 +1949,8 @@ mod tests {
     async fn test_decide_tool_with_llm_no_function_after_tool_call() {
         let pool = setup().await;
         reset_db(&pool).await;
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
@@ -1976,7 +1979,7 @@ mod tests {
                         })),
                     },
                 })],
-                model: env_model_name,
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2119,7 +2122,7 @@ mod tests {
         let pool = setup().await;
 
         // Get the model name from environment variable or use default
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant with "action" tool
         let assistant = Assistant {
@@ -2133,7 +2136,7 @@ mod tests {
                 tools: vec![AssistantTools::Extra(AssistantToolsExtra {
                     r#type: "action".to_string(),
                     data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap())})],
-                model: env_model_name,
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2181,8 +2184,7 @@ mod tests {
         // Setup
         let pool = setup().await;
 
-        // Get ENV_MODEL_NAME from environment variable or use default
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant with "action" tool
         let assistant = Assistant {
@@ -2196,7 +2198,7 @@ mod tests {
                 tools: vec![AssistantTools::Extra(AssistantToolsExtra {
                     r#type: "action".to_string(),
                     data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap())})],
-                model: env_model_name,
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2300,8 +2302,7 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
 
-        // Get ENV_MODEL_NAME from environment variable
-        let env_model_name = std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2313,7 +2314,7 @@ mod tests {
                 ),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![],
-                model: env_model_name,
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2459,6 +2460,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2489,7 +2491,7 @@ mod tests {
                         })),
                     },
                 })],
-                model: std::env::var("ENV_MODEL_NAME").unwrap_or_else(|_| "default_model_name".to_string()),
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2613,6 +2615,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2643,8 +2646,7 @@ mod tests {
                         })),
                     },
                 })],
-                // model: ENV_MODEL_NAME.to_string(),
-                model: "l/mistral-tiny".to_string(),
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -2804,6 +2806,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant with two functions: 'get_weather' and 'celsius_to_kelvin'
         let assistant = create_assistant(&pool, &Assistant {
@@ -2843,8 +2846,7 @@ mod tests {
                         },
                     })
                 ],
-                // model: ENV_MODEL_NAME.to_string(),
-                model: "l/mistral-tiny".to_string(),
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
