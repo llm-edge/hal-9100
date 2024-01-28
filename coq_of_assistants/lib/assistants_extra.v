@@ -26,9 +26,9 @@ Module anthropic.
         (self : ref Self)
         (f : mut_ref core.fmt.Formatter.t)
         : M ltac:(core.fmt.Result) :=
-      let* self := M.alloc self in
-      let* f := M.alloc f in
-      let* α0 : M.Val (core.result.Result.t unit core.fmt.Error.t) :=
+      let self := M.alloc self in
+      let f := M.alloc f in
+      let α0 : M.Val (core.result.Result.t unit core.fmt.Error.t) :=
         match_operator
           self
           [

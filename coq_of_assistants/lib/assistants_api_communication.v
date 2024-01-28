@@ -2,91 +2,13 @@
 Require Import CoqOfRust.CoqOfRust.
  *)
 
-
-Module assistants.
-  (*
-  pub async fn create_assistant_handler(
-      State(app_state): State<AppState>,
-      Json(assistant): Json<Value>, // TODO https://github.com/64bit/async-openai/issues/166
-  ) -> Result<JsonResponse<AssistantObject>, (StatusCode, String)> {
-      let tools = assistant["tools"].as_array().unwrap_or(&vec![]).to_vec();
-      let assistant = create_assistant(
-          &app_state.pool,
-          &Assistant {
-              inner: AssistantObject {
-                  id: Default::default(),
-                  instructions: Some(assistant["instructions"].as_str().unwrap().to_string()),
-                  name: Some(assistant["name"].as_str().unwrap().to_string()),
-                  tools: match Tools::new(Some(tools)).to_tools() {
-                      Ok(tools) => tools,
-                      Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-                  },
-                  model: assistant["model"].as_str().unwrap().to_string(),
-                  metadata: if let Some(object) = assistant["metadata"].as_object() {
-                      // This serves to communicate the inconsistency with the OpenAI API's metadata value length limit
-                      let mut temp_map = HashMap::new();
-                      for (k, v) in object {
-                          match v.as_str() {
-                              Some(str_value) => {
-                                  temp_map.insert(k.clone(), Value::String(str_value.to_string()));
-                              },
-                              None => {
-                                  return Err((
-                                      StatusCode::BAD_REQUEST,
-                                      format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
-                                  ));
-                              },
-                          }
-                      }
-                      Some(temp_map)
-                  } else {
-                      None
-                  },
-                  file_ids: if assistant["file_ids"].is_array() {
-                      assistant["file_ids"]
-                          .as_array()
-                          .unwrap()
-                          .iter()
-                          .map(|file_id| file_id.as_str().unwrap().to_string())
-                          .collect()
-                  } else {
-                      vec![]
-                  },
-                  object: Default::default(),
-                  created_at: Default::default(),
-                  description: Default::default(),
-              },
-              user_id: Uuid::default().to_string(),
-          },
-      )
-      .await;
-      match assistant {
-          Ok(assistant) => Ok(JsonResponse(assistant.inner)),
-          Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
-      }
-  }
-  *)
-  Definition create_assistant_handler
-      (__arg0
-        :
-        axum.extract.state.State.t
-          assistants_api_communication.models.AppState.t)
-      (__arg1 : axum.json.Json.t serde_json.value.Value.t)
-      : M OpaqueDef :=
-    let __arg0 := M.alloc __arg0 in
-    let __arg1 := M.alloc __arg1 in
-    M.pure
-      (fun (α0 : core.future.ResumeTy.t) =>
-        (let α0 := M.alloc α0 in
-        match_operator
-          α0
-          [
-            fun γ =>
-              (let* _task_context := M.copy γ in
-              let* __arg0 :
-                  M.Val
-                    (axum.extract.state.State.t
-                      assistants_api_communication.models.AppState.t) :=
+Definition foo1 :=  
+  fun γ =>
+    (let* _task_context := M.copy γ in
+     let* __arg0 :
+       M.Val
+         (axum.extract.state.State.t
+            assistants_api_communication.models.AppState.t) :=
                 M.copy __arg0 in
               let* α0 :
                   M.Val
@@ -1381,7 +1303,85 @@ Module assistants.
                   (axum.json.Json.t
                     async_openai.types.assistant.AssistantObject.t)
                   (http.status.StatusCode.t * alloc.string.String.t))
-          ]) :
+          
+Module assistants.
+  (*
+  pub async fn create_assistant_handler(
+      State(app_state): State<AppState>,
+      Json(assistant): Json<Value>, // TODO https://github.com/64bit/async-openai/issues/166
+  ) -> Result<JsonResponse<AssistantObject>, (StatusCode, String)> {
+      let tools = assistant["tools"].as_array().unwrap_or(&vec![]).to_vec();
+      let assistant = create_assistant(
+          &app_state.pool,
+          &Assistant {
+              inner: AssistantObject {
+                  id: Default::default(),
+                  instructions: Some(assistant["instructions"].as_str().unwrap().to_string()),
+                  name: Some(assistant["name"].as_str().unwrap().to_string()),
+                  tools: match Tools::new(Some(tools)).to_tools() {
+                      Ok(tools) => tools,
+                      Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+                  },
+                  model: assistant["model"].as_str().unwrap().to_string(),
+                  metadata: if let Some(object) = assistant["metadata"].as_object() {
+                      // This serves to communicate the inconsistency with the OpenAI API's metadata value length limit
+                      let mut temp_map = HashMap::new();
+                      for (k, v) in object {
+                          match v.as_str() {
+                              Some(str_value) => {
+                                  temp_map.insert(k.clone(), Value::String(str_value.to_string()));
+                              },
+                              None => {
+                                  return Err((
+                                      StatusCode::BAD_REQUEST,
+                                      format!("Metadata value for key '{}' is not a string. All metadata values must be strings.", k)
+                                  ));
+                              },
+                          }
+                      }
+                      Some(temp_map)
+                  } else {
+                      None
+                  },
+                  file_ids: if assistant["file_ids"].is_array() {
+                      assistant["file_ids"]
+                          .as_array()
+                          .unwrap()
+                          .iter()
+                          .map(|file_id| file_id.as_str().unwrap().to_string())
+                          .collect()
+                  } else {
+                      vec![]
+                  },
+                  object: Default::default(),
+                  created_at: Default::default(),
+                  description: Default::default(),
+              },
+              user_id: Uuid::default().to_string(),
+          },
+      )
+      .await;
+      match assistant {
+          Ok(assistant) => Ok(JsonResponse(assistant.inner)),
+          Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+      }
+  }
+  *)
+  Definition create_assistant_handler
+      (__arg0
+        :
+        axum.extract.state.State.t
+          assistants_api_communication.models.AppState.t)
+      (__arg1 : axum.json.Json.t serde_json.value.Value.t)
+      : M OpaqueDef :=
+    let __arg0 := M.alloc __arg0 in
+    let __arg1 := M.alloc __arg1 in
+    M.pure
+      (fun (α0 : core.future.ResumeTy.t) =>
+        (let α0 := M.alloc α0 in
+        match_operator
+          α0
+          foo1) :
         M
           (core.result.Result.t
             (axum.json.Json.t async_openai.types.assistant.AssistantObject.t)
