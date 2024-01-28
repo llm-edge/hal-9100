@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/coq_of_assistants/META"
-  "_build/install/default/lib/coq_of_assistants/dune-package"
-  "_build/install/default/lib/coq_of_assistants/opam"
-]
-bin: [
-  "_build/install/default/bin/coq_of_assistants"
-]

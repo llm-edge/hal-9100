@@ -1,4 +1,0 @@
-(lang dune 3.7)
-(name coq_of_assistants)
-(sections (lib .) (bin ../../bin))
-(files (lib (META dune-package opam)) (bin (coq_of_assistants)))
