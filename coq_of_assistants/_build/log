@@ -1,0 +1,144 @@
+# dune build
+# OCAMLPARAM: unset
+# Shared cache: disabled
+# Workspace root: /mnt/data1/2024/01/27/assistants/coq_of_assistants
+# Auto-detected concurrency: 24
+$ /home/mdupont/.opam/4.12.1/bin/ocamlc.opt -config > /tmp/dune_d5b29e_output
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dev
+#  ; merlin = true
+#  ; for_host = None
+#  ; fdo_target_exe = None
+#  ; build_dir = In_build_dir "default"
+#  ; toplevel_path = Some External "/home/mdupont/.opam/4.12.1/lib/toplevel"
+#  ; ocaml_bin = External "/home/mdupont/.opam/4.12.1/bin"
+#  ; ocaml = Ok External "/home/mdupont/.opam/4.12.1/bin/ocaml"
+#  ; ocamlc = External "/home/mdupont/.opam/4.12.1/bin/ocamlc.opt"
+#  ; ocamlopt = Ok External "/home/mdupont/.opam/4.12.1/bin/ocamlopt.opt"
+#  ; ocamldep = Ok External "/home/mdupont/.opam/4.12.1/bin/ocamldep.opt"
+#  ; ocamlmklib = Ok External "/home/mdupont/.opam/4.12.1/bin/ocamlmklib.opt"
+#  ; env =
+#      map
+#        { "DUNE_OCAML_HARDCODED" : "/home/mdupont/.opam/4.12.1/lib"
+#        ; "DUNE_OCAML_STDLIB" : "/home/mdupont/.opam/4.12.1/lib/ocaml"
+#        ; "DUNE_SOURCEROOT" :
+#            "/mnt/data1/2024/01/27/assistants/coq_of_assistants"
+#        ; "INSIDE_DUNE" :
+#            "/mnt/data1/2024/01/27/assistants/coq_of_assistants/_build/default"
+#        ; "OCAMLFIND_IGNORE_DUPS_IN" :
+#            "/mnt/data1/2024/01/27/assistants/coq_of_assistants/_build/install/default/lib"
+#        ; "OCAMLPATH" :
+#            "/mnt/data1/2024/01/27/assistants/coq_of_assistants/_build/install/default/lib"
+#        ; "OCAMLTOP_INCLUDE_PATH" :
+#            "/mnt/data1/2024/01/27/assistants/coq_of_assistants/_build/install/default/lib/toplevel"
+#        }
+#  ; findlib_paths = [ External "/home/mdupont/.opam/4.12.1/lib" ]
+#  ; arch_sixtyfour = true
+#  ; natdynlink_supported = true
+#  ; supports_shared_libraries = true
+#  ; ocaml_config =
+#      { version = "4.12.1"
+#      ; standard_library_default = "/home/mdupont/.opam/4.12.1/lib/ocaml"
+#      ; standard_library = "/home/mdupont/.opam/4.12.1/lib/ocaml"
+#      ; standard_runtime = "the_standard_runtime_variable_was_deleted"
+#      ; ccomp_type = "cc"
+#      ; c_compiler = "gcc"
+#      ; ocamlc_cflags = [ "-O2"; "-fno-strict-aliasing"; "-fwrapv"; "-fPIC" ]
+#      ; ocamlc_cppflags = [ "-D_FILE_OFFSET_BITS=64"; "-D_REENTRANT" ]
+#      ; ocamlopt_cflags =
+#          [ "-O2"; "-fno-strict-aliasing"; "-fwrapv"; "-fPIC" ]
+#      ; ocamlopt_cppflags = [ "-D_FILE_OFFSET_BITS=64"; "-D_REENTRANT" ]
+#      ; bytecomp_c_compiler =
+#          [ "gcc"
+#          ; "-O2"
+#          ; "-fno-strict-aliasing"
+#          ; "-fwrapv"
+#          ; "-fPIC"
+#          ; "-D_FILE_OFFSET_BITS=64"
+#          ; "-D_REENTRANT"
+#          ]
+#      ; bytecomp_c_libraries = [ "-lm"; "-lpthread" ]
+#      ; native_c_compiler =
+#          [ "gcc"
+#          ; "-O2"
+#          ; "-fno-strict-aliasing"
+#          ; "-fwrapv"
+#          ; "-fPIC"
+#          ; "-D_FILE_OFFSET_BITS=64"
+#          ; "-D_REENTRANT"
+#          ]
+#      ; native_c_libraries = [ "-lm" ]
+#      ; native_pack_linker = [ "ld"; "-r"; "-o" ]
+#      ; cc_profile = []
+#      ; architecture = "amd64"
+#      ; model = "default"
+#      ; int_size = 63
+#      ; word_size = 64
+#      ; system = "linux"
+#      ; asm = [ "as" ]
+#      ; asm_cfi_supported = true
+#      ; with_frame_pointers = false
+#      ; ext_exe = ""
+#      ; ext_obj = ".o"
+#      ; ext_asm = ".s"
+#      ; ext_lib = ".a"
+#      ; ext_dll = ".so"
+#      ; os_type = "Unix"
+#      ; default_executable_name = "a.out"
+#      ; systhread_supported = true
+#      ; host = "x86_64-pc-linux-gnu"
+#      ; target = "x86_64-pc-linux-gnu"
+#      ; profiling = false
+#      ; flambda = false
+#      ; spacetime = false
+#      ; safe_string = true
+#      ; exec_magic_number = "Caml1999X029"
+#      ; cmi_magic_number = "Caml1999I029"
+#      ; cmo_magic_number = "Caml1999O029"
+#      ; cma_magic_number = "Caml1999A029"
+#      ; cmx_magic_number = "Caml1999Y029"
+#      ; cmxa_magic_number = "Caml1999Z029"
+#      ; ast_impl_magic_number = "Caml1999M029"
+#      ; ast_intf_magic_number = "Caml1999N029"
+#      ; cmxs_magic_number = "Caml1999D029"
+#      ; cmt_magic_number = "Caml1999T029"
+#      ; natdynlink_supported = true
+#      ; supports_shared_libraries = true
+#      ; windows_unicode = false
+#      }
+#  }
+$ /home/mdupont/.opam/4.12.1/bin/coqc --config > /tmp/dune_44ae81_output
+$ /home/mdupont/.opam/4.12.1/bin/coqc --print-version > /tmp/dune_1c4d35_output
+$ (cd _build/default/lib && /home/mdupont/.opam/4.12.1/bin/coqdep -R . coq_of_assistants -dyndep opt run_consumer.v assistants_extra.v assistants_core.v assistants_benches.v assistants_api_communication.v) > _build/default/lib/coq_of_assistants.theory.d
+$ (cd _build/default && /home/mdupont/.opam/4.12.1/bin/coqc -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -R lib coq_of_assistants lib/run_consumer.v)
+> File "./lib/run_consumer.v", line 64, characters 12-31:
+> Error: Syntax error: ',' or ')' expected after [term level 200] (in [term]).
+>
+[1]
+$ (cd _build/default && /home/mdupont/.opam/4.12.1/bin/coqc -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -R lib coq_of_assistants lib/assistants_benches.v)
+> File "./lib/assistants_benches.v", line 11, characters 12-19:
+> Error: Illegal application (Non-functional construction): 
+> The expression "nat" of type "Set"
+> cannot be applied to the term
+>  "nat" : "Set"
+>
+[1]
+$ (cd _build/default && /home/mdupont/.opam/4.12.1/bin/coqc -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -R lib coq_of_assistants lib/assistants_extra.v)
+> File "./lib/assistants_extra.v", line 29, characters 9-10:
+> Error:
+> Syntax error: 'fix' or 'cofix' or ''' or [name] or '(' or '()' expected after 'let' (in [binder_constr]).
+>
+[1]
+$ (cd _build/default && /home/mdupont/.opam/4.12.1/bin/coqc -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -R lib coq_of_assistants lib/assistants_api_communication.v)
+> File "./lib/assistants_api_communication.v", line 83, characters 10-27:
+> Error: Syntax error: ',' or ')' expected after [term level 200] (in [term]).
+>
+[1]
+$ (cd _build/default && /home/mdupont/.opam/4.12.1/bin/coqc -q -w -deprecated-native-compiler-option -w -native-compiler-disabled -native-compiler ondemand -R lib coq_of_assistants lib/assistants_core.v)
+> File "./lib/assistants_core.v", line 11, characters 8-28:
+> Error: The reference core.option.Option.t was not found in the current
+> environment.
+>
+[1]

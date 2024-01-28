@@ -1,0 +1,2 @@
+(library
+ (name coq_of_assistants))

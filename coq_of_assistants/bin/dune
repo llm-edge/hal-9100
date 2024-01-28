@@ -1,0 +1,4 @@
+(executable
+ (public_name coq_of_assistants)
+ (name main)
+ (libraries coq_of_assistants))
