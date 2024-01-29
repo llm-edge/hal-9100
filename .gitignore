@@ -29,3 +29,4 @@ package.json
 
 .DS_Store
 .venv
+/coq_of_assistants/_build/
