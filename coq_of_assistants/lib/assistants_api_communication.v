@@ -2,1308 +2,13646 @@
 Require Import CoqOfRust.CoqOfRust.
  *)
 
-Definition foo1 :=  
-  fun γ =>
-    (let* _task_context := M.copy γ in
-     let* __arg0 :
-       M.Val
-         (axum.extract.state.State.t
-            assistants_api_communication.models.AppState.t) :=
-                M.copy __arg0 in
-              let* α0 :
-                  M.Val
-                    (core.result.Result.t
-                      (axum.json.Json.t
-                        async_openai.types.assistant.AssistantObject.t)
-                      (http.status.StatusCode.t * alloc.string.String.t)) :=
-                match_operator
-                  __arg0
-                  [
-                    fun γ =>
-                      (let* α0 := M.read γ in
-                      match α0 with
-                      | axum.extract.state.State.Build_t _ =>
-                        let γ0_0 := axum.extract.state.State.Get_0 γ in
-                        let* app_state := M.copy γ0_0 in
-                        let* __arg1 :
-                            M.Val (axum.json.Json.t serde_json.value.Value.t) :=
-                          M.copy __arg1 in
-                        match_operator
-                          __arg1
-                          [
-                            fun γ =>
-                              (let* α0 := M.read γ in
-                              match α0 with
-                              | axum.json.Json.Build_t _ =>
-                                let γ0_0 := axum.json.Json.Get_0 γ in
-                                let* assistant := M.copy γ0_0 in
-                                let* tools :
-                                    M.Val
-                                      (alloc.vec.Vec.t
-                                        serde_json.value.Value.t
-                                        alloc.alloc.Global.t) :=
-                                  let* α0 :
-                                      (ref
-                                          (alloc.vec.Vec.t
-                                            serde_json.value.Value.t
-                                            alloc.alloc.Global.t))
-                                        ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.deref.Deref.deref
-                                        (Self :=
-                                          alloc.vec.Vec.t
-                                            serde_json.value.Value.t
-                                            alloc.alloc.Global.t)
-                                        (Trait := ℐ))) in
-                                  let* α1 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α2 : ref str.t :=
-                                    M.read (mk_str "tools") in
-                                  let* α3 : ref serde_json.value.Value.t :=
-                                    M.call (α1 (borrow assistant) α2) in
-                                  let* α4 :
-                                      core.option.Option.t
-                                        (ref
-                                          (alloc.vec.Vec.t
-                                            serde_json.value.Value.t
-                                            alloc.alloc.Global.t)) :=
-                                    M.call
-                                      (serde_json.value.Value.t::["as_array"]
-                                        α3) in
-                                  let* α5 :
-                                      alloc.vec.Vec.t
-                                        serde_json.value.Value.t
-                                        alloc.alloc.Global.t :=
-                                    M.call
-                                      (alloc.vec.Vec.t
-                                          serde_json.value.Value.t
-                                          alloc.alloc.Global.t)::["new"] in
-                                  let* α6 :
-                                      M.Val
-                                        (alloc.vec.Vec.t
-                                          serde_json.value.Value.t
-                                          alloc.alloc.Global.t) :=
-                                    M.alloc α5 in
-                                  let* α7 :
-                                      ref
-                                        (alloc.vec.Vec.t
-                                          serde_json.value.Value.t
-                                          alloc.alloc.Global.t) :=
-                                    M.call
-                                      ((core.option.Option.t
-                                            (ref
-                                              (alloc.vec.Vec.t
-                                                serde_json.value.Value.t
-                                                alloc.alloc.Global.t)))::["unwrap_or"]
-                                        α4
-                                        (borrow α6)) in
-                                  let* α8 :
-                                      ref (slice serde_json.value.Value.t) :=
-                                    M.call (α0 α7) in
-                                  let* α9 :
-                                      alloc.vec.Vec.t
-                                        serde_json.value.Value.t
-                                        alloc.alloc.Global.t :=
-                                    M.call
-                                      ((slice
-                                            serde_json.value.Value.t)::["to_vec"]
-                                        α8) in
-                                  M.alloc α9 in
-                                let* assistant :
-                                    M.Val
-                                      (core.result.Result.t
-                                        assistants_core.models.Assistant.t
-                                        assistants_core.assistants.AssistantError.t) :=
-                                  let* α0 : _ -> M _ :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.future.into_future.IntoFuture.into_future
-                                        (Self := _)
-                                        (Trait := ℐ))) in
-                                  let* α1 :
-                                      (ref
-                                          (alloc.sync.Arc.t
-                                            (sqlx_core.pool.Pool.t
-                                              sqlx_postgres.database.Postgres.t)
-                                            alloc.alloc.Global.t))
-                                        ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.deref.Deref.deref
-                                        (Self :=
-                                          alloc.sync.Arc.t
-                                            (sqlx_core.pool.Pool.t
-                                              sqlx_postgres.database.Postgres.t)
-                                            alloc.alloc.Global.t)
-                                        (Trait := ℐ))) in
-                                  let* α2 :
-                                      ref
-                                        (sqlx_core.pool.Pool.t
-                                          sqlx_postgres.database.Postgres.t) :=
-                                    M.call
-                                      (α1
-                                        (borrow
-                                          (assistants_api_communication.models.AppState.Get_pool
-                                            app_state))) in
-                                  let* α3 : M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.default.Default.default
-                                        (Self := alloc.string.String.t)
-                                        (Trait := ℐ))) in
-                                  let* α4 : alloc.string.String.t :=
-                                    M.call α3 in
-                                  let* α5 :
-                                      (ref str.t) -> M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      alloc.string.ToString.to_string
-                                        (Self := str.t)
-                                        (Trait := ℐ))) in
-                                  let* α6 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α7 : ref str.t :=
-                                    M.read (mk_str "instructions") in
-                                  let* α8 : ref serde_json.value.Value.t :=
-                                    M.call (α6 (borrow assistant) α7) in
-                                  let* α9 : core.option.Option.t (ref str.t) :=
-                                    M.call
-                                      (serde_json.value.Value.t::["as_str"]
-                                        α8) in
-                                  let* α10 : ref str.t :=
-                                    M.call
-                                      ((core.option.Option.t
-                                            (ref str.t))::["unwrap"]
-                                        α9) in
-                                  let* α11 : alloc.string.String.t :=
-                                    M.call (α5 α10) in
-                                  let* α12 :
-                                      (ref str.t) -> M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      alloc.string.ToString.to_string
-                                        (Self := str.t)
-                                        (Trait := ℐ))) in
-                                  let* α13 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α14 : ref str.t :=
-                                    M.read (mk_str "name") in
-                                  let* α15 : ref serde_json.value.Value.t :=
-                                    M.call (α13 (borrow assistant) α14) in
-                                  let* α16 : core.option.Option.t (ref str.t) :=
-                                    M.call
-                                      (serde_json.value.Value.t::["as_str"]
-                                        α15) in
-                                  let* α17 : ref str.t :=
-                                    M.call
-                                      ((core.option.Option.t
-                                            (ref str.t))::["unwrap"]
-                                        α16) in
-                                  let* α18 : alloc.string.String.t :=
-                                    M.call (α12 α17) in
-                                  let* α19 :
-                                      alloc.vec.Vec.t
-                                        serde_json.value.Value.t
-                                        alloc.alloc.Global.t :=
-                                    M.read tools in
-                                  let* α20 :
-                                      assistants_core.assistants.Tools.t :=
-                                    M.call
-                                      (assistants_core.assistants.Tools.t::["new"]
-                                        (core.option.Option.Some α19)) in
-                                  let* α21 :
-                                      M.Val
-                                        assistants_core.assistants.Tools.t :=
-                                    M.alloc α20 in
-                                  let* α22 :
-                                      core.result.Result.t
-                                        (alloc.vec.Vec.t
-                                          async_openai.types.assistant.AssistantTools.t
-                                          alloc.alloc.Global.t)
-                                        (alloc.boxed.Box.t
-                                          serde_json.error.Error.t
-                                          alloc.alloc.Global.t) :=
-                                    M.call
-                                      (assistants_core.assistants.Tools.t::["to_tools"]
-                                        (borrow α21)) in
-                                  let* α23 :
-                                      M.Val
-                                        (core.result.Result.t
-                                          (alloc.vec.Vec.t
-                                            async_openai.types.assistant.AssistantTools.t
-                                            alloc.alloc.Global.t)
-                                          (alloc.boxed.Box.t
-                                            serde_json.error.Error.t
-                                            alloc.alloc.Global.t)) :=
-                                    M.alloc α22 in
-                                  let* α24 :
-                                      M.Val
-                                        (alloc.vec.Vec.t
-                                          async_openai.types.assistant.AssistantTools.t
-                                          alloc.alloc.Global.t) :=
-                                    match_operator
-                                      α23
-                                      [
-                                        fun γ =>
-                                          (let* α0 := M.read γ in
-                                          match α0 with
-                                          | core.result.Result.Ok _ =>
-                                            let γ0_0 :=
-                                              core.result.Result.Get_Ok_0 γ in
-                                            let* tools := M.copy γ0_0 in
-                                            M.pure tools
-                                          | _ => M.break_match
-                                          end) :
-                                          M
-                                            (M.Val
-                                              (alloc.vec.Vec.t
-                                                async_openai.types.assistant.AssistantTools.t
-                                                alloc.alloc.Global.t));
-                                        fun γ =>
-                                          (let* α0 := M.read γ in
-                                          match α0 with
-                                          | core.result.Result.Err _ =>
-                                            let γ0_0 :=
-                                              core.result.Result.Get_Err_0 γ in
-                                            let* e := M.copy γ0_0 in
-                                            let* α0 :
-                                                http.status.StatusCode.t :=
-                                              M.read
-                                                http.status.INTERNAL_SERVER_ERROR in
-                                            let* α1 :
-                                                (ref
-                                                    (alloc.boxed.Box.t
-                                                      serde_json.error.Error.t
-                                                      alloc.alloc.Global.t))
-                                                  ->
-                                                  M alloc.string.String.t :=
-                                              ltac:(M.get_method (fun ℐ =>
-                                                alloc.string.ToString.to_string
-                                                  (Self :=
-                                                    alloc.boxed.Box.t
-                                                      serde_json.error.Error.t
-                                                      alloc.alloc.Global.t)
-                                                  (Trait := ℐ))) in
-                                            let* α2 : alloc.string.String.t :=
-                                              M.call (α1 (borrow e)) in
-                                            let* α3 : M.Val never.t :=
-                                              return_
-                                                (core.result.Result.Err
-                                                  (α0, α2)) in
-                                            let* α4 := M.read α3 in
-                                            let* α5 :
-                                                alloc.vec.Vec.t
-                                                  async_openai.types.assistant.AssistantTools.t
-                                                  alloc.alloc.Global.t :=
-                                              never_to_any α4 in
-                                            M.alloc α5
-                                          | _ => M.break_match
-                                          end) :
-                                          M
-                                            (M.Val
-                                              (alloc.vec.Vec.t
-                                                async_openai.types.assistant.AssistantTools.t
-                                                alloc.alloc.Global.t))
-                                      ] in
-                                  let* α25 :
-                                      alloc.vec.Vec.t
-                                        async_openai.types.assistant.AssistantTools.t
-                                        alloc.alloc.Global.t :=
-                                    M.read α24 in
-                                  let* α26 :
-                                      (ref str.t) -> M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      alloc.string.ToString.to_string
-                                        (Self := str.t)
-                                        (Trait := ℐ))) in
-                                  let* α27 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α28 : ref str.t :=
-                                    M.read (mk_str "model") in
-                                  let* α29 : ref serde_json.value.Value.t :=
-                                    M.call (α27 (borrow assistant) α28) in
-                                  let* α30 : core.option.Option.t (ref str.t) :=
-                                    M.call
-                                      (serde_json.value.Value.t::["as_str"]
-                                        α29) in
-                                  let* α31 : ref str.t :=
-                                    M.call
-                                      ((core.option.Option.t
-                                            (ref str.t))::["unwrap"]
-                                        α30) in
-                                  let* α32 : alloc.string.String.t :=
-                                    M.call (α26 α31) in
-                                  let* α33 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α34 : ref str.t :=
-                                    M.read (mk_str "metadata") in
-                                  let* α35 : ref serde_json.value.Value.t :=
-                                    M.call (α33 (borrow assistant) α34) in
-                                  let* α36 :
-                                      core.option.Option.t
-                                        (ref
-                                          (serde_json.map.Map.t
-                                            alloc.string.String.t
-                                            serde_json.value.Value.t)) :=
-                                    M.call
-                                      (serde_json.value.Value.t::["as_object"]
-                                        α35) in
-                                  let* α37 :
-                                      M.Val
-                                        (core.option.Option.t
-                                          (ref
-                                            (serde_json.map.Map.t
-                                              alloc.string.String.t
-                                              serde_json.value.Value.t))) :=
-                                    M.alloc α36 in
-                                  let* α38 :
-                                      M.Val
-                                        (core.option.Option.t
-                                          (std.collections.hash.map.HashMap.t
-                                            alloc.string.String.t
-                                            serde_json.value.Value.t
-                                            std.hash.random.RandomState.t)) :=
-                                    match_operator
-                                      α37
-                                      [
-                                        fun γ =>
-                                          (let* α0 := M.read γ in
-                                          match α0 with
-                                          | core.option.Option.Some _ =>
-                                            let γ0_0 :=
-                                              core.option.Option.Get_Some_0 γ in
-                                            let* object := M.copy γ0_0 in
-                                            let* temp_map :
-                                                M.Val
-                                                  (std.collections.hash.map.HashMap.t
-                                                    alloc.string.String.t
-                                                    serde_json.value.Value.t
-                                                    std.hash.random.RandomState.t) :=
-                                              let* α0 :
-                                                  std.collections.hash.map.HashMap.t
-                                                    alloc.string.String.t
-                                                    serde_json.value.Value.t
-                                                    std.hash.random.RandomState.t :=
-                                                M.call
-                                                  (std.collections.hash.map.HashMap.t
-                                                      alloc.string.String.t
-                                                      serde_json.value.Value.t
-                                                      std.hash.random.RandomState.t)::["new"] in
-                                              M.alloc α0 in
-                                            let* _ : M.Val unit :=
-                                              let* α0 :
-                                                  (ref
-                                                      (serde_json.map.Map.t
-                                                        alloc.string.String.t
-                                                        serde_json.value.Value.t))
-                                                    ->
-                                                    M _ :=
-                                                ltac:(M.get_method (fun ℐ =>
-                                                  core.iter.traits.collect.IntoIterator.into_iter
-                                                    (Self :=
-                                                      ref
-                                                        (serde_json.map.Map.t
-                                                          alloc.string.String.t
-                                                          serde_json.value.Value.t))
-                                                    (Trait := ℐ))) in
-                                              let* α1 :
-                                                  ref
-                                                    (serde_json.map.Map.t
-                                                      alloc.string.String.t
-                                                      serde_json.value.Value.t) :=
-                                                M.read object in
-                                              let* α2 : serde_json.map.Iter.t :=
-                                                M.call (α0 α1) in
-                                              let* α3 :
-                                                  M.Val serde_json.map.Iter.t :=
-                                                M.alloc α2 in
-                                              let* α4 : M.Val unit :=
-                                                match_operator
-                                                  α3
-                                                  [
-                                                    fun γ =>
-                                                      (let* iter := M.copy γ in
-                                                      M.loop
-                                                        (let* _ : M.Val unit :=
-                                                          let* α0 :
-                                                              (mut_ref
-                                                                  serde_json.map.Iter.t)
-                                                                ->
-                                                                M
-                                                                  (core.option.Option.t
-                                                                    _) :=
-                                                            ltac:(M.get_method (fun ℐ =>
-                                                              core.iter.traits.iterator.Iterator.next
-                                                                (Self :=
-                                                                  serde_json.map.Iter.t)
-                                                                (Trait := ℐ))) in
-                                                          let* α1 :
-                                                              core.option.Option.t
-                                                                ((ref
-                                                                  alloc.string.String.t)
-                                                                *
-                                                                (ref
-                                                                  serde_json.value.Value.t)) :=
-                                                            M.call
-                                                              (α0
-                                                                (borrow_mut
-                                                                  iter)) in
-                                                          let* α2 :
-                                                              M.Val
-                                                                (core.option.Option.t
-                                                                  ((ref
-                                                                    alloc.string.String.t)
-                                                                  *
-                                                                  (ref
-                                                                    serde_json.value.Value.t))) :=
-                                                            M.alloc α1 in
-                                                          match_operator
-                                                            α2
-                                                            [
-                                                              fun γ =>
-                                                                (let* α0 :=
-                                                                  M.read γ in
-                                                                match α0 with
-                                                                |
-                                                                    core.option.Option.None
-                                                                    =>
-                                                                  let* α0 :
-                                                                      M.Val
-                                                                        never.t :=
-                                                                    M.break in
-                                                                  let* α1 :=
-                                                                    M.read α0 in
-                                                                  let* α2 :
-                                                                      unit :=
-                                                                    never_to_any
-                                                                      α1 in
-                                                                  M.alloc α2
-                                                                | _ =>
-                                                                  M.break_match
-                                                                end) :
-                                                                M (M.Val unit);
-                                                              fun γ =>
-                                                                (let* α0 :=
-                                                                  M.read γ in
-                                                                match α0 with
-                                                                |
-                                                                    core.option.Option.Some
-                                                                      _
-                                                                    =>
-                                                                  let γ0_0 :=
-                                                                    core.option.Option.Get_Some_0
-                                                                      γ in
-                                                                  let* α0 :=
-                                                                    M.read
-                                                                      γ0_0 in
-                                                                  match α0 with
-                                                                  | (_, _) =>
-                                                                    let γ1_0 :=
-                                                                      Tuple.Access.left
-                                                                        γ0_0 in
-                                                                    let γ1_1 :=
-                                                                      Tuple.Access.right
-                                                                        γ0_0 in
-                                                                    let* k :=
-                                                                      M.copy
-                                                                        γ1_0 in
-                                                                    let* v :=
-                                                                      M.copy
-                                                                        γ1_1 in
-                                                                    let* α0 :
-                                                                        ref
-                                                                          serde_json.value.Value.t :=
-                                                                      M.read
-                                                                        v in
-                                                                    let* α1 :
-                                                                        core.option.Option.t
-                                                                          (ref
-                                                                            str.t) :=
-                                                                      M.call
-                                                                        (serde_json.value.Value.t::["as_str"]
-                                                                          α0) in
-                                                                    let* α2 :
-                                                                        M.Val
-                                                                          (core.option.Option.t
-                                                                            (ref
-                                                                              str.t)) :=
-                                                                      M.alloc
-                                                                        α1 in
-                                                                    match_operator
-                                                                      α2
-                                                                      [
-                                                                        fun γ =>
-                                                                          (let*
-                                                                                α0 :=
-                                                                            M.read
-                                                                              γ in
-                                                                          match
-                                                                            α0
-                                                                          with
-                                                                          |
-                                                                              core.option.Option.Some
-                                                                                _
-                                                                              =>
-                                                                            let
-                                                                                  γ0_0 :=
-                                                                              core.option.Option.Get_Some_0
-                                                                                γ in
-                                                                            let*
-                                                                                  str_value :=
-                                                                              M.copy
-                                                                                γ0_0 in
-                                                                            let*
-                                                                                  _ :
-                                                                                M.Val
-                                                                                  (core.option.Option.t
-                                                                                    serde_json.value.Value.t) :=
-                                                                              let*
-                                                                                    α0 :
-                                                                                  (ref
-                                                                                      alloc.string.String.t)
-                                                                                    ->
-                                                                                    M
-                                                                                      alloc.string.String.t :=
-                                                                                ltac:(M.get_method (fun ℐ =>
-                                                                                  core.clone.Clone.clone
-                                                                                    (Self :=
-                                                                                      alloc.string.String.t)
-                                                                                    (Trait := ℐ))) in
-                                                                              let*
-                                                                                    α1 :
-                                                                                  ref
-                                                                                    alloc.string.String.t :=
-                                                                                M.read
-                                                                                  k in
-                                                                              let*
-                                                                                    α2 :
-                                                                                  alloc.string.String.t :=
-                                                                                M.call
-                                                                                  (α0
-                                                                                    α1) in
-                                                                              let*
-                                                                                    α3 :
-                                                                                  (ref
-                                                                                      str.t)
-                                                                                    ->
-                                                                                    M
-                                                                                      alloc.string.String.t :=
-                                                                                ltac:(M.get_method (fun ℐ =>
-                                                                                  alloc.string.ToString.to_string
-                                                                                    (Self :=
-                                                                                      str.t)
-                                                                                    (Trait := ℐ))) in
-                                                                              let*
-                                                                                    α4 :
-                                                                                  ref
-                                                                                    str.t :=
-                                                                                M.read
-                                                                                  str_value in
-                                                                              let*
-                                                                                    α5 :
-                                                                                  alloc.string.String.t :=
-                                                                                M.call
-                                                                                  (α3
-                                                                                    α4) in
-                                                                              let*
-                                                                                    α6 :
-                                                                                  core.option.Option.t
-                                                                                    serde_json.value.Value.t :=
-                                                                                M.call
-                                                                                  ((std.collections.hash.map.HashMap.t
-                                                                                        alloc.string.String.t
-                                                                                        serde_json.value.Value.t
-                                                                                        std.hash.random.RandomState.t)::["insert"]
-                                                                                    (borrow_mut
-                                                                                      temp_map)
-                                                                                    α2
-                                                                                    (serde_json.value.Value.String
-                                                                                      α5)) in
-                                                                              M.alloc
-                                                                                α6 in
-                                                                            M.alloc
-                                                                              tt
-                                                                          | _ =>
-                                                                            M.break_match
-                                                                          end) :
-                                                                          M
-                                                                            (M.Val
-                                                                              unit);
-                                                                        fun γ =>
-                                                                          (let*
-                                                                                α0 :=
-                                                                            M.read
-                                                                              γ in
-                                                                          match
-                                                                            α0
-                                                                          with
-                                                                          |
-                                                                              core.option.Option.None
-                                                                              =>
-                                                                            let*
-                                                                                  α0 :
-                                                                                http.status.StatusCode.t :=
-                                                                              M.read
-                                                                                http.status.BAD_REQUEST in
-                                                                            let*
-                                                                                  res :
-                                                                                M.Val
-                                                                                  alloc.string.String.t :=
-                                                                              let*
-                                                                                    α0 :
-                                                                                  ref
-                                                                                    str.t :=
-                                                                                M.read
-                                                                                  (mk_str
-                                                                                    "Metadata value for key '") in
-                                                                              let*
-                                                                                    α1 :
-                                                                                  ref
-                                                                                    str.t :=
-                                                                                M.read
-                                                                                  (mk_str
-                                                                                    "' is not a string. All metadata values must be strings.") in
-                                                                              let*
-                                                                                    α2 :
-                                                                                  M.Val
-                                                                                    (array
-                                                                                      (ref
-                                                                                        str.t)) :=
-                                                                                M.alloc
-                                                                                  [
-                                                                                    α0;
-                                                                                    α1
-                                                                                  ] in
-                                                                              let*
-                                                                                    α3 :
-                                                                                  core.fmt.rt.Argument.t :=
-                                                                                M.call
-                                                                                  (core.fmt.rt.Argument.t::["new_display"]
-                                                                                    (borrow
-                                                                                      k)) in
-                                                                              let*
-                                                                                    α4 :
-                                                                                  M.Val
-                                                                                    (array
-                                                                                      core.fmt.rt.Argument.t) :=
-                                                                                M.alloc
-                                                                                  [
-                                                                                    α3
-                                                                                  ] in
-                                                                              let*
-                                                                                    α5 :
-                                                                                  core.fmt.Arguments.t :=
-                                                                                M.call
-                                                                                  (core.fmt.Arguments.t::["new_v1"]
-                                                                                    (pointer_coercion
-                                                                                      "Unsize"
-                                                                                      (borrow
-                                                                                        α2))
-                                                                                    (pointer_coercion
-                                                                                      "Unsize"
-                                                                                      (borrow
-                                                                                        α4))) in
-                                                                              let*
-                                                                                    α6 :
-                                                                                  alloc.string.String.t :=
-                                                                                M.call
-                                                                                  (alloc.fmt.format
-                                                                                    α5) in
-                                                                              M.alloc
-                                                                                α6 in
-                                                                            let*
-                                                                                  α1 :
-                                                                                alloc.string.String.t :=
-                                                                              M.read
-                                                                                res in
-                                                                            let*
-                                                                                  α2 :
-                                                                                M.Val
-                                                                                  never.t :=
-                                                                              return_
-                                                                                (core.result.Result.Err
-                                                                                  (α0,
-                                                                                    α1)) in
-                                                                            let*
-                                                                                  α3 :=
-                                                                              M.read
-                                                                                α2 in
-                                                                            let*
-                                                                                  α4 :
-                                                                                unit :=
-                                                                              never_to_any
-                                                                                α3 in
-                                                                            M.alloc
-                                                                              α4
-                                                                          | _ =>
-                                                                            M.break_match
-                                                                          end) :
-                                                                          M
-                                                                            (M.Val
-                                                                              unit)
-                                                                      ]
-                                                                  end
-                                                                | _ =>
-                                                                  M.break_match
-                                                                end) :
-                                                                M (M.Val unit)
-                                                            ] in
-                                                        M.alloc tt)) :
-                                                      M (M.Val unit)
-                                                  ] in
-                                              M.pure (use α4) in
-                                            let* α0 :
-                                                std.collections.hash.map.HashMap.t
-                                                  alloc.string.String.t
-                                                  serde_json.value.Value.t
-                                                  std.hash.random.RandomState.t :=
-                                              M.read temp_map in
-                                            M.alloc (core.option.Option.Some α0)
-                                          | _ => M.break_match
-                                          end) :
-                                          M
-                                            (M.Val
-                                              (core.option.Option.t
-                                                (std.collections.hash.map.HashMap.t
-                                                  alloc.string.String.t
-                                                  serde_json.value.Value.t
-                                                  std.hash.random.RandomState.t)));
-                                        fun γ =>
-                                          (M.alloc core.option.Option.None) :
-                                          M
-                                            (M.Val
-                                              (core.option.Option.t
-                                                (std.collections.hash.map.HashMap.t
-                                                  alloc.string.String.t
-                                                  serde_json.value.Value.t
-                                                  std.hash.random.RandomState.t)))
-                                      ] in
-                                  let* α39 :
-                                      core.option.Option.t
-                                        (std.collections.hash.map.HashMap.t
-                                          alloc.string.String.t
-                                          serde_json.value.Value.t
-                                          std.hash.random.RandomState.t) :=
-                                    M.read α38 in
-                                  let* α40 :
-                                      (ref serde_json.value.Value.t) ->
-                                        (ref str.t) ->
-                                        M (ref _) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.ops.index.Index.index
-                                        (Self := serde_json.value.Value.t)
-                                        (Idx := ref str.t)
-                                        (Trait := ℐ))) in
-                                  let* α41 : ref str.t :=
-                                    M.read (mk_str "file_ids") in
-                                  let* α42 : ref serde_json.value.Value.t :=
-                                    M.call (α40 (borrow assistant) α41) in
-                                  let* α43 : bool.t :=
-                                    M.call
-                                      (serde_json.value.Value.t::["is_array"]
-                                        α42) in
-                                  let* α44 : M.Val bool.t := M.alloc α43 in
-                                  let* α45 : bool.t := M.read (use α44) in
-                                  let* α46 :
-                                      M.Val
-                                        (alloc.vec.Vec.t
-                                          alloc.string.String.t
-                                          alloc.alloc.Global.t) :=
-                                    if α45 then
-                                      let* α0 :
-                                          (core.iter.adapters.map.Map.t
-                                              (core.slice.iter.Iter.t
-                                                serde_json.value.Value.t)
-                                              ((ref serde_json.value.Value.t) ->
-                                                M alloc.string.String.t))
-                                            ->
-                                            M
-                                              (alloc.vec.Vec.t
-                                                alloc.string.String.t
-                                                alloc.alloc.Global.t) :=
-                                        ltac:(M.get_method (fun ℐ =>
-                                          core.iter.traits.iterator.Iterator.collect
-                                            (Self :=
-                                              core.iter.adapters.map.Map.t
-                                                (core.slice.iter.Iter.t
-                                                  serde_json.value.Value.t)
-                                                ((ref serde_json.value.Value.t)
-                                                  ->
-                                                  M alloc.string.String.t))
-                                            (B :=
-                                              alloc.vec.Vec.t
-                                                alloc.string.String.t
-                                                alloc.alloc.Global.t)
-                                            (Trait := ℐ))) in
-                                      let* α1 :
-                                          (core.slice.iter.Iter.t
-                                              serde_json.value.Value.t)
-                                            ->
-                                            ((ref serde_json.value.Value.t) ->
-                                              M alloc.string.String.t)
-                                            ->
-                                            M
-                                              (core.iter.adapters.map.Map.t
-                                                (core.slice.iter.Iter.t
-                                                  serde_json.value.Value.t)
-                                                ((ref serde_json.value.Value.t)
-                                                  ->
-                                                  M alloc.string.String.t)) :=
-                                        ltac:(M.get_method (fun ℐ =>
-                                          core.iter.traits.iterator.Iterator.map
-                                            (Self :=
-                                              core.slice.iter.Iter.t
-                                                serde_json.value.Value.t)
-                                            (B := alloc.string.String.t)
-                                            (F :=
-                                              (ref serde_json.value.Value.t) ->
-                                                M alloc.string.String.t)
-                                            (Trait := ℐ))) in
-                                      let* α2 :
-                                          (ref
-                                              (alloc.vec.Vec.t
-                                                serde_json.value.Value.t
-                                                alloc.alloc.Global.t))
-                                            ->
-                                            M (ref _) :=
-                                        ltac:(M.get_method (fun ℐ =>
-                                          core.ops.deref.Deref.deref
-                                            (Self :=
-                                              alloc.vec.Vec.t
-                                                serde_json.value.Value.t
-                                                alloc.alloc.Global.t)
-                                            (Trait := ℐ))) in
-                                      let* α3 :
-                                          (ref serde_json.value.Value.t) ->
-                                            (ref str.t) ->
-                                            M (ref _) :=
-                                        ltac:(M.get_method (fun ℐ =>
-                                          core.ops.index.Index.index
-                                            (Self := serde_json.value.Value.t)
-                                            (Idx := ref str.t)
-                                            (Trait := ℐ))) in
-                                      let* α4 : ref str.t :=
-                                        M.read (mk_str "file_ids") in
-                                      let* α5 : ref serde_json.value.Value.t :=
-                                        M.call (α3 (borrow assistant) α4) in
-                                      let* α6 :
-                                          core.option.Option.t
-                                            (ref
-                                              (alloc.vec.Vec.t
-                                                serde_json.value.Value.t
-                                                alloc.alloc.Global.t)) :=
-                                        M.call
-                                          (serde_json.value.Value.t::["as_array"]
-                                            α5) in
-                                      let* α7 :
-                                          ref
-                                            (alloc.vec.Vec.t
-                                              serde_json.value.Value.t
-                                              alloc.alloc.Global.t) :=
-                                        M.call
-                                          ((core.option.Option.t
-                                                (ref
-                                                  (alloc.vec.Vec.t
-                                                    serde_json.value.Value.t
-                                                    alloc.alloc.Global.t)))::["unwrap"]
-                                            α6) in
-                                      let* α8 :
-                                          ref
-                                            (slice serde_json.value.Value.t) :=
-                                        M.call (α2 α7) in
-                                      let* α9 :
-                                          core.slice.iter.Iter.t
-                                            serde_json.value.Value.t :=
-                                        M.call
-                                          ((slice
-                                                serde_json.value.Value.t)::["iter"]
-                                            α8) in
-                                      let* α10 :
-                                          core.iter.adapters.map.Map.t
-                                            (core.slice.iter.Iter.t
-                                              serde_json.value.Value.t)
-                                            ((ref serde_json.value.Value.t) ->
-                                              M alloc.string.String.t) :=
-                                        M.call
-                                          (α1
-                                            α9
-                                            (fun
-                                                (α0 :
-                                                  ref
-                                                    serde_json.value.Value.t) =>
-                                              (let* α0 := M.alloc α0 in
-                                              match_operator
-                                                α0
-                                                [
-                                                  fun γ =>
-                                                    (let* file_id := M.copy γ in
-                                                    let* α0 :
-                                                        (ref str.t) ->
-                                                          M
-                                                            alloc.string.String.t :=
-                                                      ltac:(M.get_method (fun ℐ =>
-                                                        alloc.string.ToString.to_string
-                                                          (Self := str.t)
-                                                          (Trait := ℐ))) in
-                                                    let* α1 :
-                                                        ref
-                                                          serde_json.value.Value.t :=
-                                                      M.read file_id in
-                                                    let* α2 :
-                                                        core.option.Option.t
-                                                          (ref str.t) :=
-                                                      M.call
-                                                        (serde_json.value.Value.t::["as_str"]
-                                                          α1) in
-                                                    let* α3 : ref str.t :=
-                                                      M.call
-                                                        ((core.option.Option.t
-                                                              (ref
-                                                                str.t))::["unwrap"]
-                                                          α2) in
-                                                    M.call (α0 α3)) :
-                                                    M alloc.string.String.t
-                                                ]) :
-                                              M alloc.string.String.t)) in
-                                      let* α11 :
-                                          alloc.vec.Vec.t
-                                            alloc.string.String.t
-                                            alloc.alloc.Global.t :=
-                                        M.call (α0 α10) in
-                                      M.alloc α11
-                                    else
-                                      let* α0 :
-                                          alloc.vec.Vec.t
-                                            alloc.string.String.t
-                                            alloc.alloc.Global.t :=
-                                        M.call
-                                          (alloc.vec.Vec.t
-                                              alloc.string.String.t
-                                              alloc.alloc.Global.t)::["new"] in
-                                      M.alloc α0 in
-                                  let* α47 :
-                                      alloc.vec.Vec.t
-                                        alloc.string.String.t
-                                        alloc.alloc.Global.t :=
-                                    M.read α46 in
-                                  let* α48 : M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.default.Default.default
-                                        (Self := alloc.string.String.t)
-                                        (Trait := ℐ))) in
-                                  let* α49 : alloc.string.String.t :=
-                                    M.call α48 in
-                                  let* α50 : M i32.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.default.Default.default
-                                        (Self := i32.t)
-                                        (Trait := ℐ))) in
-                                  let* α51 : i32.t := M.call α50 in
-                                  let* α52 :
-                                      M
-                                        (core.option.Option.t
-                                          alloc.string.String.t) :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.default.Default.default
-                                        (Self :=
-                                          core.option.Option.t
-                                            alloc.string.String.t)
-                                        (Trait := ℐ))) in
-                                  let* α53 :
-                                      core.option.Option.t
-                                        alloc.string.String.t :=
-                                    M.call α52 in
-                                  let* α54 :
-                                      (ref uuid.Uuid.t) ->
-                                        M alloc.string.String.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      alloc.string.ToString.to_string
-                                        (Self := uuid.Uuid.t)
-                                        (Trait := ℐ))) in
-                                  let* α55 : M uuid.Uuid.t :=
-                                    ltac:(M.get_method (fun ℐ =>
-                                      core.default.Default.default
-                                        (Self := uuid.Uuid.t)
-                                        (Trait := ℐ))) in
-                                  let* α56 : uuid.Uuid.t := M.call α55 in
-                                  let* α57 : M.Val uuid.Uuid.t := M.alloc α56 in
-                                  let* α58 : alloc.string.String.t :=
-                                    M.call (α54 (borrow α57)) in
-                                  let* α59 :
-                                      M.Val
-                                        assistants_core.models.Assistant.t :=
-                                    M.alloc
-                                      {|
-                                        assistants_core.models.Assistant.inner :=
-                                          {|
-                                            async_openai.types.assistant.AssistantObject.id :=
-                                              α4;
-                                            async_openai.types.assistant.AssistantObject.instructions :=
-                                              core.option.Option.Some α11;
-                                            async_openai.types.assistant.AssistantObject.name :=
-                                              core.option.Option.Some α18;
-                                            async_openai.types.assistant.AssistantObject.tools :=
-                                              α25;
-                                            async_openai.types.assistant.AssistantObject.model :=
-                                              α32;
-                                            async_openai.types.assistant.AssistantObject.metadata :=
-                                              α39;
-                                            async_openai.types.assistant.AssistantObject.file_ids :=
-                                              α47;
-                                            async_openai.types.assistant.AssistantObject.object :=
-                                              α49;
-                                            async_openai.types.assistant.AssistantObject.created_at :=
-                                              α51;
-                                            async_openai.types.assistant.AssistantObject.description :=
-                                              α53;
-                                          |};
-                                        assistants_core.models.Assistant.user_id :=
-                                          α58;
-                                      |} in
-                                  let* α60 : _ :=
-                                    M.call
-                                      (assistants_core.assistants.create_assistant
-                                        α2
-                                        (borrow α59)) in
-                                  let* α61 : _ := M.call (α0 α60) in
-                                  let* α62 : M.Val _ := M.alloc α61 in
-                                  let* α63 :
-                                      M.Val
-                                        (core.result.Result.t
-                                          assistants_core.models.Assistant.t
-                                          assistants_core.assistants.AssistantError.t) :=
-                                    match_operator
-                                      α62
-                                      [
-                                        fun γ =>
-                                          (let* __awaitee := M.copy γ in
-                                          M.loop
-                                            (let* _ : M.Val unit :=
-                                              let* α0 :
-                                                  (core.pin.Pin.t (mut_ref _))
-                                                    ->
-                                                    (mut_ref
-                                                      core.task.wake.Context.t)
-                                                    ->
-                                                    M
-                                                      (core.task.poll.Poll.t
-                                                        _) :=
-                                                ltac:(M.get_method (fun ℐ =>
-                                                  core.future.future.Future.poll
-                                                    (Self := _)
-                                                    (Trait := ℐ))) in
-                                              let* α1 :
-                                                  core.pin.Pin.t (mut_ref _) :=
-                                                M.call
-                                                  ((core.pin.Pin.t
-                                                        (mut_ref
-                                                          _))::["new_unchecked"]
-                                                    (borrow_mut __awaitee)) in
-                                              let* α2 :
-                                                  core.future.ResumeTy.t :=
-                                                M.read _task_context in
-                                              let* α3 :
-                                                  mut_ref
-                                                    core.task.wake.Context.t :=
-                                                M.call
-                                                  (core.future.get_context
-                                                    α2) in
-                                              let* α4 :
-                                                  core.task.poll.Poll.t
-                                                    (core.result.Result.t
-                                                      assistants_core.models.Assistant.t
-                                                      assistants_core.assistants.AssistantError.t) :=
-                                                M.call (α0 α1 α3) in
-                                              let* α5 :
-                                                  M.Val
-                                                    (core.task.poll.Poll.t
-                                                      (core.result.Result.t
-                                                        assistants_core.models.Assistant.t
-                                                        assistants_core.assistants.AssistantError.t)) :=
-                                                M.alloc α4 in
-                                              match_operator
-                                                α5
-                                                [
-                                                  fun γ =>
-                                                    (let* α0 := M.read γ in
-                                                    match α0 with
-                                                    |
-                                                        core.task.poll.Poll.Ready
-                                                          _
-                                                        =>
-                                                      let γ0_0 :=
-                                                        core.task.poll.Poll.Get_Ready_0
-                                                          γ in
-                                                      let* result :=
-                                                        M.copy γ0_0 in
-                                                      let* α0 : M.Val never.t :=
-                                                        M.break in
-                                                      let* α1 := M.read α0 in
-                                                      let* α2 : unit :=
-                                                        never_to_any α1 in
-                                                      M.alloc α2
-                                                    | _ => M.break_match
-                                                    end) :
-                                                    M (M.Val unit);
-                                                  fun γ =>
-                                                    (let* α0 := M.read γ in
-                                                    match α0 with
-                                                    |
-                                                        core.task.poll.Poll.Pending
-                                                        =>
-                                                      M.alloc tt
-                                                    | _ => M.break_match
-                                                    end) :
-                                                    M (M.Val unit)
-                                                ] in
-                                            let* _ : M.Val unit :=
-                                              let* α0 : M.Val unit :=
-                                                M.alloc tt in
-                                              let* α1 :
-                                                  M.Val
-                                                    core.future.ResumeTy.t :=
-                                                yield α0 in
-                                              let* α2 :
-                                                  core.future.ResumeTy.t :=
-                                                M.read α1 in
-                                              assign _task_context α2 in
-                                            M.alloc tt)) :
-                                          M
-                                            (M.Val
-                                              (core.result.Result.t
-                                                assistants_core.models.Assistant.t
-                                                assistants_core.assistants.AssistantError.t))
-                                      ] in
-                                  M.copy α63 in
-                                let* α0 :
-                                    M.Val
-                                      (core.result.Result.t
-                                        (axum.json.Json.t
-                                          async_openai.types.assistant.AssistantObject.t)
-                                        (http.status.StatusCode.t
-                                        *
-                                        alloc.string.String.t)) :=
-                                  match_operator
-                                    assistant
-                                    [
-                                      fun γ =>
-                                        (let* α0 := M.read γ in
-                                        match α0 with
-                                        | core.result.Result.Ok _ =>
-                                          let γ0_0 :=
-                                            core.result.Result.Get_Ok_0 γ in
-                                          let* assistant := M.copy γ0_0 in
-                                          let* α0 :
-                                              async_openai.types.assistant.AssistantObject.t :=
-                                            M.read
-                                              (assistants_core.models.Assistant.Get_inner
-                                                assistant) in
-                                          M.alloc
-                                            (core.result.Result.Ok
-                                              (axum.json.Json.Build_t α0))
-                                        | _ => M.break_match
-                                        end) :
-                                        M
-                                          (M.Val
-                                            (core.result.Result.t
-                                              (axum.json.Json.t
-                                                async_openai.types.assistant.AssistantObject.t)
-                                              (http.status.StatusCode.t
-                                              *
-                                              alloc.string.String.t)));
-                                      fun γ =>
-                                        (let* α0 := M.read γ in
-                                        match α0 with
-                                        | core.result.Result.Err _ =>
-                                          let γ0_0 :=
-                                            core.result.Result.Get_Err_0 γ in
-                                          let* e := M.copy γ0_0 in
-                                          let* α0 : http.status.StatusCode.t :=
-                                            M.read
-                                              http.status.INTERNAL_SERVER_ERROR in
-                                          let* α1 :
-                                              (ref
-                                                  assistants_core.assistants.AssistantError.t)
-                                                ->
-                                                M alloc.string.String.t :=
-                                            ltac:(M.get_method (fun ℐ =>
-                                              alloc.string.ToString.to_string
-                                                (Self :=
-                                                  assistants_core.assistants.AssistantError.t)
-                                                (Trait := ℐ))) in
-                                          let* α2 : alloc.string.String.t :=
-                                            M.call (α1 (borrow e)) in
-                                          M.alloc
-                                            (core.result.Result.Err (α0, α2))
-                                        | _ => M.break_match
-                                        end) :
-                                        M
-                                          (M.Val
-                                            (core.result.Result.t
-                                              (axum.json.Json.t
-                                                async_openai.types.assistant.AssistantObject.t)
-                                              (http.status.StatusCode.t
-                                              *
-                                              alloc.string.String.t)))
-                                    ] in
-                                M.pure (use α0)
-                              end) :
-                              M
-                                (M.Val
-                                  (core.result.Result.t
-                                    (axum.json.Json.t
-                                      async_openai.types.assistant.AssistantObject.t)
-                                    (http.status.StatusCode.t
-                                    *
-                                    alloc.string.String.t)))
-                          ]
-                      end) :
-                      M
-                        (M.Val
-                          (core.result.Result.t
-                            (axum.json.Json.t
-                              async_openai.types.assistant.AssistantObject.t)
-                            (http.status.StatusCode.t * alloc.string.String.t)))
-                  ] in
-              M.read α0) :
+(* Definition foo1 :=   *)
+(*   fun γ => *)
+(*     (let* _task_context := M.copy γ in *)
+(*      let* __arg0 : *)
+(*        M.Val *)
+(*          (axum.extract.state.State.t *)
+(*             assistants_api_communication.models.AppState.t) := *)
+(*                 M.copy __arg0 in *)
+(*               let* α0 : *)
+(*                   M.Val *)
+(*                     (core.result.Result.t *)
+(*                       (axum.json.Json.t *)
+(*                         async_openai.types.assistant.AssistantObject.t) *)
+(*                       (http.status.StatusCode.t * alloc.string.String.t)) := *)
+(*                 match_operator *)
+(*                   __arg0 *)
+(*                   [ *)
+(*                     fun γ => *)
+(*                       (let* α0 := M.read γ in *)
+(*                       match α0 with *)
+(*                       | axum.extract.state.State.Build_t _ => *)
+(*                         let γ0_0 := axum.extract.state.State.Get_0 γ in *)
+(*                         let* app_state := M.copy γ0_0 in *)
+(*                         let* __arg1 : *)
+(*                             M.Val (axum.json.Json.t serde_json.value.Value.t) := *)
+(*                           M.copy __arg1 in *)
+(*                         match_operator *)
+(*                           __arg1 *)
+(*                           [ *)
+(*                             fun γ => *)
+(*                               (let* α0 := M.read γ in *)
+(*                               match α0 with *)
+(*                               | axum.json.Json.Build_t _ => *)
+(*                                 let γ0_0 := axum.json.Json.Get_0 γ in *)
+(*                                 let* assistant := M.copy γ0_0 in *)
+(*                                 let* tools : *)
+(*                                     M.Val *)
+(*                                       (alloc.vec.Vec.t *)
+(*                                         serde_json.value.Value.t *)
+(*                                         alloc.alloc.Global.t) := *)
+(*                                   let* α0 : *)
+(*                                       (ref *)
+(*                                           (alloc.vec.Vec.t *)
+(*                                             serde_json.value.Value.t *)
+(*                                             alloc.alloc.Global.t)) *)
+(*                                         -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.deref.Deref.deref *)
+(*                                         (Self := *)
+(*                                           alloc.vec.Vec.t *)
+(*                                             serde_json.value.Value.t *)
+(*                                             alloc.alloc.Global.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α1 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α2 : ref str.t := *)
+(*                                     M.read (mk_str "tools") in *)
+(*                                   let* α3 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α1 (borrow assistant) α2) in *)
+(*                                   let* α4 : *)
+(*                                       core.option.Option.t *)
+(*                                         (ref *)
+(*                                           (alloc.vec.Vec.t *)
+(*                                             serde_json.value.Value.t *)
+(*                                             alloc.alloc.Global.t)) := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["as_array"] *)
+(*                                         α3) in *)
+(*                                   let* α5 : *)
+(*                                       alloc.vec.Vec.t *)
+(*                                         serde_json.value.Value.t *)
+(*                                         alloc.alloc.Global.t := *)
+(*                                     M.call *)
+(*                                       (alloc.vec.Vec.t *)
+(*                                           serde_json.value.Value.t *)
+(*                                           alloc.alloc.Global.t)::["new"] in *)
+(*                                   let* α6 : *)
+(*                                       M.Val *)
+(*                                         (alloc.vec.Vec.t *)
+(*                                           serde_json.value.Value.t *)
+(*                                           alloc.alloc.Global.t) := *)
+(*                                     M.alloc α5 in *)
+(*                                   let* α7 : *)
+(*                                       ref *)
+(*                                         (alloc.vec.Vec.t *)
+(*                                           serde_json.value.Value.t *)
+(*                                           alloc.alloc.Global.t) := *)
+(*                                     M.call *)
+(*                                       ((core.option.Option.t *)
+(*                                             (ref *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 serde_json.value.Value.t *)
+(*                                                 alloc.alloc.Global.t)))::["unwrap_or"] *)
+(*                                         α4 *)
+(*                                         (borrow α6)) in *)
+(*                                   let* α8 : *)
+(*                                       ref (slice serde_json.value.Value.t) := *)
+(*                                     M.call (α0 α7) in *)
+(*                                   let* α9 : *)
+(*                                       alloc.vec.Vec.t *)
+(*                                         serde_json.value.Value.t *)
+(*                                         alloc.alloc.Global.t := *)
+(*                                     M.call *)
+(*                                       ((slice *)
+(*                                             serde_json.value.Value.t)::["to_vec"] *)
+(*                                         α8) in *)
+(*                                   M.alloc α9 in *)
+(*                                 let* assistant : *)
+(*                                     M.Val *)
+(*                                       (core.result.Result.t *)
+(*                                         assistants_core.models.Assistant.t *)
+(*                                         assistants_core.assistants.AssistantError.t) := *)
+(*                                   let* α0 : _ -> M _ := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.future.into_future.IntoFuture.into_future *)
+(*                                         (Self := _) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α1 : *)
+(*                                       (ref *)
+(*                                           (alloc.sync.Arc.t *)
+(*                                             (sqlx_core.pool.Pool.t *)
+(*                                               sqlx_postgres.database.Postgres.t) *)
+(*                                             alloc.alloc.Global.t)) *)
+(*                                         -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.deref.Deref.deref *)
+(*                                         (Self := *)
+(*                                           alloc.sync.Arc.t *)
+(*                                             (sqlx_core.pool.Pool.t *)
+(*                                               sqlx_postgres.database.Postgres.t) *)
+(*                                             alloc.alloc.Global.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α2 : *)
+(*                                       ref *)
+(*                                         (sqlx_core.pool.Pool.t *)
+(*                                           sqlx_postgres.database.Postgres.t) := *)
+(*                                     M.call *)
+(*                                       (α1 *)
+(*                                         (borrow *)
+(*                                           (assistants_api_communication.models.AppState.Get_pool *)
+(*                                             app_state))) in *)
+(*                                   let* α3 : M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.default.Default.default *)
+(*                                         (Self := alloc.string.String.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α4 : alloc.string.String.t := *)
+(*                                     M.call α3 in *)
+(*                                   let* α5 : *)
+(*                                       (ref str.t) -> M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       alloc.string.ToString.to_string *)
+(*                                         (Self := str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α6 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α7 : ref str.t := *)
+(*                                     M.read (mk_str "instructions") in *)
+(*                                   let* α8 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α6 (borrow assistant) α7) in *)
+(*                                   let* α9 : core.option.Option.t (ref str.t) := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["as_str"] *)
+(*                                         α8) in *)
+(*                                   let* α10 : ref str.t := *)
+(*                                     M.call *)
+(*                                       ((core.option.Option.t *)
+(*                                             (ref str.t))::["unwrap"] *)
+(*                                         α9) in *)
+(*                                   let* α11 : alloc.string.String.t := *)
+(*                                     M.call (α5 α10) in *)
+(*                                   let* α12 : *)
+(*                                       (ref str.t) -> M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       alloc.string.ToString.to_string *)
+(*                                         (Self := str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α13 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α14 : ref str.t := *)
+(*                                     M.read (mk_str "name") in *)
+(*                                   let* α15 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α13 (borrow assistant) α14) in *)
+(*                                   let* α16 : core.option.Option.t (ref str.t) := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["as_str"] *)
+(*                                         α15) in *)
+(*                                   let* α17 : ref str.t := *)
+(*                                     M.call *)
+(*                                       ((core.option.Option.t *)
+(*                                             (ref str.t))::["unwrap"] *)
+(*                                         α16) in *)
+(*                                   let* α18 : alloc.string.String.t := *)
+(*                                     M.call (α12 α17) in *)
+(*                                   let* α19 : *)
+(*                                       alloc.vec.Vec.t *)
+(*                                         serde_json.value.Value.t *)
+(*                                         alloc.alloc.Global.t := *)
+(*                                     M.read tools in *)
+(*                                   let* α20 : *)
+(*                                       assistants_core.assistants.Tools.t := *)
+(*                                     M.call *)
+(*                                       (assistants_core.assistants.Tools.t::["new"] *)
+(*                                         (core.option.Option.Some α19)) in *)
+(*                                   let* α21 : *)
+(*                                       M.Val *)
+(*                                         assistants_core.assistants.Tools.t := *)
+(*                                     M.alloc α20 in *)
+(*                                   let* α22 : *)
+(*                                       core.result.Result.t *)
+(*                                         (alloc.vec.Vec.t *)
+(*                                           async_openai.types.assistant.AssistantTools.t *)
+(*                                           alloc.alloc.Global.t) *)
+(*                                         (alloc.boxed.Box.t *)
+(*                                           serde_json.error.Error.t *)
+(*                                           alloc.alloc.Global.t) := *)
+(*                                     M.call *)
+(*                                       (assistants_core.assistants.Tools.t::["to_tools"] *)
+(*                                         (borrow α21)) in *)
+(*                                   let* α23 : *)
+(*                                       M.Val *)
+(*                                         (core.result.Result.t *)
+(*                                           (alloc.vec.Vec.t *)
+(*                                             async_openai.types.assistant.AssistantTools.t *)
+(*                                             alloc.alloc.Global.t) *)
+(*                                           (alloc.boxed.Box.t *)
+(*                                             serde_json.error.Error.t *)
+(*                                             alloc.alloc.Global.t)) := *)
+(*                                     M.alloc α22 in *)
+(*                                   let* α24 : *)
+(*                                       M.Val *)
+(*                                         (alloc.vec.Vec.t *)
+(*                                           async_openai.types.assistant.AssistantTools.t *)
+(*                                           alloc.alloc.Global.t) := *)
+(*                                     match_operator *)
+(*                                       α23 *)
+(*                                       [ *)
+(*                                         fun γ => *)
+(*                                           (let* α0 := M.read γ in *)
+(*                                           match α0 with *)
+(*                                           | core.result.Result.Ok _ => *)
+(*                                             let γ0_0 := *)
+(*                                               core.result.Result.Get_Ok_0 γ in *)
+(*                                             let* tools := M.copy γ0_0 in *)
+(*                                             M.pure tools *)
+(*                                           | _ => M.break_match *)
+(*                                           end) : *)
+(*                                           M *)
+(*                                             (M.Val *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 async_openai.types.assistant.AssistantTools.t *)
+(*                                                 alloc.alloc.Global.t)); *)
+(*                                         fun γ => *)
+(*                                           (let* α0 := M.read γ in *)
+(*                                           match α0 with *)
+(*                                           | core.result.Result.Err _ => *)
+(*                                             let γ0_0 := *)
+(*                                               core.result.Result.Get_Err_0 γ in *)
+(*                                             let* e := M.copy γ0_0 in *)
+(*                                             let* α0 : *)
+(*                                                 http.status.StatusCode.t := *)
+(*                                               M.read *)
+(*                                                 http.status.INTERNAL_SERVER_ERROR in *)
+(*                                             let* α1 : *)
+(*                                                 (ref *)
+(*                                                     (alloc.boxed.Box.t *)
+(*                                                       serde_json.error.Error.t *)
+(*                                                       alloc.alloc.Global.t)) *)
+(*                                                   -> *)
+(*                                                   M alloc.string.String.t := *)
+(*                                               ltac:(M.get_method (fun ℐ => *)
+(*                                                 alloc.string.ToString.to_string *)
+(*                                                   (Self := *)
+(*                                                     alloc.boxed.Box.t *)
+(*                                                       serde_json.error.Error.t *)
+(*                                                       alloc.alloc.Global.t) *)
+(*                                                   (Trait := ℐ))) in *)
+(*                                             let* α2 : alloc.string.String.t := *)
+(*                                               M.call (α1 (borrow e)) in *)
+(*                                             let* α3 : M.Val never.t := *)
+(*                                               return_ *)
+(*                                                 (core.result.Result.Err *)
+(*                                                   (α0, α2)) in *)
+(*                                             let* α4 := M.read α3 in *)
+(*                                             let* α5 : *)
+(*                                                 alloc.vec.Vec.t *)
+(*                                                   async_openai.types.assistant.AssistantTools.t *)
+(*                                                   alloc.alloc.Global.t := *)
+(*                                               never_to_any α4 in *)
+(*                                             M.alloc α5 *)
+(*                                           | _ => M.break_match *)
+(*                                           end) : *)
+(*                                           M *)
+(*                                             (M.Val *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 async_openai.types.assistant.AssistantTools.t *)
+(*                                                 alloc.alloc.Global.t)) *)
+(*                                       ] in *)
+(*                                   let* α25 : *)
+(*                                       alloc.vec.Vec.t *)
+(*                                         async_openai.types.assistant.AssistantTools.t *)
+(*                                         alloc.alloc.Global.t := *)
+(*                                     M.read α24 in *)
+(*                                   let* α26 : *)
+(*                                       (ref str.t) -> M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       alloc.string.ToString.to_string *)
+(*                                         (Self := str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α27 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α28 : ref str.t := *)
+(*                                     M.read (mk_str "model") in *)
+(*                                   let* α29 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α27 (borrow assistant) α28) in *)
+(*                                   let* α30 : core.option.Option.t (ref str.t) := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["as_str"] *)
+(*                                         α29) in *)
+(*                                   let* α31 : ref str.t := *)
+(*                                     M.call *)
+(*                                       ((core.option.Option.t *)
+(*                                             (ref str.t))::["unwrap"] *)
+(*                                         α30) in *)
+(*                                   let* α32 : alloc.string.String.t := *)
+(*                                     M.call (α26 α31) in *)
+(*                                   let* α33 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α34 : ref str.t := *)
+(*                                     M.read (mk_str "metadata") in *)
+(*                                   let* α35 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α33 (borrow assistant) α34) in *)
+(*                                   let* α36 : *)
+(*                                       core.option.Option.t *)
+(*                                         (ref *)
+(*                                           (serde_json.map.Map.t *)
+(*                                             alloc.string.String.t *)
+(*                                             serde_json.value.Value.t)) := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["as_object"] *)
+(*                                         α35) in *)
+(*                                   let* α37 : *)
+(*                                       M.Val *)
+(*                                         (core.option.Option.t *)
+(*                                           (ref *)
+(*                                             (serde_json.map.Map.t *)
+(*                                               alloc.string.String.t *)
+(*                                               serde_json.value.Value.t))) := *)
+(*                                     M.alloc α36 in *)
+(*                                   let* α38 : *)
+(*                                       M.Val *)
+(*                                         (core.option.Option.t *)
+(*                                           (std.collections.hash.map.HashMap.t *)
+(*                                             alloc.string.String.t *)
+(*                                             serde_json.value.Value.t *)
+(*                                             std.hash.random.RandomState.t)) := *)
+(*                                     match_operator *)
+(*                                       α37 *)
+(*                                       [ *)
+(*                                         fun γ => *)
+(*                                           (let* α0 := M.read γ in *)
+(*                                           match α0 with *)
+(*                                           | core.option.Option.Some _ => *)
+(*                                             let γ0_0 := *)
+(*                                               core.option.Option.Get_Some_0 γ in *)
+(*                                             let* object := M.copy γ0_0 in *)
+(*                                             let* temp_map : *)
+(*                                                 M.Val *)
+(*                                                   (std.collections.hash.map.HashMap.t *)
+(*                                                     alloc.string.String.t *)
+(*                                                     serde_json.value.Value.t *)
+(*                                                     std.hash.random.RandomState.t) := *)
+(*                                               let* α0 : *)
+(*                                                   std.collections.hash.map.HashMap.t *)
+(*                                                     alloc.string.String.t *)
+(*                                                     serde_json.value.Value.t *)
+(*                                                     std.hash.random.RandomState.t := *)
+(*                                                 M.call *)
+(*                                                   (std.collections.hash.map.HashMap.t *)
+(*                                                       alloc.string.String.t *)
+(*                                                       serde_json.value.Value.t *)
+(*                                                       std.hash.random.RandomState.t)::["new"] in *)
+(*                                               M.alloc α0 in *)
+(*                                             let* _ : M.Val unit := *)
+(*                                               let* α0 : *)
+(*                                                   (ref *)
+(*                                                       (serde_json.map.Map.t *)
+(*                                                         alloc.string.String.t *)
+(*                                                         serde_json.value.Value.t)) *)
+(*                                                     -> *)
+(*                                                     M _ := *)
+(*                                                 ltac:(M.get_method (fun ℐ => *)
+(*                                                   core.iter.traits.collect.IntoIterator.into_iter *)
+(*                                                     (Self := *)
+(*                                                       ref *)
+(*                                                         (serde_json.map.Map.t *)
+(*                                                           alloc.string.String.t *)
+(*                                                           serde_json.value.Value.t)) *)
+(*                                                     (Trait := ℐ))) in *)
+(*                                               let* α1 : *)
+(*                                                   ref *)
+(*                                                     (serde_json.map.Map.t *)
+(*                                                       alloc.string.String.t *)
+(*                                                       serde_json.value.Value.t) := *)
+(*                                                 M.read object in *)
+(*                                               let* α2 : serde_json.map.Iter.t := *)
+(*                                                 M.call (α0 α1) in *)
+(*                                               let* α3 : *)
+(*                                                   M.Val serde_json.map.Iter.t := *)
+(*                                                 M.alloc α2 in *)
+(*                                               let* α4 : M.Val unit := *)
+(*                                                 match_operator *)
+(*                                                   α3 *)
+(*                                                   [ *)
+(*                                                     fun γ => *)
+(*                                                       (let* iter := M.copy γ in *)
+(*                                                       M.loop *)
+(*                                                         (let* _ : M.Val unit := *)
+(*                                                           let* α0 : *)
+(*                                                               (mut_ref *)
+(*                                                                   serde_json.map.Iter.t) *)
+(*                                                                 -> *)
+(*                                                                 M *)
+(*                                                                   (core.option.Option.t *)
+(*                                                                     _) := *)
+(*                                                             ltac:(M.get_method (fun ℐ => *)
+(*                                                               core.iter.traits.iterator.Iterator.next *)
+(*                                                                 (Self := *)
+(*                                                                   serde_json.map.Iter.t) *)
+(*                                                                 (Trait := ℐ))) in *)
+(*                                                           let* α1 : *)
+(*                                                               core.option.Option.t *)
+(*                                                                 ((ref *)
+(*                                                                   alloc.string.String.t) *)
+(*                                                                 * *)
+(*                                                                 (ref *)
+(*                                                                   serde_json.value.Value.t)) := *)
+(*                                                             M.call *)
+(*                                                               (α0 *)
+(*                                                                 (borrow_mut *)
+(*                                                                   iter)) in *)
+(*                                                           let* α2 : *)
+(*                                                               M.Val *)
+(*                                                                 (core.option.Option.t *)
+(*                                                                   ((ref *)
+(*                                                                     alloc.string.String.t) *)
+(*                                                                   * *)
+(*                                                                   (ref *)
+(*                                                                     serde_json.value.Value.t))) := *)
+(*                                                             M.alloc α1 in *)
+(*                                                           match_operator *)
+(*                                                             α2 *)
+(*                                                             [ *)
+(*                                                               fun γ => *)
+(*                                                                 (let* α0 := *)
+(*                                                                   M.read γ in *)
+(*                                                                 match α0 with *)
+(*                                                                 | *)
+(*                                                                     core.option.Option.None *)
+(*                                                                     => *)
+(*                                                                   let* α0 : *)
+(*                                                                       M.Val *)
+(*                                                                         never.t := *)
+(*                                                                     M.break in *)
+(*                                                                   let* α1 := *)
+(*                                                                     M.read α0 in *)
+(*                                                                   let* α2 : *)
+(*                                                                       unit := *)
+(*                                                                     never_to_any *)
+(*                                                                       α1 in *)
+(*                                                                   M.alloc α2 *)
+(*                                                                 | _ => *)
+(*                                                                   M.break_match *)
+(*                                                                 end) : *)
+(*                                                                 M (M.Val unit); *)
+(*                                                               fun γ => *)
+(*                                                                 (let* α0 := *)
+(*                                                                   M.read γ in *)
+(*                                                                 match α0 with *)
+(*                                                                 | *)
+(*                                                                     core.option.Option.Some *)
+(*                                                                       _ *)
+(*                                                                     => *)
+(*                                                                   let γ0_0 := *)
+(*                                                                     core.option.Option.Get_Some_0 *)
+(*                                                                       γ in *)
+(*                                                                   let* α0 := *)
+(*                                                                     M.read *)
+(*                                                                       γ0_0 in *)
+(*                                                                   match α0 with *)
+(*                                                                   | (_, _) => *)
+(*                                                                     let γ1_0 := *)
+(*                                                                       Tuple.Access.left *)
+(*                                                                         γ0_0 in *)
+(*                                                                     let γ1_1 := *)
+(*                                                                       Tuple.Access.right *)
+(*                                                                         γ0_0 in *)
+(*                                                                     let* k := *)
+(*                                                                       M.copy *)
+(*                                                                         γ1_0 in *)
+(*                                                                     let* v := *)
+(*                                                                       M.copy *)
+(*                                                                         γ1_1 in *)
+(*                                                                     let* α0 : *)
+(*                                                                         ref *)
+(*                                                                           serde_json.value.Value.t := *)
+(*                                                                       M.read *)
+(*                                                                         v in *)
+(*                                                                     let* α1 : *)
+(*                                                                         core.option.Option.t *)
+(*                                                                           (ref *)
+(*                                                                             str.t) := *)
+(*                                                                       M.call *)
+(*                                                                         (serde_json.value.Value.t::["as_str"] *)
+(*                                                                           α0) in *)
+(*                                                                     let* α2 : *)
+(*                                                                         M.Val *)
+(*                                                                           (core.option.Option.t *)
+(*                                                                             (ref *)
+(*                                                                               str.t)) := *)
+(*                                                                       M.alloc *)
+(*                                                                         α1 in *)
+(*                                                                     match_operator *)
+(*                                                                       α2 *)
+(*                                                                       [ *)
+(*                                                                         fun γ => *)
+(*                                                                           (let* *)
+(*                                                                                 α0 := *)
+(*                                                                             M.read *)
+(*                                                                               γ in *)
+(*                                                                           match *)
+(*                                                                             α0 *)
+(*                                                                           with *)
+(*                                                                           | *)
+(*                                                                               core.option.Option.Some *)
+(*                                                                                 _ *)
+(*                                                                               => *)
+(*                                                                             let *)
+(*                                                                                   γ0_0 := *)
+(*                                                                               core.option.Option.Get_Some_0 *)
+(*                                                                                 γ in *)
+(*                                                                             let* *)
+(*                                                                                   str_value := *)
+(*                                                                               M.copy *)
+(*                                                                                 γ0_0 in *)
+(*                                                                             let* *)
+(*                                                                                   _ : *)
+(*                                                                                 M.Val *)
+(*                                                                                   (core.option.Option.t *)
+(*                                                                                     serde_json.value.Value.t) := *)
+(*                                                                               let* *)
+(*                                                                                     α0 : *)
+(*                                                                                   (ref *)
+(*                                                                                       alloc.string.String.t) *)
+(*                                                                                     -> *)
+(*                                                                                     M *)
+(*                                                                                       alloc.string.String.t := *)
+(*                                                                                 ltac:(M.get_method (fun ℐ => *)
+(*                                                                                   core.clone.Clone.clone *)
+(*                                                                                     (Self := *)
+(*                                                                                       alloc.string.String.t) *)
+(*                                                                                     (Trait := ℐ))) in *)
+(*                                                                               let* *)
+(*                                                                                     α1 : *)
+(*                                                                                   ref *)
+(*                                                                                     alloc.string.String.t := *)
+(*                                                                                 M.read *)
+(*                                                                                   k in *)
+(*                                                                               let* *)
+(*                                                                                     α2 : *)
+(*                                                                                   alloc.string.String.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   (α0 *)
+(*                                                                                     α1) in *)
+(*                                                                               let* *)
+(*                                                                                     α3 : *)
+(*                                                                                   (ref *)
+(*                                                                                       str.t) *)
+(*                                                                                     -> *)
+(*                                                                                     M *)
+(*                                                                                       alloc.string.String.t := *)
+(*                                                                                 ltac:(M.get_method (fun ℐ => *)
+(*                                                                                   alloc.string.ToString.to_string *)
+(*                                                                                     (Self := *)
+(*                                                                                       str.t) *)
+(*                                                                                     (Trait := ℐ))) in *)
+(*                                                                               let* *)
+(*                                                                                     α4 : *)
+(*                                                                                   ref *)
+(*                                                                                     str.t := *)
+(*                                                                                 M.read *)
+(*                                                                                   str_value in *)
+(*                                                                               let* *)
+(*                                                                                     α5 : *)
+(*                                                                                   alloc.string.String.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   (α3 *)
+(*                                                                                     α4) in *)
+(*                                                                               let* *)
+(*                                                                                     α6 : *)
+(*                                                                                   core.option.Option.t *)
+(*                                                                                     serde_json.value.Value.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   ((std.collections.hash.map.HashMap.t *)
+(*                                                                                         alloc.string.String.t *)
+(*                                                                                         serde_json.value.Value.t *)
+(*                                                                                         std.hash.random.RandomState.t)::["insert"] *)
+(*                                                                                     (borrow_mut *)
+(*                                                                                       temp_map) *)
+(*                                                                                     α2 *)
+(*                                                                                     (serde_json.value.Value.String *)
+(*                                                                                       α5)) in *)
+(*                                                                               M.alloc *)
+(*                                                                                 α6 in *)
+(*                                                                             M.alloc *)
+(*                                                                               tt *)
+(*                                                                           | _ => *)
+(*                                                                             M.break_match *)
+(*                                                                           end) : *)
+(*                                                                           M *)
+(*                                                                             (M.Val *)
+(*                                                                               unit); *)
+(*                                                                         fun γ => *)
+(*                                                                           (let* *)
+(*                                                                                 α0 := *)
+(*                                                                             M.read *)
+(*                                                                               γ in *)
+(*                                                                           match *)
+(*                                                                             α0 *)
+(*                                                                           with *)
+(*                                                                           | *)
+(*                                                                               core.option.Option.None *)
+(*                                                                               => *)
+(*                                                                             let* *)
+(*                                                                                   α0 : *)
+(*                                                                                 http.status.StatusCode.t := *)
+(*                                                                               M.read *)
+(*                                                                                 http.status.BAD_REQUEST in *)
+(*                                                                             let* *)
+(*                                                                                   res : *)
+(*                                                                                 M.Val *)
+(*                                                                                   alloc.string.String.t := *)
+(*                                                                               let* *)
+(*                                                                                     α0 : *)
+(*                                                                                   ref *)
+(*                                                                                     str.t := *)
+(*                                                                                 M.read *)
+(*                                                                                   (mk_str *)
+(*                                                                                     "Metadata value for key '") in *)
+(*                                                                               let* *)
+(*                                                                                     α1 : *)
+(*                                                                                   ref *)
+(*                                                                                     str.t := *)
+(*                                                                                 M.read *)
+(*                                                                                   (mk_str *)
+(*                                                                                     "' is not a string. All metadata values must be strings.") in *)
+(*                                                                               let* *)
+(*                                                                                     α2 : *)
+(*                                                                                   M.Val *)
+(*                                                                                     (array *)
+(*                                                                                       (ref *)
+(*                                                                                         str.t)) := *)
+(*                                                                                 M.alloc *)
+(*                                                                                   [ *)
+(*                                                                                     α0; *)
+(*                                                                                     α1 *)
+(*                                                                                   ] in *)
+(*                                                                               let* *)
+(*                                                                                     α3 : *)
+(*                                                                                   core.fmt.rt.Argument.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   (core.fmt.rt.Argument.t::["new_display"] *)
+(*                                                                                     (borrow *)
+(*                                                                                       k)) in *)
+(*                                                                               let* *)
+(*                                                                                     α4 : *)
+(*                                                                                   M.Val *)
+(*                                                                                     (array *)
+(*                                                                                       core.fmt.rt.Argument.t) := *)
+(*                                                                                 M.alloc *)
+(*                                                                                   [ *)
+(*                                                                                     α3 *)
+(*                                                                                   ] in *)
+(*                                                                               let* *)
+(*                                                                                     α5 : *)
+(*                                                                                   core.fmt.Arguments.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   (core.fmt.Arguments.t::["new_v1"] *)
+(*                                                                                     (pointer_coercion *)
+(*                                                                                       "Unsize" *)
+(*                                                                                       (borrow *)
+(*                                                                                         α2)) *)
+(*                                                                                     (pointer_coercion *)
+(*                                                                                       "Unsize" *)
+(*                                                                                       (borrow *)
+(*                                                                                         α4))) in *)
+(*                                                                               let* *)
+(*                                                                                     α6 : *)
+(*                                                                                   alloc.string.String.t := *)
+(*                                                                                 M.call *)
+(*                                                                                   (alloc.fmt.format *)
+(*                                                                                     α5) in *)
+(*                                                                               M.alloc *)
+(*                                                                                 α6 in *)
+(*                                                                             let* *)
+(*                                                                                   α1 : *)
+(*                                                                                 alloc.string.String.t := *)
+(*                                                                               M.read *)
+(*                                                                                 res in *)
+(*                                                                             let* *)
+(*                                                                                   α2 : *)
+(*                                                                                 M.Val *)
+(*                                                                                   never.t := *)
+(*                                                                               return_ *)
+(*                                                                                 (core.result.Result.Err *)
+(*                                                                                   (α0, *)
+(*                                                                                     α1)) in *)
+(*                                                                             let* *)
+(*                                                                                   α3 := *)
+(*                                                                               M.read *)
+(*                                                                                 α2 in *)
+(*                                                                             let* *)
+(*                                                                                   α4 : *)
+(*                                                                                 unit := *)
+(*                                                                               never_to_any *)
+(*                                                                                 α3 in *)
+(*                                                                             M.alloc *)
+(*                                                                               α4 *)
+(*                                                                           | _ => *)
+(*                                                                             M.break_match *)
+(*                                                                           end) : *)
+(*                                                                           M *)
+(*                                                                             (M.Val *)
+(*                                                                               unit) *)
+(*                                                                       ] *)
+(*                                                                   end *)
+(*                                                                 | _ => *)
+(*                                                                   M.break_match *)
+(*                                                                 end) : *)
+(*                                                                 M (M.Val unit) *)
+(*                                                             ] in *)
+(*                                                         M.alloc tt)) : *)
+(*                                                       M (M.Val unit) *)
+(*                                                   ] in *)
+(*                                               M.pure (use α4) in *)
+(*                                             let* α0 : *)
+(*                                                 std.collections.hash.map.HashMap.t *)
+(*                                                   alloc.string.String.t *)
+(*                                                   serde_json.value.Value.t *)
+(*                                                   std.hash.random.RandomState.t := *)
+(*                                               M.read temp_map in *)
+(*                                             M.alloc (core.option.Option.Some α0) *)
+(*                                           | _ => M.break_match *)
+(*                                           end) : *)
+(*                                           M *)
+(*                                             (M.Val *)
+(*                                               (core.option.Option.t *)
+(*                                                 (std.collections.hash.map.HashMap.t *)
+(*                                                   alloc.string.String.t *)
+(*                                                   serde_json.value.Value.t *)
+(*                                                   std.hash.random.RandomState.t))); *)
+(*                                         fun γ => *)
+(*                                           (M.alloc core.option.Option.None) : *)
+(*                                           M *)
+(*                                             (M.Val *)
+(*                                               (core.option.Option.t *)
+(*                                                 (std.collections.hash.map.HashMap.t *)
+(*                                                   alloc.string.String.t *)
+(*                                                   serde_json.value.Value.t *)
+(*                                                   std.hash.random.RandomState.t))) *)
+(*                                       ] in *)
+(*                                   let* α39 : *)
+(*                                       core.option.Option.t *)
+(*                                         (std.collections.hash.map.HashMap.t *)
+(*                                           alloc.string.String.t *)
+(*                                           serde_json.value.Value.t *)
+(*                                           std.hash.random.RandomState.t) := *)
+(*                                     M.read α38 in *)
+(*                                   let* α40 : *)
+(*                                       (ref serde_json.value.Value.t) -> *)
+(*                                         (ref str.t) -> *)
+(*                                         M (ref _) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.ops.index.Index.index *)
+(*                                         (Self := serde_json.value.Value.t) *)
+(*                                         (Idx := ref str.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α41 : ref str.t := *)
+(*                                     M.read (mk_str "file_ids") in *)
+(*                                   let* α42 : ref serde_json.value.Value.t := *)
+(*                                     M.call (α40 (borrow assistant) α41) in *)
+(*                                   let* α43 : bool.t := *)
+(*                                     M.call *)
+(*                                       (serde_json.value.Value.t::["is_array"] *)
+(*                                         α42) in *)
+(*                                   let* α44 : M.Val bool.t := M.alloc α43 in *)
+(*                                   let* α45 : bool.t := M.read (use α44) in *)
+(*                                   let* α46 : *)
+(*                                       M.Val *)
+(*                                         (alloc.vec.Vec.t *)
+(*                                           alloc.string.String.t *)
+(*                                           alloc.alloc.Global.t) := *)
+(*                                     if α45 then *)
+(*                                       let* α0 : *)
+(*                                           (core.iter.adapters.map.Map.t *)
+(*                                               (core.slice.iter.Iter.t *)
+(*                                                 serde_json.value.Value.t) *)
+(*                                               ((ref serde_json.value.Value.t) -> *)
+(*                                                 M alloc.string.String.t)) *)
+(*                                             -> *)
+(*                                             M *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 alloc.string.String.t *)
+(*                                                 alloc.alloc.Global.t) := *)
+(*                                         ltac:(M.get_method (fun ℐ => *)
+(*                                           core.iter.traits.iterator.Iterator.collect *)
+(*                                             (Self := *)
+(*                                               core.iter.adapters.map.Map.t *)
+(*                                                 (core.slice.iter.Iter.t *)
+(*                                                   serde_json.value.Value.t) *)
+(*                                                 ((ref serde_json.value.Value.t) *)
+(*                                                   -> *)
+(*                                                   M alloc.string.String.t)) *)
+(*                                             (B := *)
+(*                                               alloc.vec.Vec.t *)
+(*                                                 alloc.string.String.t *)
+(*                                                 alloc.alloc.Global.t) *)
+(*                                             (Trait := ℐ))) in *)
+(*                                       let* α1 : *)
+(*                                           (core.slice.iter.Iter.t *)
+(*                                               serde_json.value.Value.t) *)
+(*                                             -> *)
+(*                                             ((ref serde_json.value.Value.t) -> *)
+(*                                               M alloc.string.String.t) *)
+(*                                             -> *)
+(*                                             M *)
+(*                                               (core.iter.adapters.map.Map.t *)
+(*                                                 (core.slice.iter.Iter.t *)
+(*                                                   serde_json.value.Value.t) *)
+(*                                                 ((ref serde_json.value.Value.t) *)
+(*                                                   -> *)
+(*                                                   M alloc.string.String.t)) := *)
+(*                                         ltac:(M.get_method (fun ℐ => *)
+(*                                           core.iter.traits.iterator.Iterator.map *)
+(*                                             (Self := *)
+(*                                               core.slice.iter.Iter.t *)
+(*                                                 serde_json.value.Value.t) *)
+(*                                             (B := alloc.string.String.t) *)
+(*                                             (F := *)
+(*                                               (ref serde_json.value.Value.t) -> *)
+(*                                                 M alloc.string.String.t) *)
+(*                                             (Trait := ℐ))) in *)
+(*                                       let* α2 : *)
+(*                                           (ref *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 serde_json.value.Value.t *)
+(*                                                 alloc.alloc.Global.t)) *)
+(*                                             -> *)
+(*                                             M (ref _) := *)
+(*                                         ltac:(M.get_method (fun ℐ => *)
+(*                                           core.ops.deref.Deref.deref *)
+(*                                             (Self := *)
+(*                                               alloc.vec.Vec.t *)
+(*                                                 serde_json.value.Value.t *)
+(*                                                 alloc.alloc.Global.t) *)
+(*                                             (Trait := ℐ))) in *)
+(*                                       let* α3 : *)
+(*                                           (ref serde_json.value.Value.t) -> *)
+(*                                             (ref str.t) -> *)
+(*                                             M (ref _) := *)
+(*                                         ltac:(M.get_method (fun ℐ => *)
+(*                                           core.ops.index.Index.index *)
+(*                                             (Self := serde_json.value.Value.t) *)
+(*                                             (Idx := ref str.t) *)
+(*                                             (Trait := ℐ))) in *)
+(*                                       let* α4 : ref str.t := *)
+(*                                         M.read (mk_str "file_ids") in *)
+(*                                       let* α5 : ref serde_json.value.Value.t := *)
+(*                                         M.call (α3 (borrow assistant) α4) in *)
+(*                                       let* α6 : *)
+(*                                           core.option.Option.t *)
+(*                                             (ref *)
+(*                                               (alloc.vec.Vec.t *)
+(*                                                 serde_json.value.Value.t *)
+(*                                                 alloc.alloc.Global.t)) := *)
+(*                                         M.call *)
+(*                                           (serde_json.value.Value.t::["as_array"] *)
+(*                                             α5) in *)
+(*                                       let* α7 : *)
+(*                                           ref *)
+(*                                             (alloc.vec.Vec.t *)
+(*                                               serde_json.value.Value.t *)
+(*                                               alloc.alloc.Global.t) := *)
+(*                                         M.call *)
+(*                                           ((core.option.Option.t *)
+(*                                                 (ref *)
+(*                                                   (alloc.vec.Vec.t *)
+(*                                                     serde_json.value.Value.t *)
+(*                                                     alloc.alloc.Global.t)))::["unwrap"] *)
+(*                                             α6) in *)
+(*                                       let* α8 : *)
+(*                                           ref *)
+(*                                             (slice serde_json.value.Value.t) := *)
+(*                                         M.call (α2 α7) in *)
+(*                                       let* α9 : *)
+(*                                           core.slice.iter.Iter.t *)
+(*                                             serde_json.value.Value.t := *)
+(*                                         M.call *)
+(*                                           ((slice *)
+(*                                                 serde_json.value.Value.t)::["iter"] *)
+(*                                             α8) in *)
+(*                                       let* α10 : *)
+(*                                           core.iter.adapters.map.Map.t *)
+(*                                             (core.slice.iter.Iter.t *)
+(*                                               serde_json.value.Value.t) *)
+(*                                             ((ref serde_json.value.Value.t) -> *)
+(*                                               M alloc.string.String.t) := *)
+(*                                         M.call *)
+(*                                           (α1 *)
+(*                                             α9 *)
+(*                                             (fun *)
+(*                                                 (α0 : *)
+(*                                                   ref *)
+(*                                                     serde_json.value.Value.t) => *)
+(*                                               (let* α0 := M.alloc α0 in *)
+(*                                               match_operator *)
+(*                                                 α0 *)
+(*                                                 [ *)
+(*                                                   fun γ => *)
+(*                                                     (let* file_id := M.copy γ in *)
+(*                                                     let* α0 : *)
+(*                                                         (ref str.t) -> *)
+(*                                                           M *)
+(*                                                             alloc.string.String.t := *)
+(*                                                       ltac:(M.get_method (fun ℐ => *)
+(*                                                         alloc.string.ToString.to_string *)
+(*                                                           (Self := str.t) *)
+(*                                                           (Trait := ℐ))) in *)
+(*                                                     let* α1 : *)
+(*                                                         ref *)
+(*                                                           serde_json.value.Value.t := *)
+(*                                                       M.read file_id in *)
+(*                                                     let* α2 : *)
+(*                                                         core.option.Option.t *)
+(*                                                           (ref str.t) := *)
+(*                                                       M.call *)
+(*                                                         (serde_json.value.Value.t::["as_str"] *)
+(*                                                           α1) in *)
+(*                                                     let* α3 : ref str.t := *)
+(*                                                       M.call *)
+(*                                                         ((core.option.Option.t *)
+(*                                                               (ref *)
+(*                                                                 str.t))::["unwrap"] *)
+(*                                                           α2) in *)
+(*                                                     M.call (α0 α3)) : *)
+(*                                                     M alloc.string.String.t *)
+(*                                                 ]) : *)
+(*                                               M alloc.string.String.t)) in *)
+(*                                       let* α11 : *)
+(*                                           alloc.vec.Vec.t *)
+(*                                             alloc.string.String.t *)
+(*                                             alloc.alloc.Global.t := *)
+(*                                         M.call (α0 α10) in *)
+(*                                       M.alloc α11 *)
+(*                                     else *)
+(*                                       let* α0 : *)
+(*                                           alloc.vec.Vec.t *)
+(*                                             alloc.string.String.t *)
+(*                                             alloc.alloc.Global.t := *)
+(*                                         M.call *)
+(*                                           (alloc.vec.Vec.t *)
+(*                                               alloc.string.String.t *)
+(*                                               alloc.alloc.Global.t)::["new"] in *)
+(*                                       M.alloc α0 in *)
+(*                                   let* α47 : *)
+(*                                       alloc.vec.Vec.t *)
+(*                                         alloc.string.String.t *)
+(*                                         alloc.alloc.Global.t := *)
+(*                                     M.read α46 in *)
+(*                                   let* α48 : M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.default.Default.default *)
+(*                                         (Self := alloc.string.String.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α49 : alloc.string.String.t := *)
+(*                                     M.call α48 in *)
+(*                                   let* α50 : M i32.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.default.Default.default *)
+(*                                         (Self := i32.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α51 : i32.t := M.call α50 in *)
+(*                                   let* α52 : *)
+(*                                       M *)
+(*                                         (core.option.Option.t *)
+(*                                           alloc.string.String.t) := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.default.Default.default *)
+(*                                         (Self := *)
+(*                                           core.option.Option.t *)
+(*                                             alloc.string.String.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α53 : *)
+(*                                       core.option.Option.t *)
+(*                                         alloc.string.String.t := *)
+(*                                     M.call α52 in *)
+(*                                   let* α54 : *)
+(*                                       (ref uuid.Uuid.t) -> *)
+(*                                         M alloc.string.String.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       alloc.string.ToString.to_string *)
+(*                                         (Self := uuid.Uuid.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α55 : M uuid.Uuid.t := *)
+(*                                     ltac:(M.get_method (fun ℐ => *)
+(*                                       core.default.Default.default *)
+(*                                         (Self := uuid.Uuid.t) *)
+(*                                         (Trait := ℐ))) in *)
+(*                                   let* α56 : uuid.Uuid.t := M.call α55 in *)
+(*                                   let* α57 : M.Val uuid.Uuid.t := M.alloc α56 in *)
+(*                                   let* α58 : alloc.string.String.t := *)
+(*                                     M.call (α54 (borrow α57)) in *)
+(*                                   let* α59 : *)
+(*                                       M.Val *)
+(*                                         assistants_core.models.Assistant.t := *)
+(*                                     M.alloc *)
+(*                                       {| *)
+(*                                         assistants_core.models.Assistant.inner := *)
+(*                                           {| *)
+(*                                             async_openai.types.assistant.AssistantObject.id := *)
+(*                                               α4; *)
+(*                                             async_openai.types.assistant.AssistantObject.instructions := *)
+(*                                               core.option.Option.Some α11; *)
+(*                                             async_openai.types.assistant.AssistantObject.name := *)
+(*                                               core.option.Option.Some α18; *)
+(*                                             async_openai.types.assistant.AssistantObject.tools := *)
+(*                                               α25; *)
+(*                                             async_openai.types.assistant.AssistantObject.model := *)
+(*                                               α32; *)
+(*                                             async_openai.types.assistant.AssistantObject.metadata := *)
+(*                                               α39; *)
+(*                                             async_openai.types.assistant.AssistantObject.file_ids := *)
+(*                                               α47; *)
+(*                                             async_openai.types.assistant.AssistantObject.object := *)
+(*                                               α49; *)
+(*                                             async_openai.types.assistant.AssistantObject.created_at := *)
+(*                                               α51; *)
+(*                                             async_openai.types.assistant.AssistantObject.description := *)
+(*                                               α53; *)
+(*                                           |}; *)
+(*                                         assistants_core.models.Assistant.user_id := *)
+(*                                           α58; *)
+(*                                       |} in *)
+(*                                   let* α60 : _ := *)
+(*                                     M.call *)
+(*                                       (assistants_core.assistants.create_assistant *)
+(*                                         α2 *)
+(*                                         (borrow α59)) in *)
+(*                                   let* α61 : _ := M.call (α0 α60) in *)
+(*                                   let* α62 : M.Val _ := M.alloc α61 in *)
+(*                                   let* α63 : *)
+(*                                       M.Val *)
+(*                                         (core.result.Result.t *)
+(*                                           assistants_core.models.Assistant.t *)
+(*                                           assistants_core.assistants.AssistantError.t) := *)
+(*                                     match_operator *)
+(*                                       α62 *)
+(*                                       [ *)
+(*                                         fun γ => *)
+(*                                           (let* __awaitee := M.copy γ in *)
+(*                                           M.loop *)
+(*                                             (let* _ : M.Val unit := *)
+(*                                               let* α0 : *)
+(*                                                   (core.pin.Pin.t (mut_ref _)) *)
+(*                                                     -> *)
+(*                                                     (mut_ref *)
+(*                                                       core.task.wake.Context.t) *)
+(*                                                     -> *)
+(*                                                     M *)
+(*                                                       (core.task.poll.Poll.t *)
+(*                                                         _) := *)
+(*                                                 ltac:(M.get_method (fun ℐ => *)
+(*                                                   core.future.future.Future.poll *)
+(*                                                     (Self := _) *)
+(*                                                     (Trait := ℐ))) in *)
+(*                                               let* α1 : *)
+(*                                                   core.pin.Pin.t (mut_ref _) := *)
+(*                                                 M.call *)
+(*                                                   ((core.pin.Pin.t *)
+(*                                                         (mut_ref *)
+(*                                                           _))::["new_unchecked"] *)
+(*                                                     (borrow_mut __awaitee)) in *)
+(*                                               let* α2 : *)
+(*                                                   core.future.ResumeTy.t := *)
+(*                                                 M.read _task_context in *)
+(*                                               let* α3 : *)
+(*                                                   mut_ref *)
+(*                                                     core.task.wake.Context.t := *)
+(*                                                 M.call *)
+(*                                                   (core.future.get_context *)
+(*                                                     α2) in *)
+(*                                               let* α4 : *)
+(*                                                   core.task.poll.Poll.t *)
+(*                                                     (core.result.Result.t *)
+(*                                                       assistants_core.models.Assistant.t *)
+(*                                                       assistants_core.assistants.AssistantError.t) := *)
+(*                                                 M.call (α0 α1 α3) in *)
+(*                                               let* α5 : *)
+(*                                                   M.Val *)
+(*                                                     (core.task.poll.Poll.t *)
+(*                                                       (core.result.Result.t *)
+(*                                                         assistants_core.models.Assistant.t *)
+(*                                                         assistants_core.assistants.AssistantError.t)) := *)
+(*                                                 M.alloc α4 in *)
+(*                                               match_operator *)
+(*                                                 α5 *)
+(*                                                 [ *)
+(*                                                   fun γ => *)
+(*                                                     (let* α0 := M.read γ in *)
+(*                                                     match α0 with *)
+(*                                                     | *)
+(*                                                         core.task.poll.Poll.Ready *)
+(*                                                           _ *)
+(*                                                         => *)
+(*                                                       let γ0_0 := *)
+(*                                                         core.task.poll.Poll.Get_Ready_0 *)
+(*                                                           γ in *)
+(*                                                       let* result := *)
+(*                                                         M.copy γ0_0 in *)
+(*                                                       let* α0 : M.Val never.t := *)
+(*                                                         M.break in *)
+(*                                                       let* α1 := M.read α0 in *)
+(*                                                       let* α2 : unit := *)
+(*                                                         never_to_any α1 in *)
+(*                                                       M.alloc α2 *)
+(*                                                     | _ => M.break_match *)
+(*                                                     end) : *)
+(*                                                     M (M.Val unit); *)
+(*                                                   fun γ => *)
+(*                                                     (let* α0 := M.read γ in *)
+(*                                                     match α0 with *)
+(*                                                     | *)
+(*                                                         core.task.poll.Poll.Pending *)
+(*                                                         => *)
+(*                                                       M.alloc tt *)
+(*                                                     | _ => M.break_match *)
+(*                                                     end) : *)
+(*                                                     M (M.Val unit) *)
+(*                                                 ] in *)
+(*                                             let* _ : M.Val unit := *)
+(*                                               let* α0 : M.Val unit := *)
+(*                                                 M.alloc tt in *)
+(*                                               let* α1 : *)
+(*                                                   M.Val *)
+(*                                                     core.future.ResumeTy.t := *)
+(*                                                 yield α0 in *)
+(*                                               let* α2 : *)
+(*                                                   core.future.ResumeTy.t := *)
+(*                                                 M.read α1 in *)
+(*                                               assign _task_context α2 in *)
+(*                                             M.alloc tt)) : *)
+(*                                           M *)
+(*                                             (M.Val *)
+(*                                               (core.result.Result.t *)
+(*                                                 assistants_core.models.Assistant.t *)
+(*                                                 assistants_core.assistants.AssistantError.t)) *)
+(*                                       ] in *)
+(*                                   M.copy α63 in *)
+(*                                 let* α0 : *)
+(*                                     M.Val *)
+(*                                       (core.result.Result.t *)
+(*                                         (axum.json.Json.t *)
+(*                                           async_openai.types.assistant.AssistantObject.t) *)
+(*                                         (http.status.StatusCode.t *)
+(*                                         * *)
+(*                                         alloc.string.String.t)) := *)
+(*                                   match_operator *)
+(*                                     assistant *)
+(*                                     [ *)
+(*                                       fun γ => *)
+(*                                         (let* α0 := M.read γ in *)
+(*                                         match α0 with *)
+(*                                         | core.result.Result.Ok _ => *)
+(*                                           let γ0_0 := *)
+(*                                             core.result.Result.Get_Ok_0 γ in *)
+(*                                           let* assistant := M.copy γ0_0 in *)
+(*                                           let* α0 : *)
+(*                                               async_openai.types.assistant.AssistantObject.t := *)
+(*                                             M.read *)
+(*                                               (assistants_core.models.Assistant.Get_inner *)
+(*                                                 assistant) in *)
+(*                                           M.alloc *)
+(*                                             (core.result.Result.Ok *)
+(*                                               (axum.json.Json.Build_t α0)) *)
+(*                                         | _ => M.break_match *)
+(*                                         end) : *)
+(*                                         M *)
+(*                                           (M.Val *)
+(*                                             (core.result.Result.t *)
+(*                                               (axum.json.Json.t *)
+(*                                                 async_openai.types.assistant.AssistantObject.t) *)
+(*                                               (http.status.StatusCode.t *)
+(*                                               * *)
+(*                                               alloc.string.String.t))); *)
+(*                                       fun γ => *)
+(*                                         (let* α0 := M.read γ in *)
+(*                                         match α0 with *)
+(*                                         | core.result.Result.Err _ => *)
+(*                                           let γ0_0 := *)
+(*                                             core.result.Result.Get_Err_0 γ in *)
+(*                                           let* e := M.copy γ0_0 in *)
+(*                                           let* α0 : http.status.StatusCode.t := *)
+(*                                             M.read *)
+(*                                               http.status.INTERNAL_SERVER_ERROR in *)
+(*                                           let* α1 : *)
+(*                                               (ref *)
+(*                                                   assistants_core.assistants.AssistantError.t) *)
+(*                                                 -> *)
+(*                                                 M alloc.string.String.t := *)
+(*                                             ltac:(M.get_method (fun ℐ => *)
+(*                                               alloc.string.ToString.to_string *)
+(*                                                 (Self := *)
+(*                                                   assistants_core.assistants.AssistantError.t) *)
+(*                                                 (Trait := ℐ))) in *)
+(*                                           let* α2 : alloc.string.String.t := *)
+(*                                             M.call (α1 (borrow e)) in *)
+(*                                           M.alloc *)
+(*                                             (core.result.Result.Err (α0, α2)) *)
+(*                                         | _ => M.break_match *)
+(*                                         end) : *)
+(*                                         M *)
+(*                                           (M.Val *)
+(*                                             (core.result.Result.t *)
+(*                                               (axum.json.Json.t *)
+(*                                                 async_openai.types.assistant.AssistantObject.t) *)
+(*                                               (http.status.StatusCode.t *)
+(*                                               * *)
+(*                                               alloc.string.String.t))) *)
+(*                                     ] in *)
+(*                                 M.pure (use α0) *)
+(*                               end) : *)
+(*                               M *)
+(*                                 (M.Val *)
+(*                                   (core.result.Result.t *)
+(*                                     (axum.json.Json.t *)
+(*                                       async_openai.types.assistant.AssistantObject.t) *)
+(*                                     (http.status.StatusCode.t *)
+(*                                     * *)
+(*                                     alloc.string.String.t))) *)
+(*                           ] *)
+(*                       end) : *)
+(*                       M *)
+(*                         (M.Val *)
+(*                           (core.result.Result.t *)
+(*                             (axum.json.Json.t *)
+(*                               async_openai.types.assistant.AssistantObject.t) *)
+(*                             (http.status.StatusCode.t * alloc.string.String.t))) *)
+(*                   ] in *)
+(*               M.read α0) : *)
+(*               M *)
+(*                 (core.result.Result.t *)
+(*                   (axum.json.Json.t *)
+(*                     async_openai.types.assistant.AssistantObject.t) *)
+(*                   (http.status.StatusCode.t * alloc.string.String.t)) *)
+Module PhantomData.
+  Inductive t (T : Set) : Set := Build.
+End PhantomData.
+
+Module extract.
+  Module connect_info.
+    Module  IntoMakeServiceWithConnectInfo.
+    Section IntoMakeServiceWithConnectInfo.
+      Context (S C : Set).
+      
+      Record t : Set := {
+        svc : S;
+        _connect_info :PhantomData.t C;
+      }.
+      
+      (* Definition Get_svc := *)
+      (*   Ref.map (fun α => Some α.(svc)) (fun β α => Some (α <| svc := β |>)). *)
+      (* Definition Get__connect_info := *)
+      (*   Ref.map *)
+      (*     (fun α => Some α.(_connect_info)) *)
+      (*     (fun β α => Some (α <| _connect_info := β |>)). *)
+    End IntoMakeServiceWithConnectInfo.
+    End IntoMakeServiceWithConnectInfo.
+    
+    Module  Impl_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    Section Impl_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+      Context {S C : Set}.
+      
+      
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    Section Impl_core_fmt_Debug_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+      Context {S C : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait S}.
+      
+      Definition Self : Set :=
+        axum.extract.connect_info.IntoMakeServiceWithConnectInfo.t S C.
+      
+      (*
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              f.debug_struct("IntoMakeServiceWithConnectInfo")
+                  .field("svc", &self.svc)
+                  .finish()
+          }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    Section Impl_core_clone_Clone_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+      Context {S C : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait S}.
+      
+      Definition Self : Set :=
+        axum.extract.connect_info.IntoMakeServiceWithConnectInfo.t S C.
+      
+      (*
+          fn clone(&self) -> Self {
+              Self {
+                  svc: self.svc.clone(),
+                  _connect_info: PhantomData,
+              }
+          }
+      *)
+      Definition clone (self : ref Self) : M Self :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    
+    Module  Connected.
+    Section Connected.
+      Class Trait (Self : Set) {T : Set} : Type := {
+        ℒ_0 :: core.clone.Clone.Trait Self;
+        ℒ_1 :: core.marker.Send.Trait Self;
+        ℒ_2 :: core.marker.Sync.Trait Self;
+        connect_info : T -> M Self;
+      }.
+      
+    End Connected.
+    End Connected.
+    
+    Module  Impl_axum_extract_connect_info_Connected_core_net_socket_addr_SocketAddr_t_for_core_net_socket_addr_SocketAddr_t.
+    Section Impl_axum_extract_connect_info_Connected_core_net_socket_addr_SocketAddr_t_for_core_net_socket_addr_SocketAddr_t.
+      Definition Self : Set := core.net.socket_addr.SocketAddr.t.
+      
+      (*
+          fn connect_info(remote_addr: SocketAddr) -> Self {
+              remote_addr
+          }
+      *)
+      Definition connect_info
+          (remote_addr : core.net.socket_addr.SocketAddr.t)
+          : M Self :=
+        let* remote_addr := M.alloc remote_addr in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_connect_info :
+        Notations.DoubleColon Self "connect_info" := {
+        Notations.double_colon := connect_info;
+      }.
+      
+      Global Instance ℐ :
+        axum.extract.connect_info.Connected.Trait Self
+          (T := core.net.socket_addr.SocketAddr.t) := {
+        axum.extract.connect_info.Connected.connect_info := connect_info;
+      }.
+    End Impl_axum_extract_connect_info_Connected_core_net_socket_addr_SocketAddr_t_for_core_net_socket_addr_SocketAddr_t.
+    End Impl_axum_extract_connect_info_Connected_core_net_socket_addr_SocketAddr_t_for_core_net_socket_addr_SocketAddr_t.
+    
+    Module  Impl_tower_service_Service_T_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    Section Impl_tower_service_Service_T_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+      Context {S C T : Set}.
+      
+      Context
+        {ℋ_0 : core.clone.Clone.Trait S}
+        {ℋ_1 : axum.extract.connect_info.Connected.Trait C (T := T)}.
+      
+      Definition Self : Set :=
+        axum.extract.connect_info.IntoMakeServiceWithConnectInfo.t S C.
+      
+      (*
+          type Response = AddExtension<S, ConnectInfo<C>>;
+      *)
+      Definition Response : Set :=
+        axum.extension.AddExtension.t
+            S
+            (axum.extract.connect_info.ConnectInfo.t C).
+      
+      (*
+          type Error = Infallible;
+      *)
+      Definition Error : Set := core.convert.Infallible.t.
+      
+      (*
+          type Future = ResponseFuture<S, C>;
+      *)
+      Definition Future : Set := axum.extract.connect_info.ResponseFuture.t S C.
+      
+      (*
+          fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+              Poll::Ready(Ok(()))
+          }
+      *)
+      Definition poll_ready
+          (self : mut_ref Self)
+          (_cx : mut_ref core.task.wake.Context.t)
+          : M (core.task.poll.Poll.t (core.result.Result.t unit Error)) :=
+        let* self := M.alloc self in
+        let* _cx := M.alloc _cx in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_poll_ready :
+        Notations.DoubleColon Self "poll_ready" := {
+        Notations.double_colon := poll_ready;
+      }.
+      
+      (*
+          fn call(&mut self, target: T) -> Self::Future {
+              let connect_info = ConnectInfo(C::connect_info(target));
+              let svc = Extension(connect_info).layer(self.svc.clone());
+              ResponseFuture::new(ready(Ok(svc)))
+          }
+      *)
+      Definition call (self : mut_ref Self) (target : T) : M Future :=
+        let* self := M.alloc self in
+        let* target := M.alloc target in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_call :
+        Notations.DoubleColon Self "call" := {
+        Notations.double_colon := call;
+      }.
+      
+      Global Instance ℐ : tower_service.Service.Trait Self (Request := T) := {
+        tower_service.Service.Response := Response;
+        tower_service.Service.Error := Error;
+        tower_service.Service.Future := Future;
+        tower_service.Service.poll_ready := poll_ready;
+        tower_service.Service.call := call;
+      }.
+    End Impl_tower_service_Service_T_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    End Impl_tower_service_Service_T_for_axum_extract_connect_info_IntoMakeServiceWithConnectInfo_t_S_C.
+    
+    Module  ResponseFuture.
+    Section ResponseFuture.
+      Context (S C : Set).
+      
+      Record t : Set := {
+        future :
+          core.future.ready.Ready.t
+            (core.result.Result.t
+              (axum.extension.AddExtension.t
+                S
+                (axum.extract.connect_info.ConnectInfo.t C))
+              core.convert.Infallible.t);
+      }.
+      
+      Definition Get_future :=
+        Ref.map
+          (fun α => Some α.(future))
+          (fun β α => Some (α <| future := β |>)).
+    End ResponseFuture.
+    End ResponseFuture.
+    
+    Module  Impl_axum_extract_connect_info_ResponseFuture_t_S_C.
+    Section Impl_axum_extract_connect_info_ResponseFuture_t_S_C.
+      Context {S C : Set}.
+      
+      Definition Self : Set := axum.extract.connect_info.ResponseFuture.t S C.
+      
+      (*
+                  pub(crate) fn new(future: $actual) -> Self {
+                      Self { future }
+                  }
+      *)
+      Definition new
+          (future
+            :
+            core.future.ready.Ready.t
+              (core.result.Result.t
+                (axum.extension.AddExtension.t
+                  S
+                  (axum.extract.connect_info.ConnectInfo.t C))
+                core.convert.Infallible.t))
+          : M Self :=
+        let* future := M.alloc future in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_new :
+        Notations.DoubleColon Self "new" := {
+        Notations.double_colon := new;
+      }.
+    End Impl_axum_extract_connect_info_ResponseFuture_t_S_C.
+    End Impl_axum_extract_connect_info_ResponseFuture_t_S_C.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    Section Impl_core_fmt_Debug_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+      Context {S C : Set}.
+      
+      Definition Self : Set := axum.extract.connect_info.ResponseFuture.t S C.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      f.debug_struct(stringify!($name)).finish_non_exhaustive()
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    
+    Module  Impl_core_future_future_Future_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    Section Impl_core_future_future_Future_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+      Context {S C : Set}.
+      
+      Context
+        {ℋ_0 :
+          core.future.future.Future.Trait
+              (core.future.ready.Ready.t
+                (core.result.Result.t
+                  (axum.extension.AddExtension.t
+                    S
+                    (axum.extract.connect_info.ConnectInfo.t C))
+                  core.convert.Infallible.t))}.
+      
+      Definition Self : Set := axum.extract.connect_info.ResponseFuture.t S C.
+      
+      (*
+                  type Output = <$actual as std::future::Future>::Output;
+      *)
+      Definition Output : Set :=
+        core.future.future.Future.Output
+            (Self := core.future.ready.Ready.t
+              (core.result.Result.t
+                (axum.extension.AddExtension.t
+                  S
+                  (axum.extract.connect_info.ConnectInfo.t C))
+                core.convert.Infallible.t))
+            (Trait := ltac:(refine _)).
+      
+      (*
+                  fn poll(
+                      self: std::pin::Pin<&mut Self>,
+                      cx: &mut std::task::Context<'_>,
+                  ) -> std::task::Poll<Self::Output> {
+                      self.project().future.poll(cx)
+                  }
+      *)
+      Definition poll
+          (self : core.pin.Pin.t (mut_ref Self))
+          (cx : mut_ref core.task.wake.Context.t)
+          : M (core.task.poll.Poll.t Output) :=
+        let* self := M.alloc self in
+        let* cx := M.alloc cx in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_poll :
+        Notations.DoubleColon Self "poll" := {
+        Notations.double_colon := poll;
+      }.
+      
+      Global Instance ℐ : core.future.future.Future.Trait Self := {
+        core.future.future.Future.Output := Output;
+        core.future.future.Future.poll := poll;
+      }.
+    End Impl_core_future_future_Future_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    End Impl_core_future_future_Future_for_axum_extract_connect_info_ResponseFuture_t_S_C.
+    
+    Module  ConnectInfo.
+    Section ConnectInfo.
+      Context {T : Set}.
+      
+      Record t : Set := {
+        x0 : T;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End ConnectInfo.
+    End ConnectInfo.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_core_clone_Clone_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M (axum.extract.connect_info.ConnectInfo.t T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  Impl_core_marker_Copy_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_core_marker_Copy_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.marker.Copy.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      Global Instance ℐ : core.marker.Copy.Trait Self := {
+      }.
+    End Impl_core_marker_Copy_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_core_marker_Copy_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_core_fmt_Debug_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {S T : Set}.
+      
+      Context
+        {ℋ_0 : core.marker.Send.Trait S}
+        {ℋ_1 : core.marker.Sync.Trait S}
+        {ℋ_2 : core.clone.Clone.Trait T}
+        {ℋ_3 : core.marker.Send.Trait T}
+        {ℋ_4 : core.marker.Sync.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      (*
+          type Rejection = <Extension<Self> as FromRequestParts<S>>::Rejection;
+      *)
+      Definition Rejection : Set :=
+        axum_core.extract.FromRequestParts.Rejection
+            (Self := axum.extension.Extension.t Self)
+            (Trait := ltac:(refine _)).
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+              match Extension::<Self>::from_request_parts(parts, state).await {
+                  Ok(Extension(connect_info)) => Ok(connect_info),
+                  Err(err) => match parts.extensions.get::<MockConnectInfo<T>>() {
+                      Some(MockConnectInfo(connect_info)) => Ok(Self(connect_info.clone())),
+                      None => Err(err),
+                  },
+              }
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* state := M.alloc state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  Impl_core_ops_deref_Deref_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_core_ops_deref_Deref_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      (*
+                  type Target = T;
+      *)
+      Definition Target : Set := T.
+      
+      (*
+                  fn deref(&self) -> &Self::Target {
+                      &self.0
+                  }
+      *)
+      Definition deref (self : ref Self) : M (ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref :
+        Notations.DoubleColon Self "deref" := {
+        Notations.double_colon := deref;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.Deref.Trait Self := {
+        core.ops.deref.Deref.Target := Target;
+        core.ops.deref.Deref.deref := deref;
+      }.
+    End Impl_core_ops_deref_Deref_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_core_ops_deref_Deref_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  Impl_core_ops_deref_DerefMut_for_axum_extract_connect_info_ConnectInfo_t_T.
+    Section Impl_core_ops_deref_DerefMut_for_axum_extract_connect_info_ConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.connect_info.ConnectInfo.t T.
+      
+      (*
+                  fn deref_mut(&mut self) -> &mut Self::Target {
+                      &mut self.0
+                  }
+      *)
+      Definition deref_mut (self : mut_ref Self) : M (mut_ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref_mut :
+        Notations.DoubleColon Self "deref_mut" := {
+        Notations.double_colon := deref_mut;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.DerefMut.Trait Self := {
+        core.ops.deref.DerefMut.deref_mut := deref_mut;
+      }.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_connect_info_ConnectInfo_t_T.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_connect_info_ConnectInfo_t_T.
+    
+    Module  MockConnectInfo.
+    Section MockConnectInfo.
+      Context {T : Set}.
+      
+      Record t : Set := {
+        x0 : T;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End MockConnectInfo.
+    End MockConnectInfo.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    Section Impl_core_clone_Clone_for_axum_extract_connect_info_MockConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.MockConnectInfo.t T.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M (axum.extract.connect_info.MockConnectInfo.t T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    End Impl_core_clone_Clone_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    
+    Module  Impl_core_marker_Copy_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    Section Impl_core_marker_Copy_for_axum_extract_connect_info_MockConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.marker.Copy.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.MockConnectInfo.t T.
+      
+      Global Instance ℐ : core.marker.Copy.Trait Self := {
+      }.
+    End Impl_core_marker_Copy_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    End Impl_core_marker_Copy_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    Section Impl_core_fmt_Debug_for_axum_extract_connect_info_MockConnectInfo_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.MockConnectInfo.t T.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    End Impl_core_fmt_Debug_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    
+    Module  Impl_tower_layer_Layer_S_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    Section Impl_tower_layer_Layer_S_for_axum_extract_connect_info_MockConnectInfo_t_T.
+      Context {S T : Set}.
+      
+      Context
+        {ℋ_0 : core.clone.Clone.Trait T}
+        {ℋ_1 : core.marker.Send.Trait T}
+        {ℋ_2 : core.marker.Sync.Trait T}.
+      
+      Definition Self : Set := axum.extract.connect_info.MockConnectInfo.t T.
+      
+      (*
+          type Service = <Extension<Self> as Layer<S>>::Service;
+      *)
+      Definition Service : Set :=
+        tower_layer.Layer.Service
+            (Self := axum.extension.Extension.t Self)
+            (Trait := ltac:(refine _)).
+      
+      (*
+          fn layer(&self, inner: S) -> Self::Service {
+              Extension(self.clone()).layer(inner)
+          }
+      *)
+      Definition layer (self : ref Self) (inner : S) : M Service :=
+        let* self := M.alloc self in
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_layer :
+        Notations.DoubleColon Self "layer" := {
+        Notations.double_colon := layer;
+      }.
+      
+      Global Instance ℐ : tower_layer.Layer.Trait Self (S := S) := {
+        tower_layer.Layer.Service := Service;
+        tower_layer.Layer.layer := layer;
+      }.
+    End Impl_tower_layer_Layer_S_for_axum_extract_connect_info_MockConnectInfo_t_T.
+    End Impl_tower_layer_Layer_S_for_axum_extract_connect_info_MockConnectInfo_t_T.
+  End connect_info.
+  
+  Module path.
+    Module de.
+      Module  PathDeserializer.
+      Section PathDeserializer.
+        Record t : Set := {
+          url_params :
+            ref
+              (slice
+                ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+                *
+                axum.util.PercentDecodedStr.t));
+        }.
+        
+        Definition Get_url_params :=
+          Ref.map
+            (fun α => Some α.(url_params))
+            (fun β α => Some (α <| url_params := β |>)).
+      End PathDeserializer.
+      End PathDeserializer.
+      
+      Module  Impl_axum_extract_path_de_PathDeserializer_t.
+      Section Impl_axum_extract_path_de_PathDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.PathDeserializer.t.
+        
+        (*
+            pub(crate) fn new(url_params: &'de [(Arc<str>, PercentDecodedStr)]) -> Self {
+                PathDeserializer { url_params }
+            }
+        *)
+        Definition new
+            (url_params
+              :
+              ref
+                (slice
+                  ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+                  *
+                  axum.util.PercentDecodedStr.t)))
+            : M Self :=
+          let* url_params := M.alloc url_params in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_new :
+          Notations.DoubleColon Self "new" := {
+          Notations.double_colon := new;
+        }.
+      End Impl_axum_extract_path_de_PathDeserializer_t.
+      End Impl_axum_extract_path_de_PathDeserializer_t.
+      
+      Module  Impl_serde_de_Deserializer_for_axum_extract_path_de_PathDeserializer_t.
+      Section Impl_serde_de_Deserializer_for_axum_extract_path_de_PathDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.PathDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bytes" := {
+          Notations.double_colon := deserialize_bytes (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_option" := {
+          Notations.double_colon := deserialize_option (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_identifier" := {
+          Notations.double_colon := deserialize_identifier (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_ignored_any" := {
+          Notations.double_colon := deserialize_ignored_any (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bool" := {
+          Notations.double_colon := deserialize_bool (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i8" := {
+          Notations.double_colon := deserialize_i8 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i16" := {
+          Notations.double_colon := deserialize_i16 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i32" := {
+          Notations.double_colon := deserialize_i32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i64" := {
+          Notations.double_colon := deserialize_i64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i128" := {
+          Notations.double_colon := deserialize_i128 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u8" := {
+          Notations.double_colon := deserialize_u8 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u16" := {
+          Notations.double_colon := deserialize_u16 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u32" := {
+          Notations.double_colon := deserialize_u32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u64" := {
+          Notations.double_colon := deserialize_u64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u128" := {
+          Notations.double_colon := deserialize_u128 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f32" := {
+          Notations.double_colon := deserialize_f32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f64" := {
+          Notations.double_colon := deserialize_f64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_string" := {
+          Notations.double_colon := deserialize_string (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_byte_buf" := {
+          Notations.double_colon := deserialize_byte_buf (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    if self.url_params.len() != 1 {
+                        return Err(PathDeserializationError::wrong_number_of_parameters()
+                            .got(self.url_params.len())
+                            .expected(1));
+                    }
+        
+                    let value = self.url_params[0].1.parse().map_err(|_| {
+                        PathDeserializationError::new(ErrorKind::ParseError {
+                            value: self.url_params[0].1.as_str().to_owned(),
+                            expected_type: $ty,
+                        })
+                    })?;
+                    visitor.$visit_fn(value)
+                }
+        *)
+        Definition deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_char" := {
+          Notations.double_colon := deserialize_char (V := V);
+        }.
+        
+        (*
+            fn deserialize_any<V>(self, v: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                self.deserialize_str(v)
+            }
+        *)
+        Definition deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (v : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* v := M.alloc v in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_any" := {
+          Notations.double_colon := deserialize_any (V := V);
+        }.
+        
+        (*
+            fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                if self.url_params.len() != 1 {
+                    return Err(PathDeserializationError::wrong_number_of_parameters()
+                        .got(self.url_params.len())
+                        .expected(1));
+                }
+                visitor.visit_borrowed_str(&self.url_params[0].1)
+            }
+        *)
+        Definition deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_str" := {
+          Notations.double_colon := deserialize_str (V := V);
+        }.
+        
+        (*
+            fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_unit()
+            }
+        *)
+        Definition deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit" := {
+          Notations.double_colon := deserialize_unit (V := V);
+        }.
+        
+        (*
+            fn deserialize_unit_struct<V>(
+                self,
+                _name: &'static str,
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_unit()
+            }
+        *)
+        Definition deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit_struct" := {
+          Notations.double_colon := deserialize_unit_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_newtype_struct<V>(
+                self,
+                _name: &'static str,
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_newtype_struct(self)
+            }
+        *)
+        Definition deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_newtype_struct" := {
+          Notations.double_colon := deserialize_newtype_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_seq(SeqDeserializer {
+                    params: self.url_params,
+                    idx: 0,
+                })
+            }
+        *)
+        Definition deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_seq" := {
+          Notations.double_colon := deserialize_seq (V := V);
+        }.
+        
+        (*
+            fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                if self.url_params.len() < len {
+                    return Err(PathDeserializationError::wrong_number_of_parameters()
+                        .got(self.url_params.len())
+                        .expected(len));
+                }
+                visitor.visit_seq(SeqDeserializer {
+                    params: self.url_params,
+                    idx: 0,
+                })
+            }
+        *)
+        Definition deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (len : usize.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* len := M.alloc len in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple" := {
+          Notations.double_colon := deserialize_tuple (V := V);
+        }.
+        
+        (*
+            fn deserialize_tuple_struct<V>(
+                self,
+                _name: &'static str,
+                len: usize,
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                if self.url_params.len() < len {
+                    return Err(PathDeserializationError::wrong_number_of_parameters()
+                        .got(self.url_params.len())
+                        .expected(len));
+                }
+                visitor.visit_seq(SeqDeserializer {
+                    params: self.url_params,
+                    idx: 0,
+                })
+            }
+        *)
+        Definition deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (len : usize.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* len := M.alloc len in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple_struct" := {
+          Notations.double_colon := deserialize_tuple_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_map(MapDeserializer {
+                    params: self.url_params,
+                    value: None,
+                    key: None,
+                })
+            }
+        *)
+        Definition deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_map" := {
+          Notations.double_colon := deserialize_map (V := V);
+        }.
+        
+        (*
+            fn deserialize_struct<V>(
+                self,
+                _name: &'static str,
+                _fields: &'static [&'static str],
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                self.deserialize_map(visitor)
+            }
+        *)
+        Definition deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (_fields : ref (slice (ref str.t)))
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* _fields := M.alloc _fields in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_struct" := {
+          Notations.double_colon := deserialize_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_enum<V>(
+                self,
+                _name: &'static str,
+                _variants: &'static [&'static str],
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                if self.url_params.len() != 1 {
+                    return Err(PathDeserializationError::wrong_number_of_parameters()
+                        .got(self.url_params.len())
+                        .expected(1));
+                }
+        
+                visitor.visit_enum(EnumDeserializer {
+                    value: self.url_params[0].1.clone().into_inner(),
+                })
+            }
+        *)
+        Definition deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (_variants : ref (slice (ref str.t)))
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* _variants := M.alloc _variants in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_enum" := {
+          Notations.double_colon := deserialize_enum (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.Deserializer.Required.Trait Self := {
+          serde.de.Deserializer.Error := Error;
+          serde.de.Deserializer.deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bytes (V := V);
+          serde.de.Deserializer.deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_option (V := V);
+          serde.de.Deserializer.deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_identifier (V := V);
+          serde.de.Deserializer.deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_ignored_any (V := V);
+          serde.de.Deserializer.deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bool (V := V);
+          serde.de.Deserializer.deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i8 (V := V);
+          serde.de.Deserializer.deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i16 (V := V);
+          serde.de.Deserializer.deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i32 (V := V);
+          serde.de.Deserializer.deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i64 (V := V);
+          serde.de.Deserializer.deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_i128 (V := V));
+          serde.de.Deserializer.deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u8 (V := V);
+          serde.de.Deserializer.deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u16 (V := V);
+          serde.de.Deserializer.deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u32 (V := V);
+          serde.de.Deserializer.deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u64 (V := V);
+          serde.de.Deserializer.deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_u128 (V := V));
+          serde.de.Deserializer.deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f32 (V := V);
+          serde.de.Deserializer.deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f64 (V := V);
+          serde.de.Deserializer.deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_string (V := V);
+          serde.de.Deserializer.deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_byte_buf (V := V);
+          serde.de.Deserializer.deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_char (V := V);
+          serde.de.Deserializer.deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_any (V := V);
+          serde.de.Deserializer.deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_str (V := V);
+          serde.de.Deserializer.deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit (V := V);
+          serde.de.Deserializer.deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit_struct (V := V);
+          serde.de.Deserializer.deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_newtype_struct (V := V);
+          serde.de.Deserializer.deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_seq (V := V);
+          serde.de.Deserializer.deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple (V := V);
+          serde.de.Deserializer.deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple_struct (V := V);
+          serde.de.Deserializer.deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_map (V := V);
+          serde.de.Deserializer.deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_struct (V := V);
+          serde.de.Deserializer.deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_enum (V := V);
+          serde.de.Deserializer.is_human_readable := Datatypes.None;
+          serde.de.Deserializer.__deserialize_content := Datatypes.None;
+        }.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_PathDeserializer_t.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_PathDeserializer_t.
+      
+      Module  MapDeserializer.
+      Section MapDeserializer.
+        Record t : Set := {
+          params :
+            ref
+              (slice
+                ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+                *
+                axum.util.PercentDecodedStr.t));
+          key : core.option.Option.t axum.extract.path.de.KeyOrIdx.t;
+          value : core.option.Option.t (ref axum.util.PercentDecodedStr.t);
+        }.
+        
+        Definition Get_params :=
+          Ref.map
+            (fun α => Some α.(params))
+            (fun β α => Some (α <| params := β |>)).
+        Definition Get_key :=
+          Ref.map (fun α => Some α.(key)) (fun β α => Some (α <| key := β |>)).
+        Definition Get_value :=
+          Ref.map
+            (fun α => Some α.(value))
+            (fun β α => Some (α <| value := β |>)).
+      End MapDeserializer.
+      End MapDeserializer.
+      
+      Module  Impl_serde_de_MapAccess_for_axum_extract_path_de_MapDeserializer_t.
+      Section Impl_serde_de_MapAccess_for_axum_extract_path_de_MapDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.MapDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+            fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+            where
+                K: DeserializeSeed<'de>,
+            {
+                match self.params.split_first() {
+                    Some(((key, value), tail)) => {
+                        self.value = Some(value);
+                        self.params = tail;
+                        self.key = Some(KeyOrIdx::Key(key.clone()));
+                        seed.deserialize(KeyDeserializer {
+                            key: Arc::clone(key),
+                        })
+                        .map(Some)
+                    }
+                    None => Ok(None),
+                }
+            }
+        *)
+        Definition next_key_seed
+            {K : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait K}
+            (self : mut_ref Self)
+            (seed : K)
+            :
               M
                 (core.result.Result.t
-                  (axum.json.Json.t
-                    async_openai.types.assistant.AssistantObject.t)
-                  (http.status.StatusCode.t * alloc.string.String.t))
-          
+                  (core.option.Option.t K::type["Value"].t)
+                  Error) :=
+          let* self := M.alloc self in
+          let* seed := M.alloc seed in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_next_key_seed
+            {K : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait K} :
+          Notations.DoubleColon Self "next_key_seed" := {
+          Notations.double_colon := next_key_seed (K := K);
+        }.
+        
+        (*
+            fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+            where
+                V: DeserializeSeed<'de>,
+            {
+                match self.value.take() {
+                    Some(value) => seed.deserialize(ValueDeserializer {
+                        key: self.key.take(),
+                        value,
+                    }),
+                    None => Err(PathDeserializationError::custom("value is missing")),
+                }
+            }
+        *)
+        Definition next_value_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V}
+            (self : mut_ref Self)
+            (seed : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* seed := M.alloc seed in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_next_value_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V} :
+          Notations.DoubleColon Self "next_value_seed" := {
+          Notations.double_colon := next_value_seed (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.MapAccess.Required.Trait Self := {
+          serde.de.MapAccess.Error := Error;
+          serde.de.MapAccess.next_key_seed
+            {K : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait K} :=
+            next_key_seed (K := K);
+          serde.de.MapAccess.next_value_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V} :=
+            next_value_seed (V := V);
+          serde.de.MapAccess.next_entry_seed := Datatypes.None;
+          serde.de.MapAccess.next_key := Datatypes.None;
+          serde.de.MapAccess.next_value := Datatypes.None;
+          serde.de.MapAccess.next_entry := Datatypes.None;
+          serde.de.MapAccess.size_hint := Datatypes.None;
+        }.
+      End Impl_serde_de_MapAccess_for_axum_extract_path_de_MapDeserializer_t.
+      End Impl_serde_de_MapAccess_for_axum_extract_path_de_MapDeserializer_t.
+      
+      Module  KeyDeserializer.
+      Section KeyDeserializer.
+        Record t : Set := {
+          key : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+        }.
+        
+        Definition Get_key :=
+          Ref.map (fun α => Some α.(key)) (fun β α => Some (α <| key := β |>)).
+      End KeyDeserializer.
+      End KeyDeserializer.
+      
+      Module  Impl_serde_de_Deserializer_for_axum_extract_path_de_KeyDeserializer_t.
+      Section Impl_serde_de_Deserializer_for_axum_extract_path_de_KeyDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.KeyDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    visitor.visit_str(&self.key)
+                }
+        *)
+        Definition deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_identifier" := {
+          Notations.double_colon := deserialize_identifier (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    visitor.visit_str(&self.key)
+                }
+        *)
+        Definition deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_str" := {
+          Notations.double_colon := deserialize_str (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    visitor.visit_str(&self.key)
+                }
+        *)
+        Definition deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_string" := {
+          Notations.double_colon := deserialize_string (V := V);
+        }.
+        
+        (*
+            fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::custom("Unexpected key type"))
+            }
+        *)
+        Definition deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_any" := {
+          Notations.double_colon := deserialize_any (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bool" := {
+          Notations.double_colon := deserialize_bool (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i8" := {
+          Notations.double_colon := deserialize_i8 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i16" := {
+          Notations.double_colon := deserialize_i16 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i32" := {
+          Notations.double_colon := deserialize_i32 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i64" := {
+          Notations.double_colon := deserialize_i64 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i128" := {
+          Notations.double_colon := deserialize_i128 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u8" := {
+          Notations.double_colon := deserialize_u8 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u16" := {
+          Notations.double_colon := deserialize_u16 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u32" := {
+          Notations.double_colon := deserialize_u32 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u64" := {
+          Notations.double_colon := deserialize_u64 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u128" := {
+          Notations.double_colon := deserialize_u128 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f32" := {
+          Notations.double_colon := deserialize_f32 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f64" := {
+          Notations.double_colon := deserialize_f64 (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_char" := {
+          Notations.double_colon := deserialize_char (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bytes" := {
+          Notations.double_colon := deserialize_bytes (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_byte_buf" := {
+          Notations.double_colon := deserialize_byte_buf (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_option" := {
+          Notations.double_colon := deserialize_option (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit" := {
+          Notations.double_colon := deserialize_unit (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* name := M.alloc name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit_struct" := {
+          Notations.double_colon := deserialize_unit_struct (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_seq" := {
+          Notations.double_colon := deserialize_seq (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (len : usize.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* len := M.alloc len in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple" := {
+          Notations.double_colon := deserialize_tuple (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (name : ref str.t)
+            (len : usize.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* name := M.alloc name in
+          let* len := M.alloc len in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple_struct" := {
+          Notations.double_colon := deserialize_tuple_struct (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_map" := {
+          Notations.double_colon := deserialize_map (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* name := M.alloc name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_newtype_struct" := {
+          Notations.double_colon := deserialize_newtype_struct (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (name : ref str.t)
+            (fields : ref (slice (ref str.t)))
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* name := M.alloc name in
+          let* fields := M.alloc fields in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_struct" := {
+          Notations.double_colon := deserialize_struct (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (name : ref str.t)
+            (variants : ref (slice (ref str.t)))
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* name := M.alloc name in
+          let* variants := M.alloc variants in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_enum" := {
+          Notations.double_colon := deserialize_enum (V := V);
+        }.
+        
+        (*
+                fn $func<$v>(self, $($arg: $ty,)* visitor: $v) -> $crate::__private::Result<$v::Value, Self::Error>
+                where
+                    $v: $crate::de::Visitor<$l>,
+                {
+                    $(
+                        let _ = $arg;
+                    )*
+                    self.deserialize_any(visitor)
+                }
+        *)
+        Definition deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_ignored_any" := {
+          Notations.double_colon := deserialize_ignored_any (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.Deserializer.Required.Trait Self := {
+          serde.de.Deserializer.Error := Error;
+          serde.de.Deserializer.deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_identifier (V := V);
+          serde.de.Deserializer.deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_str (V := V);
+          serde.de.Deserializer.deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_string (V := V);
+          serde.de.Deserializer.deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_any (V := V);
+          serde.de.Deserializer.deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bool (V := V);
+          serde.de.Deserializer.deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i8 (V := V);
+          serde.de.Deserializer.deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i16 (V := V);
+          serde.de.Deserializer.deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i32 (V := V);
+          serde.de.Deserializer.deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i64 (V := V);
+          serde.de.Deserializer.deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_i128 (V := V));
+          serde.de.Deserializer.deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u8 (V := V);
+          serde.de.Deserializer.deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u16 (V := V);
+          serde.de.Deserializer.deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u32 (V := V);
+          serde.de.Deserializer.deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u64 (V := V);
+          serde.de.Deserializer.deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_u128 (V := V));
+          serde.de.Deserializer.deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f32 (V := V);
+          serde.de.Deserializer.deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f64 (V := V);
+          serde.de.Deserializer.deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_char (V := V);
+          serde.de.Deserializer.deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bytes (V := V);
+          serde.de.Deserializer.deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_byte_buf (V := V);
+          serde.de.Deserializer.deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_option (V := V);
+          serde.de.Deserializer.deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit (V := V);
+          serde.de.Deserializer.deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit_struct (V := V);
+          serde.de.Deserializer.deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_seq (V := V);
+          serde.de.Deserializer.deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple (V := V);
+          serde.de.Deserializer.deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple_struct (V := V);
+          serde.de.Deserializer.deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_map (V := V);
+          serde.de.Deserializer.deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_newtype_struct (V := V);
+          serde.de.Deserializer.deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_struct (V := V);
+          serde.de.Deserializer.deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_enum (V := V);
+          serde.de.Deserializer.deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_ignored_any (V := V);
+          serde.de.Deserializer.is_human_readable := Datatypes.None;
+          serde.de.Deserializer.__deserialize_content := Datatypes.None;
+        }.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_KeyDeserializer_t.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_KeyDeserializer_t.
+      
+      Module  ValueDeserializer.
+      Section ValueDeserializer.
+        Record t : Set := {
+          key : core.option.Option.t axum.extract.path.de.KeyOrIdx.t;
+          value : ref axum.util.PercentDecodedStr.t;
+        }.
+        
+        Definition Get_key :=
+          Ref.map (fun α => Some α.(key)) (fun β α => Some (α <| key := β |>)).
+        Definition Get_value :=
+          Ref.map
+            (fun α => Some α.(value))
+            (fun β α => Some (α <| value := β |>)).
+      End ValueDeserializer.
+      End ValueDeserializer.
+      
+      Module  Impl_core_fmt_Debug_for_axum_extract_path_de_ValueDeserializer_t.
+      Section Impl_core_fmt_Debug_for_axum_extract_path_de_ValueDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.ValueDeserializer.t.
+        
+        (*
+        Debug
+        *)
+        Definition fmt
+            (self : ref Self)
+            (f : mut_ref core.fmt.Formatter.t)
+            : M ltac:(core.fmt.Result) :=
+          let* self := M.alloc self in
+          let* f := M.alloc f in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_fmt :
+          Notations.DoubleColon Self "fmt" := {
+          Notations.double_colon := fmt;
+        }.
+        
+        Global Instance ℐ : core.fmt.Debug.Trait Self := {
+          core.fmt.Debug.fmt := fmt;
+        }.
+      End Impl_core_fmt_Debug_for_axum_extract_path_de_ValueDeserializer_t.
+      End Impl_core_fmt_Debug_for_axum_extract_path_de_ValueDeserializer_t.
+      
+      Module  Impl_serde_de_Deserializer_for_axum_extract_path_de_ValueDeserializer_t.
+      Section Impl_serde_de_Deserializer_for_axum_extract_path_de_ValueDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.ValueDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_map" := {
+          Notations.double_colon := deserialize_map (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(self, _: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+        *)
+        Definition deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (Pattern : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* Pattern := M.alloc Pattern in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_identifier" := {
+          Notations.double_colon := deserialize_identifier (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bool" := {
+          Notations.double_colon := deserialize_bool (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i8" := {
+          Notations.double_colon := deserialize_i8 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i16" := {
+          Notations.double_colon := deserialize_i16 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i32" := {
+          Notations.double_colon := deserialize_i32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i64" := {
+          Notations.double_colon := deserialize_i64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_i128" := {
+          Notations.double_colon := deserialize_i128 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u8" := {
+          Notations.double_colon := deserialize_u8 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u16" := {
+          Notations.double_colon := deserialize_u16 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u32" := {
+          Notations.double_colon := deserialize_u32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u64" := {
+          Notations.double_colon := deserialize_u64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_u128" := {
+          Notations.double_colon := deserialize_u128 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f32" := {
+          Notations.double_colon := deserialize_f32 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_f64" := {
+          Notations.double_colon := deserialize_f64 (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_string" := {
+          Notations.double_colon := deserialize_string (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_byte_buf" := {
+          Notations.double_colon := deserialize_byte_buf (V := V);
+        }.
+        
+        (*
+                fn $trait_fn<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
+                where
+                    V: Visitor<'de>,
+                {
+                    let v = self.value.parse().map_err(|_| {
+                        if let Some(key) = self.key.take() {
+                            let kind = match key {
+                                KeyOrIdx::Key(key) => ErrorKind::ParseErrorAtKey {
+                                    key: key.to_string(),
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                                KeyOrIdx::Idx { idx: index, key: _ } => ErrorKind::ParseErrorAtIndex {
+                                    index,
+                                    value: self.value.as_str().to_owned(),
+                                    expected_type: $ty,
+                                },
+                            };
+                            PathDeserializationError::new(kind)
+                        } else {
+                            PathDeserializationError::new(ErrorKind::ParseError {
+                                value: self.value.as_str().to_owned(),
+                                expected_type: $ty,
+                            })
+                        }
+                    })?;
+                    visitor.$visit_fn(v)
+                }
+        *)
+        Definition deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_char" := {
+          Notations.double_colon := deserialize_char (V := V);
+        }.
+        
+        (*
+            fn deserialize_any<V>(self, v: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                self.deserialize_str(v)
+            }
+        *)
+        Definition deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (v : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* v := M.alloc v in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_any" := {
+          Notations.double_colon := deserialize_any (V := V);
+        }.
+        
+        (*
+            fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_borrowed_str(self.value)
+            }
+        *)
+        Definition deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_str" := {
+          Notations.double_colon := deserialize_str (V := V);
+        }.
+        
+        (*
+            fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_borrowed_bytes(self.value.as_bytes())
+            }
+        *)
+        Definition deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_bytes" := {
+          Notations.double_colon := deserialize_bytes (V := V);
+        }.
+        
+        (*
+            fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_some(self)
+            }
+        *)
+        Definition deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_option" := {
+          Notations.double_colon := deserialize_option (V := V);
+        }.
+        
+        (*
+            fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_unit()
+            }
+        *)
+        Definition deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit" := {
+          Notations.double_colon := deserialize_unit (V := V);
+        }.
+        
+        (*
+            fn deserialize_unit_struct<V>(
+                self,
+                _name: &'static str,
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_unit()
+            }
+        *)
+        Definition deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_unit_struct" := {
+          Notations.double_colon := deserialize_unit_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_newtype_struct<V>(
+                self,
+                _name: &'static str,
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_newtype_struct(self)
+            }
+        *)
+        Definition deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_newtype_struct" := {
+          Notations.double_colon := deserialize_newtype_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                struct PairDeserializer<'de> {
+                    key: Option<KeyOrIdx>,
+                    value: Option<&'de PercentDecodedStr>,
+                }
+        
+                impl<'de> SeqAccess<'de> for PairDeserializer<'de> {
+                    type Error = PathDeserializationError;
+        
+                    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+                    where
+                        T: DeserializeSeed<'de>,
+                    {
+                        match self.key.take() {
+                            Some(KeyOrIdx::Idx { idx: _, key }) => {
+                                return seed.deserialize(KeyDeserializer { key }).map(Some);
+                            }
+                            // `KeyOrIdx::Key` is only used when deserializing maps so `deserialize_seq`
+                            // wouldn't be called for that
+                            Some(KeyOrIdx::Key(_)) => unreachable!(),
+                            None => {}
+                        };
+        
+                        self.value
+                            .take()
+                            .map(|value| seed.deserialize(ValueDeserializer { key: None, value }))
+                            .transpose()
+                    }
+                }
+        
+                if len == 2 {
+                    match self.key {
+                        Some(key) => visitor.visit_seq(PairDeserializer {
+                            key: Some(key),
+                            value: Some(self.value),
+                        }),
+                        // `self.key` is only `None` when deserializing maps so `deserialize_seq`
+                        // wouldn't be called for that
+                        None => unreachable!(),
+                    }
+                } else {
+                    Err(PathDeserializationError::unsupported_type(type_name::<
+                        V::Value,
+                    >()))
+                }
+            }
+        *)
+        Definition deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (len : usize.t)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* len := M.alloc len in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple" := {
+          Notations.double_colon := deserialize_tuple (V := V);
+        }.
+        
+        (*
+            fn deserialize_seq<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(type_name::<
+                    V::Value,
+                >()))
+            }
+        *)
+        Definition deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_seq" := {
+          Notations.double_colon := deserialize_seq (V := V);
+        }.
+        
+        (*
+            fn deserialize_tuple_struct<V>(
+                self,
+                _name: &'static str,
+                _len: usize,
+                _visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(type_name::<
+                    V::Value,
+                >()))
+            }
+        *)
+        Definition deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (_len : usize.t)
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* _len := M.alloc _len in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_tuple_struct" := {
+          Notations.double_colon := deserialize_tuple_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_struct<V>(
+                self,
+                _name: &'static str,
+                _fields: &'static [&'static str],
+                _visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(type_name::<
+                    V::Value,
+                >()))
+            }
+        *)
+        Definition deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (_fields : ref (slice (ref str.t)))
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* _fields := M.alloc _fields in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_struct" := {
+          Notations.double_colon := deserialize_struct (V := V);
+        }.
+        
+        (*
+            fn deserialize_enum<V>(
+                self,
+                _name: &'static str,
+                _variants: &'static [&'static str],
+                visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_enum(EnumDeserializer {
+                    value: self.value.clone().into_inner(),
+                })
+            }
+        *)
+        Definition deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_name : ref str.t)
+            (_variants : ref (slice (ref str.t)))
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _name := M.alloc _name in
+          let* _variants := M.alloc _variants in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_enum" := {
+          Notations.double_colon := deserialize_enum (V := V);
+        }.
+        
+        (*
+            fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.visit_unit()
+            }
+        *)
+        Definition deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* visitor := M.alloc visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "deserialize_ignored_any" := {
+          Notations.double_colon := deserialize_ignored_any (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.Deserializer.Required.Trait Self := {
+          serde.de.Deserializer.Error := Error;
+          serde.de.Deserializer.deserialize_map
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_map (V := V);
+          serde.de.Deserializer.deserialize_identifier
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_identifier (V := V);
+          serde.de.Deserializer.deserialize_bool
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bool (V := V);
+          serde.de.Deserializer.deserialize_i8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i8 (V := V);
+          serde.de.Deserializer.deserialize_i16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i16 (V := V);
+          serde.de.Deserializer.deserialize_i32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i32 (V := V);
+          serde.de.Deserializer.deserialize_i64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_i64 (V := V);
+          serde.de.Deserializer.deserialize_i128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_i128 (V := V));
+          serde.de.Deserializer.deserialize_u8
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u8 (V := V);
+          serde.de.Deserializer.deserialize_u16
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u16 (V := V);
+          serde.de.Deserializer.deserialize_u32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u32 (V := V);
+          serde.de.Deserializer.deserialize_u64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_u64 (V := V);
+          serde.de.Deserializer.deserialize_u128
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            Datatypes.Some (deserialize_u128 (V := V));
+          serde.de.Deserializer.deserialize_f32
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f32 (V := V);
+          serde.de.Deserializer.deserialize_f64
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_f64 (V := V);
+          serde.de.Deserializer.deserialize_string
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_string (V := V);
+          serde.de.Deserializer.deserialize_byte_buf
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_byte_buf (V := V);
+          serde.de.Deserializer.deserialize_char
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_char (V := V);
+          serde.de.Deserializer.deserialize_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_any (V := V);
+          serde.de.Deserializer.deserialize_str
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_str (V := V);
+          serde.de.Deserializer.deserialize_bytes
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_bytes (V := V);
+          serde.de.Deserializer.deserialize_option
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_option (V := V);
+          serde.de.Deserializer.deserialize_unit
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit (V := V);
+          serde.de.Deserializer.deserialize_unit_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_unit_struct (V := V);
+          serde.de.Deserializer.deserialize_newtype_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_newtype_struct (V := V);
+          serde.de.Deserializer.deserialize_tuple
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple (V := V);
+          serde.de.Deserializer.deserialize_seq
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_seq (V := V);
+          serde.de.Deserializer.deserialize_tuple_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_tuple_struct (V := V);
+          serde.de.Deserializer.deserialize_struct
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_struct (V := V);
+          serde.de.Deserializer.deserialize_enum
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_enum (V := V);
+          serde.de.Deserializer.deserialize_ignored_any
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            deserialize_ignored_any (V := V);
+          serde.de.Deserializer.is_human_readable := Datatypes.None;
+          serde.de.Deserializer.__deserialize_content := Datatypes.None;
+        }.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_ValueDeserializer_t.
+      End Impl_serde_de_Deserializer_for_axum_extract_path_de_ValueDeserializer_t.
+      
+      Module  EnumDeserializer.
+      Section EnumDeserializer.
+        Record t : Set := {
+          value : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+        }.
+        
+        Definition Get_value :=
+          Ref.map
+            (fun α => Some α.(value))
+            (fun β α => Some (α <| value := β |>)).
+      End EnumDeserializer.
+      End EnumDeserializer.
+      
+      Module  Impl_serde_de_EnumAccess_for_axum_extract_path_de_EnumDeserializer_t.
+      Section Impl_serde_de_EnumAccess_for_axum_extract_path_de_EnumDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.EnumDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+            type Variant = UnitVariant;
+        *)
+        Definition Variant : Set := axum.extract.path.de.UnitVariant.t.
+        
+        (*
+            fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
+            where
+                V: de::DeserializeSeed<'de>,
+            {
+                Ok((
+                    seed.deserialize(KeyDeserializer { key: self.value })?,
+                    UnitVariant,
+                ))
+            }
+        *)
+        Definition variant_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V}
+            (self : Self)
+            (seed : V)
+            : M (core.result.Result.t (V::type["Value"].t * Variant) Error) :=
+          let* self := M.alloc self in
+          let* seed := M.alloc seed in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_variant_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V} :
+          Notations.DoubleColon Self "variant_seed" := {
+          Notations.double_colon := variant_seed (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.EnumAccess.Required.Trait Self := {
+          serde.de.EnumAccess.Error := Error;
+          serde.de.EnumAccess.Variant := Variant;
+          serde.de.EnumAccess.variant_seed
+            {V : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait V} :=
+            variant_seed (V := V);
+          serde.de.EnumAccess.variant := Datatypes.None;
+        }.
+      End Impl_serde_de_EnumAccess_for_axum_extract_path_de_EnumDeserializer_t.
+      End Impl_serde_de_EnumAccess_for_axum_extract_path_de_EnumDeserializer_t.
+      
+      Module  UnitVariant.
+      Section UnitVariant.
+        Inductive t : Set := Build.
+      End UnitVariant.
+      End UnitVariant.
+      
+      Module  Impl_serde_de_VariantAccess_for_axum_extract_path_de_UnitVariant_t.
+      Section Impl_serde_de_VariantAccess_for_axum_extract_path_de_UnitVariant_t.
+        Definition Self : Set := axum.extract.path.de.UnitVariant.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+            fn unit_variant(self) -> Result<(), Self::Error> {
+                Ok(())
+            }
+        *)
+        Definition unit_variant
+            (self : Self)
+            : M (core.result.Result.t unit Error) :=
+          let* self := M.alloc self in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_unit_variant :
+          Notations.DoubleColon Self "unit_variant" := {
+          Notations.double_colon := unit_variant;
+        }.
+        
+        (*
+            fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value, Self::Error>
+            where
+                T: DeserializeSeed<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(
+                    "newtype enum variant",
+                ))
+            }
+        *)
+        Definition newtype_variant_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T}
+            (self : Self)
+            (_seed : T)
+            : M (core.result.Result.t T::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _seed := M.alloc _seed in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_newtype_variant_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T} :
+          Notations.DoubleColon Self "newtype_variant_seed" := {
+          Notations.double_colon := newtype_variant_seed (T := T);
+        }.
+        
+        (*
+            fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(
+                    "tuple enum variant",
+                ))
+            }
+        *)
+        Definition tuple_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_len : usize.t)
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _len := M.alloc _len in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_tuple_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "tuple_variant" := {
+          Notations.double_colon := tuple_variant (V := V);
+        }.
+        
+        (*
+            fn struct_variant<V>(
+                self,
+                _fields: &'static [&'static str],
+                _visitor: V,
+            ) -> Result<V::Value, Self::Error>
+            where
+                V: Visitor<'de>,
+            {
+                Err(PathDeserializationError::unsupported_type(
+                    "struct enum variant",
+                ))
+            }
+        *)
+        Definition struct_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V}
+            (self : Self)
+            (_fields : ref (slice (ref str.t)))
+            (_visitor : V)
+            : M (core.result.Result.t V::type["Value"].t Error) :=
+          let* self := M.alloc self in
+          let* _fields := M.alloc _fields in
+          let* _visitor := M.alloc _visitor in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_struct_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :
+          Notations.DoubleColon Self "struct_variant" := {
+          Notations.double_colon := struct_variant (V := V);
+        }.
+        
+        Global Instance ℐ : serde.de.VariantAccess.Required.Trait Self := {
+          serde.de.VariantAccess.Error := Error;
+          serde.de.VariantAccess.unit_variant := unit_variant;
+          serde.de.VariantAccess.newtype_variant_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T} :=
+            newtype_variant_seed (T := T);
+          serde.de.VariantAccess.tuple_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            tuple_variant (V := V);
+          serde.de.VariantAccess.struct_variant
+            {V : Set}
+            {ℋ_0 : serde.de.Visitor.Trait V} :=
+            struct_variant (V := V);
+          serde.de.VariantAccess.newtype_variant := Datatypes.None;
+        }.
+      End Impl_serde_de_VariantAccess_for_axum_extract_path_de_UnitVariant_t.
+      End Impl_serde_de_VariantAccess_for_axum_extract_path_de_UnitVariant_t.
+      
+      Module  SeqDeserializer.
+      Section SeqDeserializer.
+        Record t : Set := {
+          params :
+            ref
+              (slice
+                ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+                *
+                axum.util.PercentDecodedStr.t));
+          idx : usize.t;
+        }.
+        
+        Definition Get_params :=
+          Ref.map
+            (fun α => Some α.(params))
+            (fun β α => Some (α <| params := β |>)).
+        Definition Get_idx :=
+          Ref.map (fun α => Some α.(idx)) (fun β α => Some (α <| idx := β |>)).
+      End SeqDeserializer.
+      End SeqDeserializer.
+      
+      Module  Impl_serde_de_SeqAccess_for_axum_extract_path_de_SeqDeserializer_t.
+      Section Impl_serde_de_SeqAccess_for_axum_extract_path_de_SeqDeserializer_t.
+        Definition Self : Set := axum.extract.path.de.SeqDeserializer.t.
+        
+        (*
+            type Error = PathDeserializationError;
+        *)
+        Definition Error : Set := axum.extract.path.PathDeserializationError.t.
+        
+        (*
+            fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+            where
+                T: DeserializeSeed<'de>,
+            {
+                match self.params.split_first() {
+                    Some(((key, value), tail)) => {
+                        self.params = tail;
+                        let idx = self.idx;
+                        self.idx += 1;
+                        Ok(Some(seed.deserialize(ValueDeserializer {
+                            key: Some(KeyOrIdx::Idx {
+                                idx,
+                                key: key.clone(),
+                            }),
+                            value,
+                        })?))
+                    }
+                    None => Ok(None),
+                }
+            }
+        *)
+        Definition next_element_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T}
+            (self : mut_ref Self)
+            (seed : T)
+            :
+              M
+                (core.result.Result.t
+                  (core.option.Option.t T::type["Value"].t)
+                  Error) :=
+          let* self := M.alloc self in
+          let* seed := M.alloc seed in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_next_element_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T} :
+          Notations.DoubleColon Self "next_element_seed" := {
+          Notations.double_colon := next_element_seed (T := T);
+        }.
+        
+        Global Instance ℐ : serde.de.SeqAccess.Required.Trait Self := {
+          serde.de.SeqAccess.Error := Error;
+          serde.de.SeqAccess.next_element_seed
+            {T : Set}
+            {ℋ_0 : serde.de.DeserializeSeed.Trait T} :=
+            next_element_seed (T := T);
+          serde.de.SeqAccess.next_element := Datatypes.None;
+          serde.de.SeqAccess.size_hint := Datatypes.None;
+        }.
+      End Impl_serde_de_SeqAccess_for_axum_extract_path_de_SeqDeserializer_t.
+      End Impl_serde_de_SeqAccess_for_axum_extract_path_de_SeqDeserializer_t.
+      
+      Module KeyOrIdx.
+        Module Idx.
+          Record t : Set := {
+            idx : usize.t;
+            key : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+          }.
+        End Idx.
+        
+        Inductive t : Set :=
+        | Key (_ : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+        | Idx (_ : Idx.t).
+        
+        Definition Get_Key_0 :=
+          Ref.map
+            (fun α => match α with | Key α0 => Some α0 | _ => None end)
+            (fun β α => match α with | Key _ => Some (Key β) | _ => None end).
+        
+        Definition Get_Idx_idx :=
+          Ref.map
+            (fun α => match α with | Idx α => Some α.(Idx.idx) | _ => None end)
+            (fun β α =>
+              match α with
+              | Idx α => Some (Idx (α <| Idx.idx := β |>))
+              | _ => None
+              end).
+        
+        Definition Get_Idx_key :=
+          Ref.map
+            (fun α => match α with | Idx α => Some α.(Idx.key) | _ => None end)
+            (fun β α =>
+              match α with
+              | Idx α => Some (Idx (α <| Idx.key := β |>))
+              | _ => None
+              end).
+      End KeyOrIdx.
+      
+      Module  Impl_core_fmt_Debug_for_axum_extract_path_de_KeyOrIdx_t.
+      Section Impl_core_fmt_Debug_for_axum_extract_path_de_KeyOrIdx_t.
+        Definition Self : Set := axum.extract.path.de.KeyOrIdx.t.
+        
+        (*
+        Debug
+        *)
+        Definition fmt
+            (self : ref Self)
+            (f : mut_ref core.fmt.Formatter.t)
+            : M ltac:(core.fmt.Result) :=
+          let* self := M.alloc self in
+          let* f := M.alloc f in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_fmt :
+          Notations.DoubleColon Self "fmt" := {
+          Notations.double_colon := fmt;
+        }.
+        
+        Global Instance ℐ : core.fmt.Debug.Trait Self := {
+          core.fmt.Debug.fmt := fmt;
+        }.
+      End Impl_core_fmt_Debug_for_axum_extract_path_de_KeyOrIdx_t.
+      End Impl_core_fmt_Debug_for_axum_extract_path_de_KeyOrIdx_t.
+      
+      Module  Impl_core_clone_Clone_for_axum_extract_path_de_KeyOrIdx_t.
+      Section Impl_core_clone_Clone_for_axum_extract_path_de_KeyOrIdx_t.
+        Definition Self : Set := axum.extract.path.de.KeyOrIdx.t.
+        
+        (*
+        Clone
+        *)
+        Definition clone
+            (self : ref Self)
+            : M axum.extract.path.de.KeyOrIdx.t :=
+          let* self := M.alloc self in
+          M.read foo.
+        
+        Global Instance AssociatedFunction_clone :
+          Notations.DoubleColon Self "clone" := {
+          Notations.double_colon := clone;
+        }.
+        
+        Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+          core.clone.Clone.clone := clone;
+          core.clone.Clone.clone_from := Datatypes.None;
+        }.
+      End Impl_core_clone_Clone_for_axum_extract_path_de_KeyOrIdx_t.
+      End Impl_core_clone_Clone_for_axum_extract_path_de_KeyOrIdx_t.
+    End de.
+    
+    Module  Path.
+    Section Path.
+      Context {T : Set}.
+      
+      Record t : Set := {
+        x0 : T;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End Path.
+    End Path.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_Path_t_T.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_Path_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait T}.
+      
+      Definition Self : Set := axum.extract.path.Path.t T.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_Path_t_T.
+    End Impl_core_fmt_Debug_for_axum_extract_path_Path_t_T.
+    
+    Module  Impl_core_ops_deref_Deref_for_axum_extract_path_Path_t_T.
+    Section Impl_core_ops_deref_Deref_for_axum_extract_path_Path_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.path.Path.t T.
+      
+      (*
+                  type Target = T;
+      *)
+      Definition Target : Set := T.
+      
+      (*
+                  fn deref(&self) -> &Self::Target {
+                      &self.0
+                  }
+      *)
+      Definition deref (self : ref Self) : M (ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref :
+        Notations.DoubleColon Self "deref" := {
+        Notations.double_colon := deref;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.Deref.Trait Self := {
+        core.ops.deref.Deref.Target := Target;
+        core.ops.deref.Deref.deref := deref;
+      }.
+    End Impl_core_ops_deref_Deref_for_axum_extract_path_Path_t_T.
+    End Impl_core_ops_deref_Deref_for_axum_extract_path_Path_t_T.
+    
+    Module  Impl_core_ops_deref_DerefMut_for_axum_extract_path_Path_t_T.
+    Section Impl_core_ops_deref_DerefMut_for_axum_extract_path_Path_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.path.Path.t T.
+      
+      (*
+                  fn deref_mut(&mut self) -> &mut Self::Target {
+                      &mut self.0
+                  }
+      *)
+      Definition deref_mut (self : mut_ref Self) : M (mut_ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref_mut :
+        Notations.DoubleColon Self "deref_mut" := {
+        Notations.double_colon := deref_mut;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.DerefMut.Trait Self := {
+        core.ops.deref.DerefMut.deref_mut := deref_mut;
+      }.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_path_Path_t_T.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_path_Path_t_T.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_Path_t_T.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_Path_t_T.
+      Context {T S : Set}.
+      
+      Context
+        {ℋ_0 : serde.de.DeserializeOwned.Trait T}
+        {ℋ_1 : core.marker.Send.Trait T}
+        {ℋ_2 : core.marker.Send.Trait S}
+        {ℋ_3 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.path.Path.t T.
+      
+      (*
+          type Rejection = PathRejection;
+      *)
+      Definition Rejection : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              let params = match parts.extensions.get::<UrlParams>() {
+                  Some(UrlParams::Params(params)) => params,
+                  Some(UrlParams::InvalidUtf8InPathParam { key }) => {
+                      let err = PathDeserializationError {
+                          kind: ErrorKind::InvalidUtf8InPathParam {
+                              key: key.to_string(),
+                          },
+                      };
+                      let err = FailedToDeserializePathParams(err);
+                      return Err(err.into());
+                  }
+                  None => {
+                      return Err(MissingPathParams.into());
+                  }
+              };
+      
+              T::deserialize(de::PathDeserializer::new(params))
+                  .map_err(|err| {
+                      PathRejection::FailedToDeserializePathParams(FailedToDeserializePathParams(err))
+                  })
+                  .map(Path)
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_Path_t_T.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_Path_t_T.
+    
+    Module  PathDeserializationError.
+    Section PathDeserializationError.
+      Record t : Set := {
+        kind : axum.extract.path.ErrorKind.t;
+      }.
+      
+      Definition Get_kind :=
+        Ref.map (fun α => Some α.(kind)) (fun β α => Some (α <| kind := β |>)).
+    End PathDeserializationError.
+    End PathDeserializationError.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_PathDeserializationError_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_PathDeserializationError_t.
+      Definition Self : Set := axum.extract.path.PathDeserializationError.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_PathDeserializationError_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_PathDeserializationError_t.
+    
+    Module  Impl_axum_extract_path_PathDeserializationError_t.
+    Section Impl_axum_extract_path_PathDeserializationError_t.
+      Definition Self : Set := axum.extract.path.PathDeserializationError.t.
+      
+      (*
+          pub(super) fn new(kind: ErrorKind) -> Self {
+              Self { kind }
+          }
+      *)
+      Definition new (kind : axum.extract.path.ErrorKind.t) : M Self :=
+        let* kind := M.alloc kind in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_new :
+        Notations.DoubleColon Self "new" := {
+        Notations.double_colon := new;
+      }.
+      
+      (*
+          pub(super) fn wrong_number_of_parameters() -> WrongNumberOfParameters<()> {
+              WrongNumberOfParameters { got: () }
+          }
+      *)
+      Definition wrong_number_of_parameters
+          : M (axum.extract.path.WrongNumberOfParameters.t unit) :=
+        M.read foo.
+      
+      Global Instance AssociatedFunction_wrong_number_of_parameters :
+        Notations.DoubleColon Self "wrong_number_of_parameters" := {
+        Notations.double_colon := wrong_number_of_parameters;
+      }.
+      
+      (*
+          pub(super) fn unsupported_type(name: &'static str) -> Self {
+              Self::new(ErrorKind::UnsupportedType { name })
+          }
+      *)
+      Definition unsupported_type (name : ref str.t) : M Self :=
+        let* name := M.alloc name in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_unsupported_type :
+        Notations.DoubleColon Self "unsupported_type" := {
+        Notations.double_colon := unsupported_type;
+      }.
+    End Impl_axum_extract_path_PathDeserializationError_t.
+    End Impl_axum_extract_path_PathDeserializationError_t.
+    
+    Module  WrongNumberOfParameters.
+    Section WrongNumberOfParameters.
+      Context (G : Set).
+      
+      Record t : Set := {
+        got : G;
+      }.
+      
+      Definition Get_got :=
+        Ref.map (fun α => Some α.(got)) (fun β α => Some (α <| got := β |>)).
+    End WrongNumberOfParameters.
+    End WrongNumberOfParameters.
+    
+    Module  Impl_axum_extract_path_WrongNumberOfParameters_t_G.
+    Section Impl_axum_extract_path_WrongNumberOfParameters_t_G.
+      Context {G : Set}.
+      
+      Definition Self : Set := axum.extract.path.WrongNumberOfParameters.t G.
+      
+      (*
+          pub(super) fn got<G2>(self, got: G2) -> WrongNumberOfParameters<G2> {
+              WrongNumberOfParameters { got }
+          }
+      *)
+      Definition got
+          {G2 : Set}
+          (self : Self)
+          (got : G2)
+          : M (axum.extract.path.WrongNumberOfParameters.t G2) :=
+        let* self := M.alloc self in
+        let* got := M.alloc got in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_got {G2 : Set} :
+        Notations.DoubleColon Self "got" := {
+        Notations.double_colon := got (G2 := G2);
+      }.
+    End Impl_axum_extract_path_WrongNumberOfParameters_t_G.
+    End Impl_axum_extract_path_WrongNumberOfParameters_t_G.
+    
+    Module  Impl_axum_extract_path_WrongNumberOfParameters_t_usize_t.
+    Section Impl_axum_extract_path_WrongNumberOfParameters_t_usize_t.
+      Definition Self : Set :=
+        axum.extract.path.WrongNumberOfParameters.t usize.t.
+      
+      (*
+          pub(super) fn expected(self, expected: usize) -> PathDeserializationError {
+              PathDeserializationError::new(ErrorKind::WrongNumberOfParameters {
+                  got: self.got,
+                  expected,
+              })
+          }
+      *)
+      Definition expected
+          (self : Self)
+          (expected : usize.t)
+          : M axum.extract.path.PathDeserializationError.t :=
+        let* self := M.alloc self in
+        let* expected := M.alloc expected in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_expected :
+        Notations.DoubleColon Self "expected" := {
+        Notations.double_colon := expected;
+      }.
+    End Impl_axum_extract_path_WrongNumberOfParameters_t_usize_t.
+    End Impl_axum_extract_path_WrongNumberOfParameters_t_usize_t.
+    
+    Module  Impl_serde_de_Error_for_axum_extract_path_PathDeserializationError_t.
+    Section Impl_serde_de_Error_for_axum_extract_path_PathDeserializationError_t.
+      Definition Self : Set := axum.extract.path.PathDeserializationError.t.
+      
+      (*
+          fn custom<T>(msg: T) -> Self
+          where
+              T: fmt::Display,
+          {
+              Self {
+                  kind: ErrorKind::Message(msg.to_string()),
+              }
+          }
+      *)
+      Definition custom
+          {T : Set}
+          {ℋ_0 : core.fmt.Display.Trait T}
+          (msg : T)
+          : M Self :=
+        let* msg := M.alloc msg in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_custom
+          {T : Set}
+          {ℋ_0 : core.fmt.Display.Trait T} :
+        Notations.DoubleColon Self "custom" := {
+        Notations.double_colon := custom (T := T);
+      }.
+      
+      Global Instance ℐ : serde.de.Error.Required.Trait Self := {
+        serde.de.Error.custom {T : Set} {ℋ_0 : core.fmt.Display.Trait T} :=
+          custom (T := T);
+        serde.de.Error.invalid_type := Datatypes.None;
+        serde.de.Error.invalid_value := Datatypes.None;
+        serde.de.Error.invalid_length := Datatypes.None;
+        serde.de.Error.unknown_variant := Datatypes.None;
+        serde.de.Error.unknown_field := Datatypes.None;
+        serde.de.Error.missing_field := Datatypes.None;
+        serde.de.Error.duplicate_field := Datatypes.None;
+      }.
+    End Impl_serde_de_Error_for_axum_extract_path_PathDeserializationError_t.
+    End Impl_serde_de_Error_for_axum_extract_path_PathDeserializationError_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_path_PathDeserializationError_t.
+    Section Impl_core_fmt_Display_for_axum_extract_path_PathDeserializationError_t.
+      Definition Self : Set := axum.extract.path.PathDeserializationError.t.
+      
+      (*
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              self.kind.fmt(f)
+          }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_path_PathDeserializationError_t.
+    End Impl_core_fmt_Display_for_axum_extract_path_PathDeserializationError_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_path_PathDeserializationError_t.
+    Section Impl_core_error_Error_for_axum_extract_path_PathDeserializationError_t.
+      Definition Self : Set := axum.extract.path.PathDeserializationError.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_path_PathDeserializationError_t.
+    End Impl_core_error_Error_for_axum_extract_path_PathDeserializationError_t.
+    
+    Module ErrorKind.
+      Module WrongNumberOfParameters.
+        Record t : Set := {
+          got : usize.t;
+          expected : usize.t;
+        }.
+      End WrongNumberOfParameters.
+      
+      Module ParseErrorAtKey.
+        Record t : Set := {
+          key : alloc.string.String.t;
+          value : alloc.string.String.t;
+          expected_type : ref str.t;
+        }.
+      End ParseErrorAtKey.
+      
+      Module ParseErrorAtIndex.
+        Record t : Set := {
+          index : usize.t;
+          value : alloc.string.String.t;
+          expected_type : ref str.t;
+        }.
+      End ParseErrorAtIndex.
+      
+      Module ParseError.
+        Record t : Set := {
+          value : alloc.string.String.t;
+          expected_type : ref str.t;
+        }.
+      End ParseError.
+      
+      Module InvalidUtf8InPathParam.
+        Record t : Set := {
+          key : alloc.string.String.t;
+        }.
+      End InvalidUtf8InPathParam.
+      
+      Module UnsupportedType.
+        Record t : Set := {
+          name : ref str.t;
+        }.
+      End UnsupportedType.
+      
+      Inductive t : Set :=
+      | WrongNumberOfParameters (_ : WrongNumberOfParameters.t)
+      | ParseErrorAtKey (_ : ParseErrorAtKey.t)
+      | ParseErrorAtIndex (_ : ParseErrorAtIndex.t)
+      | ParseError (_ : ParseError.t)
+      | InvalidUtf8InPathParam (_ : InvalidUtf8InPathParam.t)
+      | UnsupportedType (_ : UnsupportedType.t)
+      | Message (_ : alloc.string.String.t).
+      
+      Definition Get_WrongNumberOfParameters_got :=
+        Ref.map
+          (fun α =>
+            match α with
+            | WrongNumberOfParameters α => Some α.(WrongNumberOfParameters.got)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | WrongNumberOfParameters α =>
+              Some
+                (WrongNumberOfParameters
+                  (α <| WrongNumberOfParameters.got := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_WrongNumberOfParameters_expected :=
+        Ref.map
+          (fun α =>
+            match α with
+            | WrongNumberOfParameters α =>
+              Some α.(WrongNumberOfParameters.expected)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | WrongNumberOfParameters α =>
+              Some
+                (WrongNumberOfParameters
+                  (α <| WrongNumberOfParameters.expected := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtKey_key :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtKey α => Some α.(ParseErrorAtKey.key)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtKey α =>
+              Some (ParseErrorAtKey (α <| ParseErrorAtKey.key := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtKey_value :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtKey α => Some α.(ParseErrorAtKey.value)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtKey α =>
+              Some (ParseErrorAtKey (α <| ParseErrorAtKey.value := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtKey_expected_type :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtKey α => Some α.(ParseErrorAtKey.expected_type)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtKey α =>
+              Some
+                (ParseErrorAtKey (α <| ParseErrorAtKey.expected_type := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtIndex_index :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtIndex α => Some α.(ParseErrorAtIndex.index)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtIndex α =>
+              Some (ParseErrorAtIndex (α <| ParseErrorAtIndex.index := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtIndex_value :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtIndex α => Some α.(ParseErrorAtIndex.value)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtIndex α =>
+              Some (ParseErrorAtIndex (α <| ParseErrorAtIndex.value := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseErrorAtIndex_expected_type :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseErrorAtIndex α => Some α.(ParseErrorAtIndex.expected_type)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseErrorAtIndex α =>
+              Some
+                (ParseErrorAtIndex
+                  (α <| ParseErrorAtIndex.expected_type := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseError_value :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseError α => Some α.(ParseError.value)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseError α => Some (ParseError (α <| ParseError.value := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_ParseError_expected_type :=
+        Ref.map
+          (fun α =>
+            match α with
+            | ParseError α => Some α.(ParseError.expected_type)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | ParseError α =>
+              Some (ParseError (α <| ParseError.expected_type := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_InvalidUtf8InPathParam_key :=
+        Ref.map
+          (fun α =>
+            match α with
+            | InvalidUtf8InPathParam α => Some α.(InvalidUtf8InPathParam.key)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | InvalidUtf8InPathParam α =>
+              Some
+                (InvalidUtf8InPathParam
+                  (α <| InvalidUtf8InPathParam.key := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_UnsupportedType_name :=
+        Ref.map
+          (fun α =>
+            match α with
+            | UnsupportedType α => Some α.(UnsupportedType.name)
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | UnsupportedType α =>
+              Some (UnsupportedType (α <| UnsupportedType.name := β |>))
+            | _ => None
+            end).
+      
+      Definition Get_Message_0 :=
+        Ref.map
+          (fun α => match α with | Message α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with | Message _ => Some (Message β) | _ => None end).
+    End ErrorKind.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_ErrorKind_t.
+    
+    Module  Impl_core_marker_StructuralPartialEq_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_marker_StructuralPartialEq_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      Global Instance ℐ : core.marker.StructuralPartialEq.Trait Self := {
+      }.
+    End Impl_core_marker_StructuralPartialEq_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_marker_StructuralPartialEq_for_axum_extract_path_ErrorKind_t.
+    
+    Module  Impl_core_cmp_PartialEq_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_cmp_PartialEq_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      (*
+      PartialEq
+      *)
+      Definition eq
+          (self : ref Self)
+          (other : ref axum.extract.path.ErrorKind.t)
+          : M bool.t :=
+        let* self := M.alloc self in
+        let* other := M.alloc other in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_eq :
+        Notations.DoubleColon Self "eq" := {
+        Notations.double_colon := eq;
+      }.
+      
+      Global Instance ℐ :
+        core.cmp.PartialEq.Required.Trait Self
+          (Rhs := core.cmp.PartialEq.Default.Rhs Self) := {
+        core.cmp.PartialEq.eq := eq;
+        core.cmp.PartialEq.ne := Datatypes.None;
+      }.
+    End Impl_core_cmp_PartialEq_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_cmp_PartialEq_for_axum_extract_path_ErrorKind_t.
+    
+    Module  Impl_core_marker_StructuralEq_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_marker_StructuralEq_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      Global Instance ℐ : core.marker.StructuralEq.Trait Self := {
+      }.
+    End Impl_core_marker_StructuralEq_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_marker_StructuralEq_for_axum_extract_path_ErrorKind_t.
+    
+    Module  Impl_core_cmp_Eq_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_cmp_Eq_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      (*
+      Eq
+      *)
+      Definition assert_receiver_is_total_eq (self : ref Self) : M unit :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_assert_receiver_is_total_eq :
+        Notations.DoubleColon Self "assert_receiver_is_total_eq" := {
+        Notations.double_colon := assert_receiver_is_total_eq;
+      }.
+      
+      Global Instance ℐ : core.cmp.Eq.Required.Trait Self := {
+        core.cmp.Eq.assert_receiver_is_total_eq :=
+          Datatypes.Some assert_receiver_is_total_eq;
+      }.
+    End Impl_core_cmp_Eq_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_cmp_Eq_for_axum_extract_path_ErrorKind_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_path_ErrorKind_t.
+    Section Impl_core_fmt_Display_for_axum_extract_path_ErrorKind_t.
+      Definition Self : Set := axum.extract.path.ErrorKind.t.
+      
+      (*
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              match self {
+                  ErrorKind::Message(error) => error.fmt(f),
+                  ErrorKind::InvalidUtf8InPathParam { key } => write!(f, "Invalid UTF-8 in `{key}`"),
+                  ErrorKind::WrongNumberOfParameters { got, expected } => {
+                      write!(
+                          f,
+                          "Wrong number of path arguments for `Path`. Expected {expected} but got {got}"
+                      )?;
+      
+                      if *expected == 1 {
+                          write!(f, ". Note that multiple parameters must be extracted with a tuple `Path<(_, _)>` or a struct `Path<YourParams>`")?;
+                      }
+      
+                      Ok(())
+                  }
+                  ErrorKind::UnsupportedType { name } => write!(f, "Unsupported type `{name}`"),
+                  ErrorKind::ParseErrorAtKey {
+                      key,
+                      value,
+                      expected_type,
+                  } => write!(
+                      f,
+                      "Cannot parse `{key}` with value `{value:?}` to a `{expected_type}`"
+                  ),
+                  ErrorKind::ParseError {
+                      value,
+                      expected_type,
+                  } => write!(f, "Cannot parse `{value:?}` to a `{expected_type}`"),
+                  ErrorKind::ParseErrorAtIndex {
+                      index,
+                      value,
+                      expected_type,
+                  } => write!(
+                      f,
+                      "Cannot parse value at index {index} with value `{value:?}` to a `{expected_type}`"
+                  ),
+              }
+          }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_path_ErrorKind_t.
+    End Impl_core_fmt_Display_for_axum_extract_path_ErrorKind_t.
+    
+    Module  FailedToDeserializePathParams.
+    Section FailedToDeserializePathParams.
+      Record t : Set := {
+        x0 : axum.extract.path.PathDeserializationError.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End FailedToDeserializePathParams.
+    End FailedToDeserializePathParams.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_FailedToDeserializePathParams_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_FailedToDeserializePathParams_t.
+      Definition Self : Set :=
+        axum.extract.path.FailedToDeserializePathParams.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_FailedToDeserializePathParams_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_FailedToDeserializePathParams_t.
+    
+    Module  Impl_axum_extract_path_FailedToDeserializePathParams_t.
+    Section Impl_axum_extract_path_FailedToDeserializePathParams_t.
+      Definition Self : Set :=
+        axum.extract.path.FailedToDeserializePathParams.t.
+      
+      (*
+          pub fn kind(&self) -> &ErrorKind {
+              &self.0.kind
+          }
+      *)
+      Definition kind
+          (self : ref Self)
+          : M (ref axum.extract.path.ErrorKind.t) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_kind :
+        Notations.DoubleColon Self "kind" := {
+        Notations.double_colon := kind;
+      }.
+      
+      (*
+          pub fn into_kind(self) -> ErrorKind {
+              self.0.kind
+          }
+      *)
+      Definition into_kind (self : Self) : M axum.extract.path.ErrorKind.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_kind :
+        Notations.DoubleColon Self "into_kind" := {
+        Notations.double_colon := into_kind;
+      }.
+      
+      (*
+          pub fn body_text(&self) -> String {
+              match self.0.kind {
+                  ErrorKind::Message(_)
+                  | ErrorKind::InvalidUtf8InPathParam { .. }
+                  | ErrorKind::ParseError { .. }
+                  | ErrorKind::ParseErrorAtIndex { .. }
+                  | ErrorKind::ParseErrorAtKey { .. } => format!("Invalid URL: {}", self.0.kind),
+                  ErrorKind::WrongNumberOfParameters { .. } | ErrorKind::UnsupportedType { .. } => {
+                      self.0.kind.to_string()
+                  }
+              }
+          }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+          pub fn status(&self) -> StatusCode {
+              match self.0.kind {
+                  ErrorKind::Message(_)
+                  | ErrorKind::InvalidUtf8InPathParam { .. }
+                  | ErrorKind::ParseError { .. }
+                  | ErrorKind::ParseErrorAtIndex { .. }
+                  | ErrorKind::ParseErrorAtKey { .. } => StatusCode::BAD_REQUEST,
+                  ErrorKind::WrongNumberOfParameters { .. } | ErrorKind::UnsupportedType { .. } => {
+                      StatusCode::INTERNAL_SERVER_ERROR
+                  }
+              }
+          }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_path_FailedToDeserializePathParams_t.
+    End Impl_axum_extract_path_FailedToDeserializePathParams_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_FailedToDeserializePathParams_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_FailedToDeserializePathParams_t.
+      Definition Self : Set :=
+        axum.extract.path.FailedToDeserializePathParams.t.
+      
+      (*
+          fn into_response(self) -> Response {
+              axum_core::__log_rejection!(
+                  rejection_type = Self,
+                  body_text = self.body_text(),
+                  status = self.status(),
+              );
+              (self.status(), self.body_text()).into_response()
+          }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_FailedToDeserializePathParams_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_FailedToDeserializePathParams_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_path_FailedToDeserializePathParams_t.
+    Section Impl_core_fmt_Display_for_axum_extract_path_FailedToDeserializePathParams_t.
+      Definition Self : Set :=
+        axum.extract.path.FailedToDeserializePathParams.t.
+      
+      (*
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              self.0.fmt(f)
+          }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_path_FailedToDeserializePathParams_t.
+    End Impl_core_fmt_Display_for_axum_extract_path_FailedToDeserializePathParams_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_path_FailedToDeserializePathParams_t.
+    Section Impl_core_error_Error_for_axum_extract_path_FailedToDeserializePathParams_t.
+      Definition Self : Set :=
+        axum.extract.path.FailedToDeserializePathParams.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_path_FailedToDeserializePathParams_t.
+    End Impl_core_error_Error_for_axum_extract_path_FailedToDeserializePathParams_t.
+    
+    Module  RawPathParams.
+    Section RawPathParams.
+      Record t : Set := {
+        x0 :
+          alloc.vec.Vec.t
+            ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+            *
+            axum.util.PercentDecodedStr.t)
+            alloc.vec.Vec.Default.A;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End RawPathParams.
+    End RawPathParams.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_RawPathParams_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_RawPathParams_t.
+      Definition Self : Set := axum.extract.path.RawPathParams.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_RawPathParams_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_RawPathParams_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_RawPathParams_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_RawPathParams_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.path.RawPathParams.t.
+      
+      (*
+          type Rejection = RawPathParamsRejection;
+      *)
+      Definition Rejection : Set :=
+        axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              let params = match parts.extensions.get::<UrlParams>() {
+                  Some(UrlParams::Params(params)) => params,
+                  Some(UrlParams::InvalidUtf8InPathParam { key }) => {
+                      return Err(InvalidUtf8InPathParam {
+                          key: Arc::clone(key),
+                      }
+                      .into());
+                  }
+                  None => {
+                      return Err(MissingPathParams.into());
+                  }
+              };
+      
+              Ok(Self(params.clone()))
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_RawPathParams_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_path_RawPathParams_t.
+    
+    Module  Impl_axum_extract_path_RawPathParams_t.
+    Section Impl_axum_extract_path_RawPathParams_t.
+      Definition Self : Set := axum.extract.path.RawPathParams.t.
+      
+      (*
+          pub fn iter(&self) -> RawPathParamsIter<'_> {
+              self.into_iter()
+          }
+      *)
+      Definition iter
+          (self : ref Self)
+          : M axum.extract.path.RawPathParamsIter.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_iter :
+        Notations.DoubleColon Self "iter" := {
+        Notations.double_colon := iter;
+      }.
+    End Impl_axum_extract_path_RawPathParams_t.
+    End Impl_axum_extract_path_RawPathParams_t.
+    
+    Module  Impl_core_iter_traits_collect_IntoIterator_for_ref_axum_extract_path_RawPathParams_t.
+    Section Impl_core_iter_traits_collect_IntoIterator_for_ref_axum_extract_path_RawPathParams_t.
+      Definition Self : Set := ref axum.extract.path.RawPathParams.t.
+      
+      (*
+          type Item = (&'a str, &'a str);
+      *)
+      Definition Item : Set := (ref str.t) * (ref str.t).
+      
+      (*
+          type IntoIter = RawPathParamsIter<'a>;
+      *)
+      Definition IntoIter : Set := axum.extract.path.RawPathParamsIter.t.
+      
+      (*
+          fn into_iter(self) -> Self::IntoIter {
+              RawPathParamsIter(self.0.iter())
+          }
+      *)
+      Definition into_iter (self : Self) : M IntoIter :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_iter :
+        Notations.DoubleColon Self "into_iter" := {
+        Notations.double_colon := into_iter;
+      }.
+      
+      Global Instance ℐ : core.iter.traits.collect.IntoIterator.Trait Self := {
+        core.iter.traits.collect.IntoIterator.Item := Item;
+        core.iter.traits.collect.IntoIterator.IntoIter := IntoIter;
+        core.iter.traits.collect.IntoIterator.into_iter := into_iter;
+      }.
+    End Impl_core_iter_traits_collect_IntoIterator_for_ref_axum_extract_path_RawPathParams_t.
+    End Impl_core_iter_traits_collect_IntoIterator_for_ref_axum_extract_path_RawPathParams_t.
+    
+    Module  RawPathParamsIter.
+    Section RawPathParamsIter.
+      Record t : Set := {
+        x0 :
+          core.slice.iter.Iter.t
+            ((alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+            *
+            axum.util.PercentDecodedStr.t);
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End RawPathParamsIter.
+    End RawPathParamsIter.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_RawPathParamsIter_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_RawPathParamsIter_t.
+      Definition Self : Set := axum.extract.path.RawPathParamsIter.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_RawPathParamsIter_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_RawPathParamsIter_t.
+    
+    Module  Impl_core_iter_traits_iterator_Iterator_for_axum_extract_path_RawPathParamsIter_t.
+    Section Impl_core_iter_traits_iterator_Iterator_for_axum_extract_path_RawPathParamsIter_t.
+      Definition Self : Set := axum.extract.path.RawPathParamsIter.t.
+      
+      (*
+          type Item = (&'a str, &'a str);
+      *)
+      Definition Item : Set := (ref str.t) * (ref str.t).
+      
+      (*
+          fn next(&mut self) -> Option<Self::Item> {
+              let (key, value) = self.0.next()?;
+              Some((&**key, value.as_str()))
+          }
+      *)
+      Definition next (self : mut_ref Self) : M (core.option.Option.t Item) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_next :
+        Notations.DoubleColon Self "next" := {
+        Notations.double_colon := next;
+      }.
+      
+      Global Instance ℐ :
+        core.iter.traits.iterator.Iterator.Required.Trait Self := {
+        core.iter.traits.iterator.Iterator.Item := Item;
+        core.iter.traits.iterator.Iterator.next := next;
+        core.iter.traits.iterator.Iterator.next_chunk := Datatypes.None;
+        core.iter.traits.iterator.Iterator.size_hint := Datatypes.None;
+        core.iter.traits.iterator.Iterator.count := Datatypes.None;
+        core.iter.traits.iterator.Iterator.last := Datatypes.None;
+        core.iter.traits.iterator.Iterator.advance_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.nth := Datatypes.None;
+        core.iter.traits.iterator.Iterator.step_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.chain := Datatypes.None;
+        core.iter.traits.iterator.Iterator.zip := Datatypes.None;
+        core.iter.traits.iterator.Iterator.intersperse := Datatypes.None;
+        core.iter.traits.iterator.Iterator.intersperse_with := Datatypes.None;
+        core.iter.traits.iterator.Iterator.map := Datatypes.None;
+        core.iter.traits.iterator.Iterator.for_each := Datatypes.None;
+        core.iter.traits.iterator.Iterator.filter := Datatypes.None;
+        core.iter.traits.iterator.Iterator.filter_map := Datatypes.None;
+        core.iter.traits.iterator.Iterator.enumerate := Datatypes.None;
+        core.iter.traits.iterator.Iterator.peekable := Datatypes.None;
+        core.iter.traits.iterator.Iterator.skip_while := Datatypes.None;
+        core.iter.traits.iterator.Iterator.take_while := Datatypes.None;
+        core.iter.traits.iterator.Iterator.map_while := Datatypes.None;
+        core.iter.traits.iterator.Iterator.skip := Datatypes.None;
+        core.iter.traits.iterator.Iterator.take := Datatypes.None;
+        core.iter.traits.iterator.Iterator.scan := Datatypes.None;
+        core.iter.traits.iterator.Iterator.flat_map := Datatypes.None;
+        core.iter.traits.iterator.Iterator.flatten := Datatypes.None;
+        core.iter.traits.iterator.Iterator.map_windows := Datatypes.None;
+        core.iter.traits.iterator.Iterator.fuse := Datatypes.None;
+        core.iter.traits.iterator.Iterator.inspect := Datatypes.None;
+        core.iter.traits.iterator.Iterator.by_ref := Datatypes.None;
+        core.iter.traits.iterator.Iterator.collect := Datatypes.None;
+        core.iter.traits.iterator.Iterator.try_collect := Datatypes.None;
+        core.iter.traits.iterator.Iterator.collect_into := Datatypes.None;
+        core.iter.traits.iterator.Iterator.partition := Datatypes.None;
+        core.iter.traits.iterator.Iterator.partition_in_place := Datatypes.None;
+        core.iter.traits.iterator.Iterator.is_partitioned := Datatypes.None;
+        core.iter.traits.iterator.Iterator.try_fold := Datatypes.None;
+        core.iter.traits.iterator.Iterator.try_for_each := Datatypes.None;
+        core.iter.traits.iterator.Iterator.fold := Datatypes.None;
+        core.iter.traits.iterator.Iterator.reduce := Datatypes.None;
+        core.iter.traits.iterator.Iterator.try_reduce := Datatypes.None;
+        core.iter.traits.iterator.Iterator.all := Datatypes.None;
+        core.iter.traits.iterator.Iterator.any := Datatypes.None;
+        core.iter.traits.iterator.Iterator.find := Datatypes.None;
+        core.iter.traits.iterator.Iterator.find_map := Datatypes.None;
+        core.iter.traits.iterator.Iterator.try_find := Datatypes.None;
+        core.iter.traits.iterator.Iterator.position := Datatypes.None;
+        core.iter.traits.iterator.Iterator.rposition := Datatypes.None;
+        core.iter.traits.iterator.Iterator.max := Datatypes.None;
+        core.iter.traits.iterator.Iterator.min := Datatypes.None;
+        core.iter.traits.iterator.Iterator.max_by_key := Datatypes.None;
+        core.iter.traits.iterator.Iterator.max_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.min_by_key := Datatypes.None;
+        core.iter.traits.iterator.Iterator.min_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.rev := Datatypes.None;
+        core.iter.traits.iterator.Iterator.unzip := Datatypes.None;
+        core.iter.traits.iterator.Iterator.copied := Datatypes.None;
+        core.iter.traits.iterator.Iterator.cloned := Datatypes.None;
+        core.iter.traits.iterator.Iterator.cycle := Datatypes.None;
+        core.iter.traits.iterator.Iterator.array_chunks := Datatypes.None;
+        core.iter.traits.iterator.Iterator.sum := Datatypes.None;
+        core.iter.traits.iterator.Iterator.product := Datatypes.None;
+        core.iter.traits.iterator.Iterator.cmp := Datatypes.None;
+        core.iter.traits.iterator.Iterator.cmp_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.partial_cmp := Datatypes.None;
+        core.iter.traits.iterator.Iterator.partial_cmp_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.eq := Datatypes.None;
+        core.iter.traits.iterator.Iterator.eq_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.ne := Datatypes.None;
+        core.iter.traits.iterator.Iterator.lt := Datatypes.None;
+        core.iter.traits.iterator.Iterator.le := Datatypes.None;
+        core.iter.traits.iterator.Iterator.gt := Datatypes.None;
+        core.iter.traits.iterator.Iterator.ge := Datatypes.None;
+        core.iter.traits.iterator.Iterator.is_sorted := Datatypes.None;
+        core.iter.traits.iterator.Iterator.is_sorted_by := Datatypes.None;
+        core.iter.traits.iterator.Iterator.is_sorted_by_key := Datatypes.None;
+        core.iter.traits.iterator.Iterator.__iterator_get_unchecked :=
+          Datatypes.None;
+      }.
+    End Impl_core_iter_traits_iterator_Iterator_for_axum_extract_path_RawPathParamsIter_t.
+    End Impl_core_iter_traits_iterator_Iterator_for_axum_extract_path_RawPathParamsIter_t.
+    
+    Module  InvalidUtf8InPathParam.
+    Section InvalidUtf8InPathParam.
+      Record t : Set := {
+        key : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+      }.
+      
+      Definition Get_key :=
+        Ref.map (fun α => Some α.(key)) (fun β α => Some (α <| key := β |>)).
+    End InvalidUtf8InPathParam.
+    End InvalidUtf8InPathParam.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_path_InvalidUtf8InPathParam_t.
+      Definition Self : Set := axum.extract.path.InvalidUtf8InPathParam.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    End Impl_core_fmt_Debug_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    
+    Module  Impl_axum_extract_path_InvalidUtf8InPathParam_t.
+    Section Impl_axum_extract_path_InvalidUtf8InPathParam_t.
+      Definition Self : Set := axum.extract.path.InvalidUtf8InPathParam.t.
+      
+      (*
+          pub fn body_text(&self) -> String {
+              self.to_string()
+          }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+          pub fn status(&self) -> StatusCode {
+              StatusCode::BAD_REQUEST
+          }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_path_InvalidUtf8InPathParam_t.
+    End Impl_axum_extract_path_InvalidUtf8InPathParam_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    Section Impl_core_fmt_Display_for_axum_extract_path_InvalidUtf8InPathParam_t.
+      Definition Self : Set := axum.extract.path.InvalidUtf8InPathParam.t.
+      
+      (*
+          fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+              write!(f, "Invalid UTF-8 in `{}`", self.key)
+          }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    End Impl_core_fmt_Display_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    Section Impl_core_error_Error_for_axum_extract_path_InvalidUtf8InPathParam_t.
+      Definition Self : Set := axum.extract.path.InvalidUtf8InPathParam.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    End Impl_core_error_Error_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_InvalidUtf8InPathParam_t.
+      Definition Self : Set := axum.extract.path.InvalidUtf8InPathParam.t.
+      
+      (*
+          fn into_response(self) -> Response {
+              (self.status(), self.body_text()).into_response()
+          }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_InvalidUtf8InPathParam_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_path_InvalidUtf8InPathParam_t.
+  End path.
+  
+  Module rejection.
+    Module  JsonDataError.
+    Section JsonDataError.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End JsonDataError.
+    End JsonDataError.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_JsonDataError_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_JsonDataError_t.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonDataError_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonDataError_t.
+    
+    Module  Impl_axum_extract_rejection_JsonDataError_t.
+    Section Impl_axum_extract_rejection_JsonDataError_t.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_JsonDataError_t.
+    End Impl_axum_extract_rejection_JsonDataError_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonDataError_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonDataError_t.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonDataError_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonDataError_t.
+    
+    Module  Impl_axum_extract_rejection_JsonDataError_t_2.
+    Section Impl_axum_extract_rejection_JsonDataError_t_2.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_JsonDataError_t_2.
+    End Impl_axum_extract_rejection_JsonDataError_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_JsonDataError_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_JsonDataError_t.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonDataError_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonDataError_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_JsonDataError_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_JsonDataError_t.
+      Definition Self : Set := axum.extract.rejection.JsonDataError.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonDataError_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonDataError_t.
+    
+    Module  JsonSyntaxError.
+    Section JsonSyntaxError.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End JsonSyntaxError.
+    End JsonSyntaxError.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_JsonSyntaxError_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_JsonSyntaxError_t.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonSyntaxError_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonSyntaxError_t.
+    
+    Module  Impl_axum_extract_rejection_JsonSyntaxError_t.
+    Section Impl_axum_extract_rejection_JsonSyntaxError_t.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_JsonSyntaxError_t.
+    End Impl_axum_extract_rejection_JsonSyntaxError_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonSyntaxError_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonSyntaxError_t.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonSyntaxError_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonSyntaxError_t.
+    
+    Module  Impl_axum_extract_rejection_JsonSyntaxError_t_2.
+    Section Impl_axum_extract_rejection_JsonSyntaxError_t_2.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_JsonSyntaxError_t_2.
+    End Impl_axum_extract_rejection_JsonSyntaxError_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_JsonSyntaxError_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_JsonSyntaxError_t.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonSyntaxError_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonSyntaxError_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_JsonSyntaxError_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_JsonSyntaxError_t.
+      Definition Self : Set := axum.extract.rejection.JsonSyntaxError.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonSyntaxError_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonSyntaxError_t.
+    
+    Module  MissingJsonContentType.
+    Section MissingJsonContentType.
+      Inductive t : Set := Build.
+    End MissingJsonContentType.
+    End MissingJsonContentType.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  Impl_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_MissingJsonContentType_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_MissingJsonContentType_t.
+      Definition Self : Set := axum.extract.rejection.MissingJsonContentType.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_MissingJsonContentType_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_MissingJsonContentType_t.
+    
+    Module  MissingExtension.
+    Section MissingExtension.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End MissingExtension.
+    End MissingExtension.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_MissingExtension_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_MissingExtension_t.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingExtension_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingExtension_t.
+    
+    Module  Impl_axum_extract_rejection_MissingExtension_t.
+    Section Impl_axum_extract_rejection_MissingExtension_t.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_MissingExtension_t.
+    End Impl_axum_extract_rejection_MissingExtension_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingExtension_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingExtension_t.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingExtension_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingExtension_t.
+    
+    Module  Impl_axum_extract_rejection_MissingExtension_t_2.
+    Section Impl_axum_extract_rejection_MissingExtension_t_2.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_MissingExtension_t_2.
+    End Impl_axum_extract_rejection_MissingExtension_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_MissingExtension_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_MissingExtension_t.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingExtension_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingExtension_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_MissingExtension_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_MissingExtension_t.
+      Definition Self : Set := axum.extract.rejection.MissingExtension.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingExtension_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingExtension_t.
+    
+    Module  MissingPathParams.
+    Section MissingPathParams.
+      Inductive t : Set := Build.
+    End MissingPathParams.
+    End MissingPathParams.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingPathParams_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingPathParams_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  Impl_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_MissingPathParams_t.
+    End Impl_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingPathParams_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingPathParams_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_MissingPathParams_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_MissingPathParams_t.
+      Definition Self : Set := axum.extract.rejection.MissingPathParams.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_MissingPathParams_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_MissingPathParams_t.
+    
+    Module  InvalidFormContentType.
+    Section InvalidFormContentType.
+      Inductive t : Set := Build.
+    End InvalidFormContentType.
+    End InvalidFormContentType.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  Impl_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_InvalidFormContentType_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_InvalidFormContentType_t.
+      Definition Self : Set := axum.extract.rejection.InvalidFormContentType.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_InvalidFormContentType_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_InvalidFormContentType_t.
+    
+    Module  FailedToResolveHost.
+    Section FailedToResolveHost.
+      Inductive t : Set := Build.
+    End FailedToResolveHost.
+    End FailedToResolveHost.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_FailedToResolveHost_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_FailedToResolveHost_t.
+      Definition Self : Set := axum.extract.rejection.FailedToResolveHost.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_FailedToResolveHost_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_FailedToResolveHost_t.
+    
+    Module  FailedToDeserializeForm.
+    Section FailedToDeserializeForm.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End FailedToDeserializeForm.
+    End FailedToDeserializeForm.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeForm_t.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeForm_t.
+    Section Impl_axum_extract_rejection_FailedToDeserializeForm_t.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeForm_t.
+    End Impl_axum_extract_rejection_FailedToDeserializeForm_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeForm_t.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeForm_t_2.
+    Section Impl_axum_extract_rejection_FailedToDeserializeForm_t_2.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeForm_t_2.
+    End Impl_axum_extract_rejection_FailedToDeserializeForm_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeForm_t.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeForm_t.
+      Definition Self : Set := axum.extract.rejection.FailedToDeserializeForm.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeForm_t.
+    
+    Module  FailedToDeserializeFormBody.
+    Section FailedToDeserializeFormBody.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End FailedToDeserializeFormBody.
+    End FailedToDeserializeFormBody.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    Section Impl_axum_extract_rejection_FailedToDeserializeFormBody_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    End Impl_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeFormBody_t_2.
+    Section Impl_axum_extract_rejection_FailedToDeserializeFormBody_t_2.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeFormBody_t_2.
+    End Impl_axum_extract_rejection_FailedToDeserializeFormBody_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeFormBody.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeFormBody_t.
+    
+    Module  FailedToDeserializeQueryString.
+    Section FailedToDeserializeQueryString.
+      Record t : Set := {
+        x0 : axum_core.error.Error.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End FailedToDeserializeQueryString.
+    End FailedToDeserializeQueryString.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    Section Impl_axum_extract_rejection_FailedToDeserializeQueryString_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+                  pub(crate) fn from_err<E>(err: E) -> Self
+                  where
+                      E: Into<$crate::BoxError>,
+                  {
+                      Self($crate::Error::new(err))
+                  }
+      *)
+      Definition from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))}
+          (err : E)
+          : M Self :=
+        let* err := M.alloc err in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_err
+          {E : Set}
+          {ℋ_0 : core.convert.Into.Trait E (T := ltac:(axum_core.BoxError))} :
+        Notations.DoubleColon Self "from_err" := {
+        Notations.double_colon := from_err (E := E);
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    End Impl_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = self.body_text(),
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), self.body_text()).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    
+    Module  Impl_axum_extract_rejection_FailedToDeserializeQueryString_t_2.
+    Section Impl_axum_extract_rejection_FailedToDeserializeQueryString_t_2.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      format!(concat!($body, ": {}"), self.0).into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_FailedToDeserializeQueryString_t_2.
+    End Impl_axum_extract_rejection_FailedToDeserializeQueryString_t_2.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+      Definition Self : Set :=
+        axum.extract.rejection.FailedToDeserializeQueryString.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      Some(&self.0)
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_FailedToDeserializeQueryString_t.
+    
+    Module QueryRejection.
+      Inductive t : Set :=
+      |
+        FailedToDeserializeQueryString
+        (_ : axum.extract.rejection.FailedToDeserializeQueryString.t).
+      
+      Definition Get_FailedToDeserializeQueryString_0 :=
+        Ref.map
+          (fun α =>
+            match α with | FailedToDeserializeQueryString α0 => Some α0 end)
+          (fun β α =>
+            match α with
+            | FailedToDeserializeQueryString _ =>
+              Some (FailedToDeserializeQueryString β)
+            end).
+    End QueryRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_QueryRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_QueryRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_QueryRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_QueryRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_QueryRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_QueryRejection_t.
+    
+    Module  Impl_axum_extract_rejection_QueryRejection_t.
+    Section Impl_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_QueryRejection_t.
+    End Impl_axum_extract_rejection_QueryRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeQueryString_t_for_axum_extract_rejection_QueryRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeQueryString_t_for_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.FailedToDeserializeQueryString.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.FailedToDeserializeQueryString.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeQueryString_t_for_axum_extract_rejection_QueryRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeQueryString_t_for_axum_extract_rejection_QueryRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_QueryRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_QueryRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_QueryRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_QueryRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_QueryRejection_t.
+      Definition Self : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_QueryRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_QueryRejection_t.
+    
+    Module FormRejection.
+      Inductive t : Set :=
+      |
+        InvalidFormContentType
+        (_ : axum.extract.rejection.InvalidFormContentType.t)
+      |
+        FailedToDeserializeForm
+        (_ : axum.extract.rejection.FailedToDeserializeForm.t)
+      |
+        FailedToDeserializeFormBody
+        (_ : axum.extract.rejection.FailedToDeserializeFormBody.t)
+      | BytesRejection (_ : axum_core.extract.rejection.BytesRejection.t).
+      
+      Definition Get_InvalidFormContentType_0 :=
+        Ref.map
+          (fun α =>
+            match α with | InvalidFormContentType α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | InvalidFormContentType _ => Some (InvalidFormContentType β)
+            | _ => None
+            end).
+      
+      Definition Get_FailedToDeserializeForm_0 :=
+        Ref.map
+          (fun α =>
+            match α with
+            | FailedToDeserializeForm α0 => Some α0
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | FailedToDeserializeForm _ => Some (FailedToDeserializeForm β)
+            | _ => None
+            end).
+      
+      Definition Get_FailedToDeserializeFormBody_0 :=
+        Ref.map
+          (fun α =>
+            match α with
+            | FailedToDeserializeFormBody α0 => Some α0
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | FailedToDeserializeFormBody _ =>
+              Some (FailedToDeserializeFormBody β)
+            | _ => None
+            end).
+      
+      Definition Get_BytesRejection_0 :=
+        Ref.map
+          (fun α => match α with | BytesRejection α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | BytesRejection _ => Some (BytesRejection β)
+            | _ => None
+            end).
+    End FormRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FormRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_axum_extract_rejection_FormRejection_t.
+    Section Impl_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_FormRejection_t.
+    End Impl_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.InvalidFormContentType.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.InvalidFormContentType.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeForm_t_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeForm_t_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.FailedToDeserializeForm.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.FailedToDeserializeForm.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeForm_t_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeForm_t_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeFormBody_t_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeFormBody_t_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.FailedToDeserializeFormBody.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.FailedToDeserializeFormBody.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeFormBody_t_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToDeserializeFormBody_t_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum_core.extract.rejection.BytesRejection.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum_core.extract.rejection.BytesRejection.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_FormRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_FormRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_FormRejection_t.
+      Definition Self : Set := axum.extract.rejection.FormRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_FormRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_FormRejection_t.
+    
+    Module RawFormRejection.
+      Inductive t : Set :=
+      |
+        InvalidFormContentType
+        (_ : axum.extract.rejection.InvalidFormContentType.t)
+      | BytesRejection (_ : axum_core.extract.rejection.BytesRejection.t).
+      
+      Definition Get_InvalidFormContentType_0 :=
+        Ref.map
+          (fun α =>
+            match α with | InvalidFormContentType α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | InvalidFormContentType _ => Some (InvalidFormContentType β)
+            | _ => None
+            end).
+      
+      Definition Get_BytesRejection_0 :=
+        Ref.map
+          (fun α => match α with | BytesRejection α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | BytesRejection _ => Some (BytesRejection β)
+            | _ => None
+            end).
+    End RawFormRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_RawFormRejection_t.
+    End Impl_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.InvalidFormContentType.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.InvalidFormContentType.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_InvalidFormContentType_t_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum_core.extract.rejection.BytesRejection.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum_core.extract.rejection.BytesRejection.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_RawFormRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_RawFormRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_RawFormRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_RawFormRejection_t.
+    
+    Module JsonRejection.
+      Inductive t : Set :=
+      | JsonDataError (_ : axum.extract.rejection.JsonDataError.t)
+      | JsonSyntaxError (_ : axum.extract.rejection.JsonSyntaxError.t)
+      |
+        MissingJsonContentType
+        (_ : axum.extract.rejection.MissingJsonContentType.t)
+      | BytesRejection (_ : axum_core.extract.rejection.BytesRejection.t).
+      
+      Definition Get_JsonDataError_0 :=
+        Ref.map
+          (fun α => match α with | JsonDataError α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | JsonDataError _ => Some (JsonDataError β)
+            | _ => None
+            end).
+      
+      Definition Get_JsonSyntaxError_0 :=
+        Ref.map
+          (fun α =>
+            match α with | JsonSyntaxError α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | JsonSyntaxError _ => Some (JsonSyntaxError β)
+            | _ => None
+            end).
+      
+      Definition Get_MissingJsonContentType_0 :=
+        Ref.map
+          (fun α =>
+            match α with | MissingJsonContentType α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | MissingJsonContentType _ => Some (MissingJsonContentType β)
+            | _ => None
+            end).
+      
+      Definition Get_BytesRejection_0 :=
+        Ref.map
+          (fun α => match α with | BytesRejection α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | BytesRejection _ => Some (BytesRejection β)
+            | _ => None
+            end).
+    End JsonRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_axum_extract_rejection_JsonRejection_t.
+    Section Impl_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_JsonRejection_t.
+    End Impl_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_JsonDataError_t_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_JsonDataError_t_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.JsonDataError.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.JsonDataError.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_JsonDataError_t_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_JsonDataError_t_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_JsonSyntaxError_t_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_JsonSyntaxError_t_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.JsonSyntaxError.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.JsonSyntaxError.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_JsonSyntaxError_t_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_JsonSyntaxError_t_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_MissingJsonContentType_t_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_MissingJsonContentType_t_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.MissingJsonContentType.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.MissingJsonContentType.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_MissingJsonContentType_t_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_MissingJsonContentType_t_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum_core.extract.rejection.BytesRejection.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum_core.extract.rejection.BytesRejection.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_convert_From_axum_core_extract_rejection_BytesRejection_t_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_JsonRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_JsonRejection_t.
+      Definition Self : Set := axum.extract.rejection.JsonRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_JsonRejection_t.
+    
+    Module ExtensionRejection.
+      Inductive t : Set :=
+      | MissingExtension (_ : axum.extract.rejection.MissingExtension.t).
+      
+      Definition Get_MissingExtension_0 :=
+        Ref.map
+          (fun α => match α with | MissingExtension α0 => Some α0 end)
+          (fun β α =>
+            match α with | MissingExtension _ => Some (MissingExtension β) end).
+    End ExtensionRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module  Impl_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_MissingExtension_t_for_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_MissingExtension_t_for_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.MissingExtension.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.MissingExtension.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_MissingExtension_t_for_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_MissingExtension_t_for_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_ExtensionRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_ExtensionRejection_t.
+      Definition Self : Set := axum.extract.rejection.ExtensionRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_ExtensionRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_ExtensionRejection_t.
+    
+    Module PathRejection.
+      Inductive t : Set :=
+      |
+        FailedToDeserializePathParams
+        (_ : axum.extract.path.FailedToDeserializePathParams.t)
+      | MissingPathParams (_ : axum.extract.rejection.MissingPathParams.t).
+      
+      Definition Get_FailedToDeserializePathParams_0 :=
+        Ref.map
+          (fun α =>
+            match α with
+            | FailedToDeserializePathParams α0 => Some α0
+            | _ => None
+            end)
+          (fun β α =>
+            match α with
+            | FailedToDeserializePathParams _ =>
+              Some (FailedToDeserializePathParams β)
+            | _ => None
+            end).
+      
+      Definition Get_MissingPathParams_0 :=
+        Ref.map
+          (fun α =>
+            match α with | MissingPathParams α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | MissingPathParams _ => Some (MissingPathParams β)
+            | _ => None
+            end).
+    End PathRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_PathRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_PathRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_axum_extract_rejection_PathRejection_t.
+    Section Impl_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_PathRejection_t.
+    End Impl_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_path_FailedToDeserializePathParams_t_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_core_convert_From_axum_extract_path_FailedToDeserializePathParams_t_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.path.FailedToDeserializePathParams.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.path.FailedToDeserializePathParams.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_path_FailedToDeserializePathParams_t_for_axum_extract_rejection_PathRejection_t.
+    End Impl_core_convert_From_axum_extract_path_FailedToDeserializePathParams_t_for_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.MissingPathParams.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.MissingPathParams.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_PathRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_PathRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_PathRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_PathRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_PathRejection_t.
+      Definition Self : Set := axum.extract.rejection.PathRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_PathRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_PathRejection_t.
+    
+    Module RawPathParamsRejection.
+      Inductive t : Set :=
+      | InvalidUtf8InPathParam (_ : axum.extract.path.InvalidUtf8InPathParam.t)
+      | MissingPathParams (_ : axum.extract.rejection.MissingPathParams.t).
+      
+      Definition Get_InvalidUtf8InPathParam_0 :=
+        Ref.map
+          (fun α =>
+            match α with | InvalidUtf8InPathParam α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | InvalidUtf8InPathParam _ => Some (InvalidUtf8InPathParam β)
+            | _ => None
+            end).
+      
+      Definition Get_MissingPathParams_0 :=
+        Ref.map
+          (fun α =>
+            match α with | MissingPathParams α0 => Some α0 | _ => None end)
+          (fun β α =>
+            match α with
+            | MissingPathParams _ => Some (MissingPathParams β)
+            | _ => None
+            end).
+    End RawPathParamsRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_path_InvalidUtf8InPathParam_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_core_convert_From_axum_extract_path_InvalidUtf8InPathParam_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.path.InvalidUtf8InPathParam.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.path.InvalidUtf8InPathParam.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_path_InvalidUtf8InPathParam_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_core_convert_From_axum_extract_path_InvalidUtf8InPathParam_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.MissingPathParams.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.MissingPathParams.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_MissingPathParams_t_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_RawPathParamsRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_RawPathParamsRejection_t.
+      Definition Self : Set := axum.extract.rejection.RawPathParamsRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_RawPathParamsRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_RawPathParamsRejection_t.
+    
+    Module HostRejection.
+      Inductive t : Set :=
+      | FailedToResolveHost (_ : axum.extract.rejection.FailedToResolveHost.t).
+      
+      Definition Get_FailedToResolveHost_0 :=
+        Ref.map
+          (fun α => match α with | FailedToResolveHost α0 => Some α0 end)
+          (fun β α =>
+            match α with
+            | FailedToResolveHost _ => Some (FailedToResolveHost β)
+            end).
+    End HostRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_HostRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_HostRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_HostRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_HostRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_HostRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_HostRejection_t.
+    
+    Module  Impl_axum_extract_rejection_HostRejection_t.
+    Section Impl_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_HostRejection_t.
+    End Impl_axum_extract_rejection_HostRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_FailedToResolveHost_t_for_axum_extract_rejection_HostRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_FailedToResolveHost_t_for_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.FailedToResolveHost.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.FailedToResolveHost.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToResolveHost_t_for_axum_extract_rejection_HostRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_FailedToResolveHost_t_for_axum_extract_rejection_HostRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_HostRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_HostRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_HostRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_HostRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_HostRejection_t.
+      Definition Self : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_HostRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_HostRejection_t.
+    
+    Module  MatchedPathMissing.
+    Section MatchedPathMissing.
+      Inductive t : Set := Build.
+    End MatchedPathMissing.
+    End MatchedPathMissing.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module  Impl_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_MatchedPathMissing_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_MatchedPathMissing_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathMissing.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_MatchedPathMissing_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_MatchedPathMissing_t.
+    
+    Module MatchedPathRejection.
+      Inductive t : Set :=
+      | MatchedPathMissing (_ : axum.extract.rejection.MatchedPathMissing.t).
+      
+      Definition Get_MatchedPathMissing_0 :=
+        Ref.map
+          (fun α => match α with | MatchedPathMissing α0 => Some α0 end)
+          (fun β α =>
+            match α with
+            | MatchedPathMissing _ => Some (MatchedPathMissing β)
+            end).
+    End MatchedPathRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.into_response(),
+                          )+
+                      }
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  Impl_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.body_text(),
+                          )+
+                      }
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.status(),
+                          )+
+                      }
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  Impl_core_convert_From_axum_extract_rejection_MatchedPathMissing_t_for_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_core_convert_From_axum_extract_rejection_MatchedPathMissing_t_for_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+                      fn from(inner: $variant) -> Self {
+                          Self::$variant(inner)
+                      }
+      *)
+      Definition from
+          (inner : axum.extract.rejection.MatchedPathMissing.t)
+          : M Self :=
+        let* inner := M.alloc inner in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from :
+        Notations.DoubleColon Self "from" := {
+        Notations.double_colon := from;
+      }.
+      
+      Global Instance ℐ :
+        core.convert.From.Trait Self
+          (T := axum.extract.rejection.MatchedPathMissing.t) := {
+        core.convert.From.from := from;
+      }.
+    End Impl_core_convert_From_axum_extract_rejection_MatchedPathMissing_t_for_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_core_convert_From_axum_extract_rejection_MatchedPathMissing_t_for_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      match self {
+                          $(
+                              Self::$variant(inner) => write!(f, "{inner}"),
+                          )+
+                      }
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_MatchedPathRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_MatchedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+                  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                      match self {
+                          $(
+                              Self::$variant(inner) => inner.source(),
+                          )+
+                      }
+                  }
+      *)
+      Definition source
+          (self : ref Self)
+          : M (core.option.Option.t (ref (dyn [core.error.Error.Trait]))) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_source :
+        Notations.DoubleColon Self "source" := {
+        Notations.double_colon := source;
+      }.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.Some source;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_MatchedPathRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_MatchedPathRejection_t.
+    
+    Module  NestedPathRejection.
+    Section NestedPathRejection.
+      Inductive t : Set := Build.
+    End NestedPathRejection.
+    End NestedPathRejection.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+              Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_core_fmt_Debug_for_axum_extract_rejection_NestedPathRejection_t.
+    
+    Module  Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+                  fn into_response(self) -> $crate::response::Response {
+                      $crate::__log_rejection!(
+                          rejection_type = $name,
+                          body_text = $body,
+                          status = http::StatusCode::$status,
+                      );
+                      (self.status(), $body).into_response()
+                  }
+      *)
+      Definition into_response
+          (self : Self)
+          :
+            M
+              ltac:(axum_core.response.Response
+                axum_core.response.Response.Default.T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_into_response :
+        Notations.DoubleColon Self "into_response" := {
+        Notations.double_colon := into_response;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.response.into_response.IntoResponse.Trait Self := {
+        axum_core.response.into_response.IntoResponse.into_response :=
+          into_response;
+      }.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_axum_core_response_into_response_IntoResponse_for_axum_extract_rejection_NestedPathRejection_t.
+    
+    Module  Impl_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+                  pub fn body_text(&self) -> String {
+                      $body.into()
+                  }
+      *)
+      Definition body_text (self : ref Self) : M alloc.string.String.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_body_text :
+        Notations.DoubleColon Self "body_text" := {
+        Notations.double_colon := body_text;
+      }.
+      
+      (*
+                  pub fn status(&self) -> http::StatusCode {
+                      http::StatusCode::$status
+                  }
+      *)
+      Definition status (self : ref Self) : M http.status.StatusCode.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_status :
+        Notations.DoubleColon Self "status" := {
+        Notations.double_colon := status;
+      }.
+    End Impl_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_axum_extract_rejection_NestedPathRejection_t.
+    
+    Module  Impl_core_fmt_Display_for_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_core_fmt_Display_for_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+                  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                      write!(f, "{}", $body)
+                  }
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Display.Trait Self := {
+        core.fmt.Display.fmt := fmt;
+      }.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_core_fmt_Display_for_axum_extract_rejection_NestedPathRejection_t.
+    
+    Module  Impl_core_error_Error_for_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_core_error_Error_for_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      Global Instance ℐ : core.error.Error.Required.Trait Self := {
+        core.error.Error.source := Datatypes.None;
+        core.error.Error.type_id := Datatypes.None;
+        core.error.Error.description := Datatypes.None;
+        core.error.Error.cause := Datatypes.None;
+        core.error.Error.provide := Datatypes.None;
+      }.
+    End Impl_core_error_Error_for_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_core_error_Error_for_axum_extract_rejection_NestedPathRejection_t.
+    
+    Module  Impl_core_default_Default_for_axum_extract_rejection_NestedPathRejection_t.
+    Section Impl_core_default_Default_for_axum_extract_rejection_NestedPathRejection_t.
+      Definition Self : Set := axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+                  fn default() -> Self {
+                      Self
+                  }
+      *)
+      Definition default : M Self := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_rejection_NestedPathRejection_t.
+    End Impl_core_default_Default_for_axum_extract_rejection_NestedPathRejection_t.
+  End rejection.
+  
+  Module host.
+    Definition X_FORWARDED_HOST_HEADER_KEY : M.Val (ref str.t) :=
+      M.run (M.pure foo).
+    
+    Module  Host.
+    Section Host.
+      Record t : Set := {
+        x0 : alloc.string.String.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End Host.
+    End Host.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_host_Host_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_host_Host_t.
+      Definition Self : Set := axum.extract.host.Host.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_host_Host_t.
+    End Impl_core_fmt_Debug_for_axum_extract_host_Host_t.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_host_Host_t.
+    Section Impl_core_clone_Clone_for_axum_extract_host_Host_t.
+      Definition Self : Set := axum.extract.host.Host.t.
+      
+      (*
+      Clone
+      *)
+      Definition clone (self : ref Self) : M axum.extract.host.Host.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_host_Host_t.
+    End Impl_core_clone_Clone_for_axum_extract_host_Host_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_host_Host_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_host_Host_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.host.Host.t.
+      
+      (*
+          type Rejection = HostRejection;
+      *)
+      Definition Rejection : Set := axum.extract.rejection.HostRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              if let Some(host) = parse_forwarded(&parts.headers) {
+                  return Ok(Host(host.to_owned()));
+              }
+      
+              if let Some(host) = parts
+                  .headers
+                  .get(X_FORWARDED_HOST_HEADER_KEY)
+                  .and_then(|host| host.to_str().ok())
+              {
+                  return Ok(Host(host.to_owned()));
+              }
+      
+              if let Some(host) = parts
+                  .headers
+                  .get(http::header::HOST)
+                  .and_then(|host| host.to_str().ok())
+              {
+                  return Ok(Host(host.to_owned()));
+              }
+      
+              if let Some(host) = parts.uri.host() {
+                  return Ok(Host(host.to_owned()));
+              }
+      
+              Err(HostRejection::FailedToResolveHost(FailedToResolveHost))
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_host_Host_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_host_Host_t.
+    
+    (*
+    fn parse_forwarded(headers: &HeaderMap) -> Option<&str> {
+        // if there are multiple `Forwarded` `HeaderMap::get` will return the first one
+        let forwarded_values = headers.get(FORWARDED)?.to_str().ok()?;
+    
+        // get the first set of values
+        let first_value = forwarded_values.split(',').nth(0)?;
+    
+        // find the value of the `host` field
+        first_value.split(';').find_map(|pair| {
+            let (key, value) = pair.split_once('=')?;
+            key.trim()
+                .eq_ignore_ascii_case("host")
+                .then(|| value.trim().trim_matches('"'))
+        })
+    }
+    "
+    *)
+    Definition parse_forwarded
+        (headers
+          :
+          ref (http.header.map.HeaderMap.t http.header.map.HeaderMap.Default.T))
+        : M (core.option.Option.t (ref str.t)) :=
+      let* headers := M.alloc headers in
+      M.read foo.
+  End host.
+  
+  Module nested_path.
+    Module  NestedPath.
+    Section NestedPath.
+      Record t : Set := {
+        x0 : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End NestedPath.
+    End NestedPath.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_nested_path_NestedPath_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_nested_path_NestedPath_t.
+      Definition Self : Set := axum.extract.nested_path.NestedPath.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_nested_path_NestedPath_t.
+    End Impl_core_fmt_Debug_for_axum_extract_nested_path_NestedPath_t.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_nested_path_NestedPath_t.
+    Section Impl_core_clone_Clone_for_axum_extract_nested_path_NestedPath_t.
+      Definition Self : Set := axum.extract.nested_path.NestedPath.t.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M axum.extract.nested_path.NestedPath.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_nested_path_NestedPath_t.
+    End Impl_core_clone_Clone_for_axum_extract_nested_path_NestedPath_t.
+    
+    Module  Impl_axum_extract_nested_path_NestedPath_t.
+    Section Impl_axum_extract_nested_path_NestedPath_t.
+      Definition Self : Set := axum.extract.nested_path.NestedPath.t.
+      
+      (*
+          pub fn as_str(&self) -> &str {
+              &self.0
+          }
+      *)
+      Definition as_str (self : ref Self) : M (ref str.t) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_as_str :
+        Notations.DoubleColon Self "as_str" := {
+        Notations.double_colon := as_str;
+      }.
+    End Impl_axum_extract_nested_path_NestedPath_t.
+    End Impl_axum_extract_nested_path_NestedPath_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_nested_path_NestedPath_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_nested_path_NestedPath_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.nested_path.NestedPath.t.
+      
+      (*
+          type Rejection = NestedPathRejection;
+      *)
+      Definition Rejection : Set :=
+        axum.extract.rejection.NestedPathRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              match parts.extensions.get::<Self>() {
+                  Some(nested_path) => Ok(nested_path.clone()),
+                  None => Err(NestedPathRejection),
+              }
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_nested_path_NestedPath_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_nested_path_NestedPath_t.
+    
+    Module  SetNestedPath.
+    Section SetNestedPath.
+      Context (S : Set).
+      
+      Record t : Set := {
+        inner : S;
+        path : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+      }.
+      
+      Definition Get_inner :=
+        Ref.map
+          (fun α => Some α.(inner))
+          (fun β α => Some (α <| inner := β |>)).
+      Definition Get_path :=
+        Ref.map (fun α => Some α.(path)) (fun β α => Some (α <| path := β |>)).
+    End SetNestedPath.
+    End SetNestedPath.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_nested_path_SetNestedPath_t_S.
+    Section Impl_core_clone_Clone_for_axum_extract_nested_path_SetNestedPath_t_S.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait S}.
+      
+      Definition Self : Set := axum.extract.nested_path.SetNestedPath.t S.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M (axum.extract.nested_path.SetNestedPath.t S) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_nested_path_SetNestedPath_t_S.
+    End Impl_core_clone_Clone_for_axum_extract_nested_path_SetNestedPath_t_S.
+    
+    Module  Impl_axum_extract_nested_path_SetNestedPath_t_S.
+    Section Impl_axum_extract_nested_path_SetNestedPath_t_S.
+      Context {S : Set}.
+      
+      Definition Self : Set := axum.extract.nested_path.SetNestedPath.t S.
+      
+      (*
+          pub(crate) fn layer(path: &str) -> impl Layer<S, Service = Self> + Clone {
+              let path = Arc::from(path);
+              layer_fn(move |inner| Self {
+                  inner,
+                  path: Arc::clone(&path),
+              })
+          }
+      *)
+      Definition layer (path : ref str.t) : M _ (* OpaqueTy *) :=
+        let* path := M.alloc path in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_layer :
+        Notations.DoubleColon Self "layer" := {
+        Notations.double_colon := layer;
+      }.
+    End Impl_axum_extract_nested_path_SetNestedPath_t_S.
+    End Impl_axum_extract_nested_path_SetNestedPath_t_S.
+    
+    Module  Impl_tower_service_Service_axum_core_extract_Request_B_for_axum_extract_nested_path_SetNestedPath_t_S.
+    Section Impl_tower_service_Service_axum_core_extract_Request_B_for_axum_extract_nested_path_SetNestedPath_t_S.
+      Context {S B : Set}.
+      
+      Context
+        {ℋ_0 :
+          tower_service.Service.Trait S
+            (Request := ltac:(axum_core.extract.Request B))}.
+      
+      Definition Self : Set := axum.extract.nested_path.SetNestedPath.t S.
+      
+      (*
+          type Response = S::Response;
+      *)
+      Definition Response : Set := S::type["Response"].t.
+      
+      (*
+          type Error = S::Error;
+      *)
+      Definition Error : Set := S::type["Error"].t.
+      
+      (*
+          type Future = S::Future;
+      *)
+      Definition Future : Set := S::type["Future"].t.
+      
+      (*
+          fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+              self.inner.poll_ready(cx)
+          }
+      *)
+      Definition poll_ready
+          (self : mut_ref Self)
+          (cx : mut_ref core.task.wake.Context.t)
+          : M (core.task.poll.Poll.t (core.result.Result.t unit Error)) :=
+        let* self := M.alloc self in
+        let* cx := M.alloc cx in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_poll_ready :
+        Notations.DoubleColon Self "poll_ready" := {
+        Notations.double_colon := poll_ready;
+      }.
+      
+      (*
+          fn call(&mut self, mut req: Request<B>) -> Self::Future {
+              if let Some(prev) = req.extensions_mut().get_mut::<NestedPath>() {
+                  let new_path = if prev.as_str() == "/" {
+                      Arc::clone(&self.path)
+                  } else {
+                      format!("{}{}", prev.as_str().trim_end_matches('/'), self.path).into()
+                  };
+                  prev.0 = new_path;
+              } else {
+                  req.extensions_mut()
+                      .insert(NestedPath(Arc::clone(&self.path)));
+              };
+      
+              self.inner.call(req)
+          }
+      *)
+      Definition call
+          (self : mut_ref Self)
+          (req : ltac:(axum_core.extract.Request B))
+          : M Future :=
+        let* self := M.alloc self in
+        let* req := M.alloc req in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_call :
+        Notations.DoubleColon Self "call" := {
+        Notations.double_colon := call;
+      }.
+      
+      Global Instance ℐ :
+        tower_service.Service.Trait Self
+          (Request := ltac:(axum_core.extract.Request B)) := {
+        tower_service.Service.Response := Response;
+        tower_service.Service.Error := Error;
+        tower_service.Service.Future := Future;
+        tower_service.Service.poll_ready := poll_ready;
+        tower_service.Service.call := call;
+      }.
+    End Impl_tower_service_Service_axum_core_extract_Request_B_for_axum_extract_nested_path_SetNestedPath_t_S.
+    End Impl_tower_service_Service_axum_core_extract_Request_B_for_axum_extract_nested_path_SetNestedPath_t_S.
+  End nested_path.
+  
+  Module raw_form.
+    Module  RawForm.
+    Section RawForm.
+      Record t : Set := {
+        x0 : bytes.bytes.Bytes.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End RawForm.
+    End RawForm.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_raw_form_RawForm_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_raw_form_RawForm_t.
+      Definition Self : Set := axum.extract.raw_form.RawForm.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_raw_form_RawForm_t.
+    End Impl_core_fmt_Debug_for_axum_extract_raw_form_RawForm_t.
+    
+    Module  Impl_axum_core_extract_FromRequest_S_for_axum_extract_raw_form_RawForm_t.
+    Section Impl_axum_core_extract_FromRequest_S_for_axum_extract_raw_form_RawForm_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.raw_form.RawForm.t.
+      
+      (*
+          type Rejection = RawFormRejection;
+      *)
+      Definition Rejection : Set := axum.extract.rejection.RawFormRejection.t.
+      
+      (*
+          async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+              if req.method() == Method::GET {
+                  if let Some(query) = req.uri().query() {
+                      return Ok(Self(Bytes::copy_from_slice(query.as_bytes())));
+                  }
+      
+                  Ok(Self(Bytes::new()))
+              } else {
+                  if !has_content_type(req.headers(), &mime::APPLICATION_WWW_FORM_URLENCODED) {
+                      return Err(InvalidFormContentType.into());
+                  }
+      
+                  Ok(Self(Bytes::from_request(req, state).await?))
+              }
+          }
+      *)
+      Definition from_request
+          (req
+            :
+            ltac:(axum_core.extract.Request
+              axum_core.extract.Request.Default.T))
+          (state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* req := M.alloc req in
+        let* state := M.alloc state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request :
+        Notations.DoubleColon Self "from_request" := {
+        Notations.double_colon := from_request;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequest.Trait Self
+          (S := S)
+          (M := axum_core.extract.FromRequest.Default.M Self) := {
+        axum_core.extract.FromRequest.Rejection := Rejection;
+        axum_core.extract.FromRequest.from_request := from_request;
+      }.
+    End Impl_axum_core_extract_FromRequest_S_for_axum_extract_raw_form_RawForm_t.
+    End Impl_axum_core_extract_FromRequest_S_for_axum_extract_raw_form_RawForm_t.
+  End raw_form.
+  
+  Module raw_query.
+    Module  RawQuery.
+    Section RawQuery.
+      Record t : Set := {
+        x0 : core.option.Option.t alloc.string.String.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End RawQuery.
+    End RawQuery.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_raw_query_RawQuery_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_raw_query_RawQuery_t.
+      Definition Self : Set := axum.extract.raw_query.RawQuery.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_raw_query_RawQuery_t.
+    End Impl_core_fmt_Debug_for_axum_extract_raw_query_RawQuery_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_raw_query_RawQuery_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_raw_query_RawQuery_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.raw_query.RawQuery.t.
+      
+      (*
+          type Rejection = Infallible;
+      *)
+      Definition Rejection : Set := core.convert.Infallible.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              let query = parts.uri.query().map(|query| query.to_owned());
+              Ok(Self(query))
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_raw_query_RawQuery_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_raw_query_RawQuery_t.
+  End raw_query.
+  
+  Module request_parts.
+    Module  OriginalUri.
+    Section OriginalUri.
+      Record t : Set := {
+        x0 : http.uri.Uri.t;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End OriginalUri.
+    End OriginalUri.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_request_parts_OriginalUri_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_request_parts_OriginalUri_t.
+      Definition Self : Set := axum.extract.request_parts.OriginalUri.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_request_parts_OriginalUri_t.
+    End Impl_core_fmt_Debug_for_axum_extract_request_parts_OriginalUri_t.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_request_parts_OriginalUri_t.
+    Section Impl_core_clone_Clone_for_axum_extract_request_parts_OriginalUri_t.
+      Definition Self : Set := axum.extract.request_parts.OriginalUri.t.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M axum.extract.request_parts.OriginalUri.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_request_parts_OriginalUri_t.
+    End Impl_core_clone_Clone_for_axum_extract_request_parts_OriginalUri_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_request_parts_OriginalUri_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_request_parts_OriginalUri_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.request_parts.OriginalUri.t.
+      
+      (*
+          type Rejection = Infallible;
+      *)
+      Definition Rejection : Set := core.convert.Infallible.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+              let uri = Extension::<Self>::from_request_parts(parts, state)
+                  .await
+                  .unwrap_or_else(|_| Extension(OriginalUri(parts.uri.clone())))
+                  .0;
+              Ok(uri)
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* state := M.alloc state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_request_parts_OriginalUri_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_request_parts_OriginalUri_t.
+    
+    Module  Impl_core_ops_deref_Deref_for_axum_extract_request_parts_OriginalUri_t.
+    Section Impl_core_ops_deref_Deref_for_axum_extract_request_parts_OriginalUri_t.
+      Definition Self : Set := axum.extract.request_parts.OriginalUri.t.
+      
+      (*
+                  type Target = $ty;
+      *)
+      Definition Target : Set := http.uri.Uri.t.
+      
+      (*
+                  fn deref(&self) -> &Self::Target {
+                      &self.0
+                  }
+      *)
+      Definition deref (self : ref Self) : M (ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref :
+        Notations.DoubleColon Self "deref" := {
+        Notations.double_colon := deref;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.Deref.Trait Self := {
+        core.ops.deref.Deref.Target := Target;
+        core.ops.deref.Deref.deref := deref;
+      }.
+    End Impl_core_ops_deref_Deref_for_axum_extract_request_parts_OriginalUri_t.
+    End Impl_core_ops_deref_Deref_for_axum_extract_request_parts_OriginalUri_t.
+    
+    Module  Impl_core_ops_deref_DerefMut_for_axum_extract_request_parts_OriginalUri_t.
+    Section Impl_core_ops_deref_DerefMut_for_axum_extract_request_parts_OriginalUri_t.
+      Definition Self : Set := axum.extract.request_parts.OriginalUri.t.
+      
+      (*
+                  fn deref_mut(&mut self) -> &mut Self::Target {
+                      &mut self.0
+                  }
+      *)
+      Definition deref_mut (self : mut_ref Self) : M (mut_ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref_mut :
+        Notations.DoubleColon Self "deref_mut" := {
+        Notations.double_colon := deref_mut;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.DerefMut.Trait Self := {
+        core.ops.deref.DerefMut.deref_mut := deref_mut;
+      }.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_request_parts_OriginalUri_t.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_request_parts_OriginalUri_t.
+  End request_parts.
+  
+  Module state.
+    Module  State.
+    Section State.
+      Context {S : Set}.
+      
+      Record t : Set := {
+        x0 : S;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End State.
+    End State.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_state_State_t_S.
+    Section Impl_core_fmt_Debug_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait S}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_state_State_t_S.
+    End Impl_core_fmt_Debug_for_axum_extract_state_State_t_S.
+    
+    Module  Impl_core_default_Default_for_axum_extract_state_State_t_S.
+    Section Impl_core_default_Default_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.default.Default.Trait S}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      (*
+      Default
+      *)
+      Definition default : M (axum.extract.state.State.t S) := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_state_State_t_S.
+    End Impl_core_default_Default_for_axum_extract_state_State_t_S.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_state_State_t_S.
+    Section Impl_core_clone_Clone_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait S}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      (*
+      Clone
+      *)
+      Definition clone (self : ref Self) : M (axum.extract.state.State.t S) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_state_State_t_S.
+    End Impl_core_clone_Clone_for_axum_extract_state_State_t_S.
+    
+    Module  Impl_core_marker_Copy_for_axum_extract_state_State_t_S.
+    Section Impl_core_marker_Copy_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Copy.Trait S}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      Global Instance ℐ : core.marker.Copy.Trait Self := {
+      }.
+    End Impl_core_marker_Copy_for_axum_extract_state_State_t_S.
+    End Impl_core_marker_Copy_for_axum_extract_state_State_t_S.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_OuterState_for_axum_extract_state_State_t_InnerState.
+    Section Impl_axum_core_extract_FromRequestParts_OuterState_for_axum_extract_state_State_t_InnerState.
+      Context {OuterState InnerState : Set}.
+      
+      Context
+        {ℋ_0 :
+          axum_core.extract.from_ref.FromRef.Trait InnerState (T := OuterState)}
+        {ℋ_1 : core.marker.Send.Trait OuterState}
+        {ℋ_2 : core.marker.Sync.Trait OuterState}.
+      
+      Definition Self : Set := axum.extract.state.State.t InnerState.
+      
+      (*
+          type Rejection = Infallible;
+      *)
+      Definition Rejection : Set := core.convert.Infallible.t.
+      
+      (*
+          async fn from_request_parts(
+              _parts: &mut Parts,
+              state: &OuterState,
+          ) -> Result<Self, Self::Rejection> {
+              let inner_state = InnerState::from_ref(state);
+              Ok(Self(inner_state))
+          }
+      *)
+      Definition from_request_parts
+          (_parts : mut_ref http.request.Parts.t)
+          (state : ref OuterState)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* _parts := M.alloc _parts in
+        let* state := M.alloc state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := OuterState) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_OuterState_for_axum_extract_state_State_t_InnerState.
+    End Impl_axum_core_extract_FromRequestParts_OuterState_for_axum_extract_state_State_t_InnerState.
+    
+    Module  Impl_core_ops_deref_Deref_for_axum_extract_state_State_t_S.
+    Section Impl_core_ops_deref_Deref_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      (*
+          type Target = S;
+      *)
+      Definition Target : Set := S.
+      
+      (*
+          fn deref(&self) -> &Self::Target {
+              &self.0
+          }
+      *)
+      Definition deref (self : ref Self) : M (ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref :
+        Notations.DoubleColon Self "deref" := {
+        Notations.double_colon := deref;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.Deref.Trait Self := {
+        core.ops.deref.Deref.Target := Target;
+        core.ops.deref.Deref.deref := deref;
+      }.
+    End Impl_core_ops_deref_Deref_for_axum_extract_state_State_t_S.
+    End Impl_core_ops_deref_Deref_for_axum_extract_state_State_t_S.
+    
+    Module  Impl_core_ops_deref_DerefMut_for_axum_extract_state_State_t_S.
+    Section Impl_core_ops_deref_DerefMut_for_axum_extract_state_State_t_S.
+      Context {S : Set}.
+      
+      Definition Self : Set := axum.extract.state.State.t S.
+      
+      (*
+          fn deref_mut(&mut self) -> &mut Self::Target {
+              &mut self.0
+          }
+      *)
+      Definition deref_mut (self : mut_ref Self) : M (mut_ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref_mut :
+        Notations.DoubleColon Self "deref_mut" := {
+        Notations.double_colon := deref_mut;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.DerefMut.Trait Self := {
+        core.ops.deref.DerefMut.deref_mut := deref_mut;
+      }.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_state_State_t_S.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_state_State_t_S.
+  End state.
+  
+  Module matched_path.
+    Module  MatchedPath.
+    Section MatchedPath.
+      Record t : Set := {
+        x0 : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End MatchedPath.
+    End MatchedPath.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedPath_t.
+    Section Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedPath_t.
+      Definition Self : Set := axum.extract.matched_path.MatchedPath.t.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M axum.extract.matched_path.MatchedPath.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedPath_t.
+    End Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedPath_t.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedPath_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedPath_t.
+      Definition Self : Set := axum.extract.matched_path.MatchedPath.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedPath_t.
+    End Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedPath_t.
+    
+    Module  Impl_axum_extract_matched_path_MatchedPath_t.
+    Section Impl_axum_extract_matched_path_MatchedPath_t.
+      Definition Self : Set := axum.extract.matched_path.MatchedPath.t.
+      
+      (*
+          pub fn as_str(&self) -> &str {
+              &self.0
+          }
+      *)
+      Definition as_str (self : ref Self) : M (ref str.t) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_as_str :
+        Notations.DoubleColon Self "as_str" := {
+        Notations.double_colon := as_str;
+      }.
+    End Impl_axum_extract_matched_path_MatchedPath_t.
+    End Impl_axum_extract_matched_path_MatchedPath_t.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_matched_path_MatchedPath_t.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_matched_path_MatchedPath_t.
+      Context {S : Set}.
+      
+      Context {ℋ_0 : core.marker.Send.Trait S} {ℋ_1 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.matched_path.MatchedPath.t.
+      
+      (*
+          type Rejection = MatchedPathRejection;
+      *)
+      Definition Rejection : Set :=
+        axum.extract.rejection.MatchedPathRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              let matched_path = parts
+                  .extensions
+                  .get::<Self>()
+                  .ok_or(MatchedPathRejection::MatchedPathMissing(MatchedPathMissing))?
+                  .clone();
+      
+              Ok(matched_path)
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_matched_path_MatchedPath_t.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_matched_path_MatchedPath_t.
+    
+    Module  MatchedNestedPath.
+    Section MatchedNestedPath.
+      Record t : Set := {
+        x0 : alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End MatchedNestedPath.
+    End MatchedNestedPath.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedNestedPath_t.
+    Section Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedNestedPath_t.
+      Definition Self : Set := axum.extract.matched_path.MatchedNestedPath.t.
+      
+      (*
+      Clone
+      *)
+      Definition clone
+          (self : ref Self)
+          : M axum.extract.matched_path.MatchedNestedPath.t :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedNestedPath_t.
+    End Impl_core_clone_Clone_for_axum_extract_matched_path_MatchedNestedPath_t.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedNestedPath_t.
+    Section Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedNestedPath_t.
+      Definition Self : Set := axum.extract.matched_path.MatchedNestedPath.t.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedNestedPath_t.
+    End Impl_core_fmt_Debug_for_axum_extract_matched_path_MatchedNestedPath_t.
+    
+    (*
+    pub(crate) fn set_matched_path_for_request(
+        id: RouteId,
+        route_id_to_path: &HashMap<RouteId, Arc<str>>,
+        extensions: &mut http::Extensions,
+    ) {
+        let matched_path = if let Some(matched_path) = route_id_to_path.get(&id) {
+            matched_path
+        } else {
+            #[cfg(debug_assertions)]
+            panic!("should always have a matched path for a route id");
+            #[cfg(not(debug_assertions))]
+            return;
+        };
+    
+        let matched_path = append_nested_matched_path(matched_path, extensions);
+    
+        if matched_path.ends_with(NEST_TAIL_PARAM_CAPTURE) {
+            extensions.insert(MatchedNestedPath(matched_path));
+            debug_assert!(extensions.remove::<MatchedPath>().is_none());
+        } else {
+            extensions.insert(MatchedPath(matched_path));
+            extensions.remove::<MatchedNestedPath>();
+        }
+    }
+    *)
+    Definition set_matched_path_for_request
+        (id : axum.routing.RouteId.t)
+        (route_id_to_path
+          :
+          ref
+            (std.collections.hash.map.HashMap.t
+              axum.routing.RouteId.t
+              (alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A)
+              std.collections.hash.map.HashMap.Default.S))
+        (extensions : mut_ref http.extensions.Extensions.t)
+        : M unit :=
+      let* id := M.alloc id in
+      let* route_id_to_path := M.alloc route_id_to_path in
+      let* extensions := M.alloc extensions in
+      M.read foo.
+    
+    (*
+    fn append_nested_matched_path(matched_path: &Arc<str>, extensions: &http::Extensions) -> Arc<str> {
+        if let Some(previous) = extensions
+            .get::<MatchedPath>()
+            .map(|matched_path| matched_path.as_str())
+            .or_else(|| Some(&extensions.get::<MatchedNestedPath>()?.0))
+        {
+            let previous = previous
+                .strip_suffix(NEST_TAIL_PARAM_CAPTURE)
+                .unwrap_or(previous);
+    
+            let matched_path = format!("{previous}{matched_path}");
+            matched_path.into()
+        } else {
+            Arc::clone(matched_path)
+        }
+    }
+    *)
+    Definition append_nested_matched_path
+        (matched_path : ref (alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A))
+        (extensions : ref http.extensions.Extensions.t)
+        : M (alloc.sync.Arc.t str.t alloc.sync.Arc.Default.A) :=
+      let* matched_path := M.alloc matched_path in
+      let* extensions := M.alloc extensions in
+      M.read foo.
+  End matched_path.
+  
+  Module query.
+    Module  Query.
+    Section Query.
+      Context {T : Set}.
+      
+      Record t : Set := {
+        x0 : T;
+      }.
+      
+      Definition Get_0 :=
+        Ref.map (fun α => Some α.(x0)) (fun β α => Some (α <| x0 := β |>)).
+    End Query.
+    End Query.
+    
+    Module  Impl_core_fmt_Debug_for_axum_extract_query_Query_t_T.
+    Section Impl_core_fmt_Debug_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.fmt.Debug.Trait T}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+      Debug
+      *)
+      Definition fmt
+          (self : ref Self)
+          (f : mut_ref core.fmt.Formatter.t)
+          : M ltac:(core.fmt.Result) :=
+        let* self := M.alloc self in
+        let* f := M.alloc f in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_fmt :
+        Notations.DoubleColon Self "fmt" := {
+        Notations.double_colon := fmt;
+      }.
+      
+      Global Instance ℐ : core.fmt.Debug.Trait Self := {
+        core.fmt.Debug.fmt := fmt;
+      }.
+    End Impl_core_fmt_Debug_for_axum_extract_query_Query_t_T.
+    End Impl_core_fmt_Debug_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_core_clone_Clone_for_axum_extract_query_Query_t_T.
+    Section Impl_core_clone_Clone_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.clone.Clone.Trait T}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+      Clone
+      *)
+      Definition clone (self : ref Self) : M (axum.extract.query.Query.t T) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_clone :
+        Notations.DoubleColon Self "clone" := {
+        Notations.double_colon := clone;
+      }.
+      
+      Global Instance ℐ : core.clone.Clone.Required.Trait Self := {
+        core.clone.Clone.clone := clone;
+        core.clone.Clone.clone_from := Datatypes.None;
+      }.
+    End Impl_core_clone_Clone_for_axum_extract_query_Query_t_T.
+    End Impl_core_clone_Clone_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_core_marker_Copy_for_axum_extract_query_Query_t_T.
+    Section Impl_core_marker_Copy_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.marker.Copy.Trait T}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      Global Instance ℐ : core.marker.Copy.Trait Self := {
+      }.
+    End Impl_core_marker_Copy_for_axum_extract_query_Query_t_T.
+    End Impl_core_marker_Copy_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_core_default_Default_for_axum_extract_query_Query_t_T.
+    Section Impl_core_default_Default_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Context {ℋ_0 : core.default.Default.Trait T}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+      Default
+      *)
+      Definition default : M (axum.extract.query.Query.t T) := M.read foo.
+      
+      Global Instance AssociatedFunction_default :
+        Notations.DoubleColon Self "default" := {
+        Notations.double_colon := default;
+      }.
+      
+      Global Instance ℐ : core.default.Default.Trait Self := {
+        core.default.Default.default := default;
+      }.
+    End Impl_core_default_Default_for_axum_extract_query_Query_t_T.
+    End Impl_core_default_Default_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_query_Query_t_T.
+    Section Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_query_Query_t_T.
+      Context {T S : Set}.
+      
+      Context
+        {ℋ_0 : serde.de.DeserializeOwned.Trait T}
+        {ℋ_1 : core.marker.Send.Trait S}
+        {ℋ_2 : core.marker.Sync.Trait S}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+          type Rejection = QueryRejection;
+      *)
+      Definition Rejection : Set := axum.extract.rejection.QueryRejection.t.
+      
+      (*
+          async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+              Self::try_from_uri(&parts.uri)
+          }
+      *)
+      Definition from_request_parts
+          (parts : mut_ref http.request.Parts.t)
+          (_state : ref S)
+          :
+            M
+              (core.pin.Pin.t
+                (alloc.boxed.Box.t
+                  (dyn
+                    [core.future.future.Future.Trait; core.marker.Send.Trait])
+                  alloc.boxed.Box.Default.A)) :=
+        let* parts := M.alloc parts in
+        let* _state := M.alloc _state in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_from_request_parts :
+        Notations.DoubleColon Self "from_request_parts" := {
+        Notations.double_colon := from_request_parts;
+      }.
+      
+      Global Instance ℐ :
+        axum_core.extract.FromRequestParts.Trait Self (S := S) := {
+        axum_core.extract.FromRequestParts.Rejection := Rejection;
+        axum_core.extract.FromRequestParts.from_request_parts :=
+          from_request_parts;
+      }.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_query_Query_t_T.
+    End Impl_axum_core_extract_FromRequestParts_S_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_axum_extract_query_Query_t_T.
+    Section Impl_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+          pub fn try_from_uri(value: &Uri) -> Result<Self, QueryRejection> {
+              let query = value.query().unwrap_or_default();
+              let params =
+                  serde_urlencoded::from_str(query).map_err(FailedToDeserializeQueryString::from_err)?;
+              Ok(Query(params))
+          }
+      *)
+      Definition try_from_uri
+          (value : ref http.uri.Uri.t)
+          :
+            M
+              (core.result.Result.t
+                Self
+                axum.extract.rejection.QueryRejection.t) :=
+        let* value := M.alloc value in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_try_from_uri :
+        Notations.DoubleColon Self "try_from_uri" := {
+        Notations.double_colon := try_from_uri;
+      }.
+    End Impl_axum_extract_query_Query_t_T.
+    End Impl_axum_extract_query_Query_t_T.
+    
+    Module  Impl_core_ops_deref_Deref_for_axum_extract_query_Query_t_T.
+    Section Impl_core_ops_deref_Deref_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+                  type Target = T;
+      *)
+      Definition Target : Set := T.
+      
+      (*
+                  fn deref(&self) -> &Self::Target {
+                      &self.0
+                  }
+      *)
+      Definition deref (self : ref Self) : M (ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref :
+        Notations.DoubleColon Self "deref" := {
+        Notations.double_colon := deref;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.Deref.Trait Self := {
+        core.ops.deref.Deref.Target := Target;
+        core.ops.deref.Deref.deref := deref;
+      }.
+    End Impl_core_ops_deref_Deref_for_axum_extract_query_Query_t_T.
+    End Impl_core_ops_deref_Deref_for_axum_extract_query_Query_t_T.
+    
+    Module  Impl_core_ops_deref_DerefMut_for_axum_extract_query_Query_t_T.
+    Section Impl_core_ops_deref_DerefMut_for_axum_extract_query_Query_t_T.
+      Context {T : Set}.
+      
+      Definition Self : Set := axum.extract.query.Query.t T.
+      
+      (*
+                  fn deref_mut(&mut self) -> &mut Self::Target {
+                      &mut self.0
+                  }
+      *)
+      Definition deref_mut (self : mut_ref Self) : M (mut_ref Target) :=
+        let* self := M.alloc self in
+        M.read foo.
+      
+      Global Instance AssociatedFunction_deref_mut :
+        Notations.DoubleColon Self "deref_mut" := {
+        Notations.double_colon := deref_mut;
+      }.
+      
+      Global Instance ℐ : core.ops.deref.DerefMut.Trait Self := {
+        core.ops.deref.DerefMut.deref_mut := deref_mut;
+      }.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_query_Query_t_T.
+    End Impl_core_ops_deref_DerefMut_for_axum_extract_query_Query_t_T.
+  End query.
+  
+  (*
+  pub(super) fn has_content_type(headers: &HeaderMap, expected_content_type: &mime::Mime) -> bool {
+      let content_type = if let Some(content_type) = headers.get(header::CONTENT_TYPE) {
+          content_type
+      } else {
+          return false;
+      };
+  
+      let content_type = if let Ok(content_type) = content_type.to_str() {
+          content_type
+      } else {
+          return false;
+      };
+  
+      content_type.starts_with(expected_content_type.as_ref())
+  }
+  *)
+  Definition has_content_type
+      (headers
+        :
+        ref (http.header.map.HeaderMap.t http.header.map.HeaderMap.Default.T))
+      (expected_content_type : ref mime.Mime.t)
+      : M bool.t :=
+    let* headers := M.alloc headers in
+    let* expected_content_type := M.alloc expected_content_type in
+    M.read foo.
+End extract.
+
 Module assistants.
   (*
   pub async fn create_assistant_handler(

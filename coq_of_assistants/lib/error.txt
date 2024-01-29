@@ -1,0 +1,6 @@
+Entering directory '/mnt/data1/2024/01/27/assistants/coq_of_assistants'
+File "./lib/assistants_api_communication.v", line 1336, characters 4-99:
+Error:
+Anomaly
+"File "kernel/safe_typing.ml", line 462, characters 2-8: Assertion failed."
+Please report at http://coq.inria.fr/bugs/.

@@ -30,63 +30,68 @@ Definition Request : UU := total2 (
    (fun top_n : nat => total2 (fun output : String => unit)))))).
 
 
-Definition Forms : UU := total2 (
-(fun monsters : Set => total2
-(fun treasure : Set => total2
-(fun doors: Set => total2
-                     (fun hallways: Set => total2
-                   (fun rooms: nat => total2
-                                        (fun traps: nat =>
-                                           (fun output : String => unit)
+Definition Forms := total2 (
+                        (fun monsters : Set => total2
+                                                 (fun treasure : Set => total2
+                                                                          (fun doors: Set => total2
+                                                                                               (fun hallways: Set => total2
+                                                                                                                       (fun rooms: nat => total2
+                                                                                                                                            (fun traps: nat => total2
+                                                                                                                                                                 (fun output : String => unit)
+                                                                                                                                                 
+                      ))))))).
 
-                           ))))))).
 
-                   
+Definition Dungeon : UU := total2 (fun entrance : nat => total2
+                                                           (fun exits : R => unit)
+                             ).
+                                        
 Definition TowerDefenseGame : UU := total2 (
 fun layers_deep : nat => total2
 (fun temp : R => total2
-(fun forms : Form => total2             
+(fun forms : Forms => total2             
 (fun pictures: nat => total2                     (fun traces: nat => total2
 (fun styles: nat => total2
-(fun output : Dungeon => unit)))))))))).
-
+(fun output : Dungeon => unit))))))).
+Definition Game : UU := total2 (
+                            fun play : nat => unit
+                          ).
 Definition WriteMeATowerDefenseGameQ : UU := total2 (
-                 fun write : nat => total2 
-     fun TowerDefence :  TowerDefenseGame =>
-       total2 
-                         (fun output : Game => unit)))))))))).
-
-Notation "Write me a tower defence game! " :=                            WriteMeATowerDefenseGameQ.
-
+                                                 fun write : nat => total2 (
+                                                                        fun TowerDefence :  TowerDefenseGame => total2 (
+                                                                                                                    fun output : Game => unit))).
+                                                                                                                                                       
+Notation "Write me a tower defence game! " :=                            WriteMeATowerDefenseGameQ (at level 100).
+Definition LLM : UU := UU.
+Definition Tree: UU := UU.
 Definition ProveGood : UU := total2 (
                                  fun response: LLM => total2(fun request: nat => total2(fun connected_spanning_tree : Tree => total2(fun min_complexity : nat => total2	(fun max_complexity : nat => total2
                                                                                                                                                                                                        (fun video_snippets : nat => total2
-                                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                                      (fun output : Game => unit))))))).
 
-                                                                                                                                                                                                                                                                                                                                                                        (fun output : Game => unit)))))))))).
-                                                                                                                                                                                                                                                                                                                                                                                                            
-
-                                                                                                                                                                                                                                                                                                                                                                                 Definition SendToLLM :=
-                                                                                                                                                                                                                                                                                                                                                                                   (*
-
+Definition SendToLLM := UU.
+  (*
+    
    Chunk in 4000 tokens                     Generate serialization, traverse KG in the right order following the proof schema that gives us the attention graph,
   Reduce size abstracting details and rewriting, fold the data together            bottom up, starting with bits. abstracting the representations to tokens, 
-                                        UU -> term -> universe of universes                                                take jsonserde from rust,
-                                                                                                                                                                                                                                                                                                                                                                                    lift and shift to coq using coq of rust
-                                            lift json into unimath                   lift the asts into sexprs into json,
+  UU -> term -> universe of universes                                                take jsonserde from rust,
+  lift and shift to coq using coq of rust
+  lift json into unimath                   lift the asts into sexprs into json,
 
-   prove the connection between the json and the unimath.
+prove the connection between the json and the unimath.
 
 
 follow the code of serlib which serializes coq in ocaml into sexpressions.
- lift that sexpression into json.                                                                                                                                                                               serve the open ai assistent api endpoint using the dungeon game example in coq
+ lift that sexpression into json.                                                      serve the open ai assistent api endpoint using the dungeon game example in coq
 as an assistent for ai and prove that the generated code is of quality.
 write requirements
 write specification
 precondition post conditions
-                                                                                                                                                                                                                                                                                                                                                                                    *)                  
+   *)                  
                   
-                 Definition JustDoit := ProveGood SendToLLM   WriteMeATowerDefenseGameQ            .
+  (* Definition JustDoit := ProveGood SendToLLM   WriteMeATowerDefenseGameQ            . *)
                  
 
 (* sketches subset of pictures*)
@@ -94,7 +99,7 @@ precondition post conditions
 (* Definition VernacDefinition : UU := total2 ( *)
 (*        (pre : myFuncts)(name : myFuncts)(def : myFuncts) *)
                    
-Definition Request : UU := total2 (
+Definition RequestLLM : UU := total2 (
     fun prompt : String => total2
    (fun tokens : nat => total2
    (fun temp : R => total2
