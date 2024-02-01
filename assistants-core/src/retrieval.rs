@@ -164,6 +164,11 @@ Query?",
     )
     .await?;
 
+    // if the llm return two words like "dog food", just add a | between them
+    // using a regex for safety 
+    let re = regex::Regex::new(r"\s+").unwrap();
+    let query = re.replace_all(&query, " | ").to_string();
+
     // Convert the query to tsquery and execute it on the database
     let rows = sqlx::query!(
         r#"

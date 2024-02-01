@@ -1517,7 +1517,7 @@ mod tests {
 
         // 1. Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-        writeln!(temp_file, "bob's favourite number is 42").unwrap();
+        writeln!(temp_file, "bob's favourite number is 42. bob's favourite number is 42").unwrap();
 
         // 2. Get the path of the temporary file.
         let temp_file_path = temp_file.path();
@@ -1579,7 +1579,7 @@ mod tests {
             r#type: "text".to_string(),
             text: TextData {
                 value: 
-                "I need to know bob's favourite number. Tell me what it is based on the tools you have."
+                "I need to know bob's favourite number. Tell me what it is based on the tools you have (e.g. function calls etc.)."
                     .to_string(),
                 annotations: vec![],
             },
@@ -1641,7 +1641,7 @@ mod tests {
                 .tool_calls[0]
                 .id
                 .clone(),
-            output: "bob's favourite number is 43".to_string(),
+            output: "bob's favourite number is 43. bob's favourite number is 43".to_string(),
             run_id: run.inner.id.clone(),
             created_at: 0,
             user_id: assistant.user_id.clone(),
@@ -1685,7 +1685,7 @@ mod tests {
         if let MessageContent::Text(text_object) = &messages[0].inner.content[0] {
             assert_eq!(
                 text_object.text.value,
-                "I need to know bob's favourite number. Tell me what it is based on the tools you have."
+                "I need to know bob's favourite number. Tell me what it is based on the tools you have (e.g. function calls etc.)."
             );
         } else {
             panic!("Expected a Text message, but got something else.");

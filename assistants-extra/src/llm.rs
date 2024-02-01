@@ -98,7 +98,7 @@ pub async fn llm(
             let bpe = p50k_base().unwrap();
             let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
             max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
-            println!("max_tokens_to_sample: {}", max_tokens_to_sample);
+            info!("max_tokens_to_sample: {}", max_tokens_to_sample);
         }
         call_open_source_openai_api_with_messages(
             messages,
