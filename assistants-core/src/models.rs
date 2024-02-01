@@ -141,7 +141,7 @@ impl Default for Assistant {
                 created_at: 0,
                 name: None,
                 description: None,
-                model: "claude-2.1".to_string(), // TODO everything should default to open source llm in the future when the repo is more stable
+                model: "mistralai/mixtral-8x7b-instruct".to_string(),
                 instructions: Some("You are a helpful assistant.".to_string()),
                 tools: Vec::new(),
                 file_ids: Vec::new(),

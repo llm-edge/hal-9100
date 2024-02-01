@@ -280,6 +280,12 @@ Your answer will be used to use the tool so it must be very concise and make sur
 
     info!("decide_tool_with_llm result: {:?}", results);
 
+    // filter out what is not in the tools
+    results.retain(|tool| 
+        // function, retrieval, code_interpreter, action
+        tool == "function" || tool == "retrieval" || tool == "code_interpreter" || tool == "action"
+    );
+
     Ok(results
         .into_iter()
         .collect::<HashSet<_>>()
@@ -1374,6 +1380,9 @@ mod tests {
     #[ignore]
     async fn test_decide_tool_with_llm_code_interpreter() {
         setup().await;
+        let model_name = std::env::var("TEST_MODEL_NAME")
+        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
@@ -1385,7 +1394,7 @@ mod tests {
                 tools: vec![AssistantTools::Code(AssistantToolsCode {
                     r#type: "code_interpreter".to_string(),
                 })],
-                model: "claude-2.1".to_string(),
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1426,6 +1435,9 @@ mod tests {
     #[tokio::test]
     async fn test_decide_tool_with_llm_open_source() {
         setup().await;
+        let model_name = std::env::var("TEST_MODEL_NAME")
+        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
         let mut functions = FunctionObject {
             description: Some("A calculator function".to_string()),
             name: "calculator".to_string(),
@@ -1455,7 +1467,7 @@ mod tests {
                     r#type: "function".to_string(),
                     function: functions,
                 })],
-                model: "open-source/mistral-7b-instruct".to_string(),
+                model: model_name,
                 file_ids: vec![],
                 object: "object_value".to_string(),
                 created_at: 0,
@@ -1486,8 +1498,6 @@ mod tests {
             },
             user_id: "".to_string(),
         }];
-        // ! HACK
-        std::env::set_var("MODEL_URL", "https://api.perplexity.ai/chat/completions");
 
         // Call the decide_tool_with_llm function using the open-source LLM
         let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;

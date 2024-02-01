@@ -46,7 +46,7 @@ pub struct ChatCompletion {
     pub id: String,
     pub object: String,
     pub created: i64,
-    pub model: String,
+    pub model: Option<String>,
     pub choices: Vec<Choice>,
     pub usage: Usage,
 }
@@ -381,7 +381,6 @@ mod tests {
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(response.model.contains("gpt-3.5-turbo"), true);
                 assert_eq!(response.choices.len(), 1);
                 assert_eq!(response.choices[0].finish_reason, "stop");
                 assert_eq!(response.choices[0].message.role, "assistant");
@@ -417,10 +416,6 @@ mod tests {
         match result {
             Ok(response) => {
                 println!("response: {:?}", response);
-                assert_eq!(
-                    response.model.contains("open-orca/mistral-7b-openorca"),
-                    true
-                );
                 assert_eq!(response.choices.len(), 1);
                 assert_eq!(response.choices[0].finish_reason, "stop");
                 assert_eq!(response.choices[0].message.role, "assistant");

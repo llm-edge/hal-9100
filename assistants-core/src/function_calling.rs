@@ -710,7 +710,7 @@ mod tests {
 
         let model_config = ModelConfig {
             model_name: model_name,
-            model_url: Some("https://api.perplexity.ai/chat/completions".to_string()),
+            model_url: None,
             user_prompt: user_context.clone(),
             temperature: Some(0.0),
             max_tokens_to_sample: 200,

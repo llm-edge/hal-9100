@@ -34,7 +34,7 @@ regex = "1.5.4"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
 # async-openai = "0.17.1"
-async-openai = { git = "https://github.com/louis030195/async-openai.git", rev = "b687fdd" }
+async-openai = { git = "https://github.com/louis030195/async-openai.git", rev = "a6d62d3" }
 
 # code interpreter
 bollard = "0.10.1"

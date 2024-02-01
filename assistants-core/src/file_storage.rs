@@ -253,26 +253,26 @@ mod tests {
     #[tokio::test]
     async fn test_read_pdf_content() {
         // Download the PDF file
-        let response = reqwest::get("https://www.africau.edu/images/default/sample.pdf")
+        let response = reqwest::get("https://arxiv.org/pdf/1706.03762.pdf")
             .await
             .unwrap()
             .bytes()
             .await
             .unwrap();
 
+        // Create a temporary directory
+        let temp_dir = tempfile::tempdir().unwrap();
+        let pdf_path = temp_dir.path().join("sample.pdf");
+
         // Write the PDF file to disk
-        let mut file = File::create("sample.pdf").unwrap();
+        let mut file = File::create(&pdf_path).unwrap();
         file.write_all(&response).unwrap();
         file.sync_all().unwrap(); // Ensure all bytes are written to the file
 
         // Read the PDF content
-        let content = pdf_to_text(std::path::Path::new("sample.pdf")).unwrap();
+        let content = pdf_to_text(&pdf_path).unwrap();
 
         // Check the content
-        assert!(content.contains("A Simple PDF File"));
-        assert!(content.contains("This is a small demonstration .pdf file"));
-
-        // Delete the file locally
-        std::fs::remove_file("sample.pdf").unwrap();
+        assert!(content.contains("In this work we propose the Transformer"));
     }
 }

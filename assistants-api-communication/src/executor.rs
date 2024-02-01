@@ -50,8 +50,6 @@ mod tests {
         trace::TraceLayer,
     }; // for `oneshot` and `ready`
 
-    
-
     /// Having a function that produces our app makes it easy to call it from tests
     /// without having to create an HTTP server.
     #[allow(dead_code)]
@@ -143,7 +141,8 @@ mod tests {
         let pool_clone = app_state.pool.clone();
 
         reset_db(&app_state.pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         let assistant = CreateAssistantRequest {
             instructions: Some(
@@ -222,15 +221,6 @@ mod tests {
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: MessageObject = serde_json::from_slice(&body).unwrap();
 
-        let run_input = CreateRunRequest {
-            assistant_id: assistant.id,
-            instructions: Some("Please help me find a random fact.".to_string()),
-            additional_instructions: None,
-            model: None,
-            tools: None,
-            metadata: None,
-        };
-
         let response = app
             .clone()
             .oneshot(
@@ -238,7 +228,13 @@ mod tests {
                     .method(http::Method::POST)
                     .uri(format!("/threads/{}/runs", thread.id))
                     .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                    .body(Body::from(serde_json::to_vec(&run_input).unwrap()))
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": assistant.id,
+                            "instructions": "Please help me find a random fact"
+                        })
+                        .to_string(),
+                    ))
                     .unwrap(),
             )
             .await

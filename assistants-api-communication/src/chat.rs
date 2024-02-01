@@ -107,7 +107,7 @@ pub async fn chat_handler(
             return Ok(JsonResponse(CreateChatCompletionResponse {
                 usage: None,                       // TODO
                 id: "chatcmpl-abc123".to_string(), // TODO
-                model: request.model.clone(),
+                model: Some(request.model.clone()),
                 created: chrono::Utc::now().timestamp() as u32,
                 system_fingerprint: None,
                 object: "chat.completion".to_string(),
@@ -334,7 +334,8 @@ mod tests {
         dotenv().ok();
         // Create a Router with the stream_chat_handler route
         let app = Router::new().route("/chat/completions", post(chat_handler));
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
         // Mock a request with a tool that requires a function call
         let chat_input = json!({
             "model": model_name,

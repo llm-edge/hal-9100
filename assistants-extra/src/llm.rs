@@ -23,7 +23,8 @@ pub async fn llm(
 ) -> Result<String, Box<dyn Error>> {
     let messages = vec![
         Message {
-            role: "system".to_string(),
+            role: "user".to_string(),
+            // role: "system".to_string(), // TODO: do we give a shit?
             content: system_prompt.to_string(),
         },
         Message {

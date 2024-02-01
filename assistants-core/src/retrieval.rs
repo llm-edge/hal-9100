@@ -329,12 +329,12 @@ The president of the Moon is TDB.
         let _ = split_and_insert(&pool, text, chunk_size, file_name, metadata.clone())
             .await
             .unwrap();
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Call the function
         let context = "dog food";
-        let result =
-            generate_queries_and_fetch_chunks(&pool, context, "open-source/mistral-7b-instruct")
-                .await;
+        let result = generate_queries_and_fetch_chunks(&pool, context, &model_name).await;
 
         // Check the result
         assert!(
