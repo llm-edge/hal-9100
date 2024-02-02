@@ -1,9 +1,9 @@
 use assistants_api_communication::models::AppState;
 use assistants_core::retrieval::split_and_insert;
-use async_openai::types::{OpenAIFile, OpenAIFilePurpose};
+use async_openai::types::{ListFilesResponse, OpenAIFile, OpenAIFilePurpose};
 use axum::{
     debug_handler,
-    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
+    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, Query, State},
     http::StatusCode,
     response::Json as JsonResponse,
 };
@@ -115,6 +115,39 @@ pub async fn upload_file_handler(
     }))
 }
 
+pub async fn list_files_handler(
+    State(app_state): State<AppState>,
+    // purpose_query: Query<Option<String>>, // TODO use purpose
+) -> Result<JsonResponse<ListFilesResponse>, (StatusCode, String)> {
+    let files = app_state.file_storage.list_files().await;
+
+    match files {
+        Ok(files) => Ok(JsonResponse(ListFilesResponse {
+            data: files
+                .into_iter()
+                .map(|file| OpenAIFile {
+                    id: file.etag,
+                    object: "object".to_string(),
+                    bytes: 0,      // TODO
+                    created_at: 0, // ?
+                    filename: file.key,
+                    purpose: OpenAIFilePurpose::Assistants,
+                    status: Some("unknown".to_string()),
+                    status_details: Some("unknown".to_string()),
+                })
+                .collect(),
+            object: "list".to_string(),
+        })),
+        Err(e) => {
+            error!("Failed to list files: {:?}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to list files".to_string(),
+            ))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,6 +189,7 @@ mod tests {
         Router::new()
             .route("/files/:file_id", get(retrieve_file_handler))
             .route("/files", post(upload_file_handler))
+            .route("/files", get(list_files_handler))
             .layer(DefaultBodyLimit::disable())
             .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024))
             .with_state(app_state)
@@ -262,5 +296,54 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_list_files_handler() {
+        let app_state = setup().await;
+        let app = app(app_state);
+
+        // Assuming the file storage is initially empty or its state is known
+        // and we have uploaded a file to test the listing functionality.
+
+        // Upload a file first to ensure there is at least one file to list
+        let boundary = "------------------------14737809831466499882746641449";
+        let body = format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n\r\nTest file content\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nTest Purpose\r\n--{boundary}--\r\n",
+            boundary = boundary
+        );
+
+        let upload_request = Request::builder()
+            .method(http::Method::POST)
+            .uri("/files")
+            .header(
+                "Content-Type",
+                format!("multipart/form-data; boundary={}", boundary),
+            )
+            .body(Body::from(body))
+            .unwrap();
+
+        app.clone().oneshot(upload_request).await.unwrap();
+
+        // Now test the list_files_handler
+        let list_request = Request::builder()
+            .method(http::Method::GET)
+            .uri("/files?purpose=test")
+            .body(Body::empty())
+            .unwrap();
+
+        let list_response = app.clone().oneshot(list_request).await.unwrap();
+        assert_eq!(list_response.status(), StatusCode::OK);
+
+        // Optionally, verify the response body for correctness
+        let list_response_body = hyper::body::to_bytes(list_response.into_body())
+            .await
+            .unwrap();
+        let list_response_json: serde_json::Value =
+            serde_json::from_slice(&list_response_body).unwrap();
+        assert!(
+            list_response_json["data"].as_array().unwrap().len() > 0,
+            "The list should contain at least one file."
+        );
     }
 }

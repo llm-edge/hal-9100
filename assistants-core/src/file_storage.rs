@@ -1,7 +1,10 @@
 use bytes::Bytes;
 use log::{info, warn};
 use reqwest;
-use rusty_s3::actions::{CreateBucket, DeleteObject, GetObject, PutObject, S3Action};
+use rusty_s3::actions::list_objects_v2::ListObjectsContent;
+use rusty_s3::actions::{
+    CreateBucket, DeleteObject, GetObject, ListObjectsV2, PutObject, S3Action,
+};
 use rusty_s3::UrlStyle;
 use rusty_s3::{Bucket, Credentials};
 use std::env;
@@ -63,11 +66,12 @@ impl FileStorage {
         &self,
         file_path: &Path,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let extension = file_path
-            .extension()
-            .and_then(std::ffi::OsStr::to_str)
-            .unwrap_or("");
-        let file_name = format!("{}.{}", uuid::Uuid::new_v4(), extension);
+        // let extension = file_path
+        //     .extension()
+        //     .and_then(std::ffi::OsStr::to_str)
+        //     .unwrap_or("");
+        // let file_name = format!("{}.{}", uuid::Uuid::new_v4(), extension);
+        let file_name = file_path.file_name().unwrap().to_str().unwrap();
         let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_name);
 
         let mut file = match File::open(file_path).await {
@@ -87,15 +91,16 @@ impl FileStorage {
             Ok(response) => response,
             Err(e) => return Err(Box::new(e)),
         };
-        match response.error_for_status() {
-            Ok(_) => (),
-            Err(e) => return Err(Box::new(e)),
+        if let Err(e) = response.error_for_status_ref() {
+            return Err(Box::new(e));
         }
+        let data = response.text().await?;
 
-        Ok(file_name.to_owned())
+        Ok(file_name.to_string())
     }
 
     pub async fn retrieve_file(
+        // TODO: bytes? where tf is the rest of metatda :)
         &self,
         object_name: &str,
     ) -> Result<Bytes, Box<dyn std::error::Error + Send + Sync>> {
@@ -109,6 +114,12 @@ impl FileStorage {
         let response = client.get(signed_url).send().await?.error_for_status()?;
 
         Ok(response.bytes().await?)
+
+        // // HACK until figure out how to get the file properly from S3
+        // let files = self.list_files().await?;
+        // let file = files.iter().find(|f| f.key == object_name).unwrap();
+
+        // Ok(file.to_owned())
     }
 
     pub async fn delete_file(
@@ -123,6 +134,21 @@ impl FileStorage {
         let response = client.delete(signed_url).send().await?.error_for_status()?;
 
         Ok(())
+    }
+
+    pub async fn list_files(
+        &self,
+    ) -> Result<Vec<ListObjectsContent>, Box<dyn std::error::Error + Send + Sync>> {
+        let action = ListObjectsV2::new(&self.bucket, Some(&self.credentials));
+        let signed_url = action.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
+
+        // You can then use this signed URL to list the files in the bucket using an HTTP client
+        let client = reqwest::Client::new();
+        let response = client.get(signed_url).send().await?.error_for_status()?;
+        let text = response.text().await?;
+
+        let parsed = ListObjectsV2::parse_response(&text)?;
+        return Ok(parsed.contents);
     }
 }
 
@@ -274,5 +300,46 @@ mod tests {
 
         // Check the content
         assert!(content.contains("In this work we propose the Transformer"));
+    }
+
+    #[tokio::test]
+    async fn test_list_files() {
+        setup_env();
+        // Create a new FileStorage instance.
+        let fs = FileStorage::new().await;
+
+        // Create a temporary directory.
+        let dir = tempdir().unwrap();
+
+        // Create a file path in the temporary directory.
+        let file_path1 = dir.path().join("test1.txt");
+        let file_path2 = dir.path().join("test2.txt");
+
+        // Write some data to the files.
+        let mut file1 = File::create(&file_path1).unwrap();
+        writeln!(file1, "Hello, world!").unwrap();
+        let mut file2 = File::create(&file_path2).unwrap();
+        writeln!(file2, "Hello again, world!").unwrap();
+
+        // Upload the files.
+        fs.upload_file(&file_path1).await.unwrap();
+        fs.upload_file(&file_path2).await.unwrap();
+
+        // List the files.
+        let files = fs.list_files().await.unwrap();
+        println!("{:?}", files);
+
+        // Check that at least the two uploaded files are in the list.
+        let uploaded_files: HashSet<_> = files.iter().map(|f| &f.key).collect();
+        println!("{:?}", uploaded_files);
+        assert!(
+            uploaded_files.contains(&file_path1.file_name().unwrap().to_str().unwrap().to_owned())
+        );
+        assert!(
+            uploaded_files.contains(&file_path2.file_name().unwrap().to_str().unwrap().to_owned())
+        );
+
+        // Clean up the temporary directory.
+        dir.close().unwrap();
     }
 }

@@ -3,7 +3,9 @@ use assistants_api_communication::assistants::{
     list_assistants_handler, update_assistant_handler,
 };
 use assistants_api_communication::chat::chat_handler;
-use assistants_api_communication::files::{retrieve_file_handler, upload_file_handler};
+use assistants_api_communication::files::{
+    list_files_handler, retrieve_file_handler, upload_file_handler,
+};
 use assistants_api_communication::messages::{
     add_message_handler, delete_message_handler, get_message_handler, list_messages_handler,
     update_message_handler,
@@ -191,6 +193,8 @@ fn app(app_state: AppState) -> Router {
         // https://platform.openai.com/docs/api-reference/files
         .route("/files/:file_id", get(retrieve_file_handler))
         .route("/files", post(upload_file_handler))
+        // list
+        .route("/files", get(list_files_handler))
         // .route("/chat/completions", post(chat_handler))
         .route("/health", get(health_handler)) // new health check route
         .layer(DefaultBodyLimit::disable())
