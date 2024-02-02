@@ -15,6 +15,7 @@ It is more of a public utility that we hope will be useful to many people and co
 - Rely on **cloud native** technologies that survived the test of time.
 - **Standalone and edge ready**. The API should be able to run on a Raspberry Pi for example.
 - **Test as much as possible**. We should have a high test coverage.
+- **Measure**. We should maintain benchmarks of performance and cost over different variables (models, hardware, tasks, etc.)
 
 ## Current Stack
 
@@ -125,4 +126,9 @@ addressed now, or filing an issue to handle it later.
 ### Troubleshooting
 
 - Sometimes you need to run `cargo sqlx prepare --workspace` - typically upon writing sql queries or editing the migrations. SQLX runs checks at build time, welcome to Rust!
+- `make check` helps you check what's in the db, queue, files, etc.
+- `make reboot` helps you reset the db, queue, files, etc.
+- use test-driven development
+- use breakpoints and debuggers to see step-by-step what's happening and what's not happening
+- DM @louis030195 on any channel to get help
 
