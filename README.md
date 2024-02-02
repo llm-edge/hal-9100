@@ -133,7 +133,7 @@ Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
 - [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
 
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
-- MC-LLM
+- [MLC-LLM](https://github.com/mlc-ai/mlc-llm)
 - [FastChat (good if you have a mac)](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
 - [Perplexity API](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
@@ -144,9 +144,7 @@ Examples of LLM APIs that does support OpenAI API-like, that you can use:
 
 <details>
 <summary>What's the difference with LangChain?</summary>
-LangChain offers detailed control over AI conversations, while OpenAI's Assistants API simplifies the process, managing conversation history, data/vector store, and tool switching for you.
-
-Assistants is focused on edge use cases with high reliability requirements.
+You can write AI products in 50 lines of code instead of 5000.
 </details>
 
 <details>
