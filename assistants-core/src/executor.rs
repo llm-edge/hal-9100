@@ -1196,7 +1196,7 @@ mod tests {
                     r#type: "retrieval".to_string(),
                 })],
                 model: model_name,
-                file_ids: vec![file_id_clone],
+                file_ids: vec![file_id_clone.id],
                 object: "object_value".to_string(),
                 created_at: 0,
                 description: Some("description_value".to_string()),
@@ -1207,7 +1207,7 @@ mod tests {
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
 
         // check assistant has file
-        assert_eq!(assistant.inner.file_ids, vec![file_id]);
+        assert_eq!(assistant.inner.file_ids, vec![file_id.id]);
 
         // 2. Create a Thread
         let thread_object = Thread {
@@ -1549,7 +1549,7 @@ mod tests {
                     }),
                 ],
                 model: model_name,
-                file_ids: vec![file_id_clone],
+                file_ids: vec![file_id_clone.id],
                 object: "object_value".to_string(),
                 created_at: 0,
                 description: Some("An assistant that finds the favourite number of bob.".to_string()),
@@ -1865,7 +1865,7 @@ mod tests {
                     r#type: "code_interpreter".to_string(),
                 })],
                 model: model_name,
-                file_ids: vec![file_id_clone.to_string()], // Add file ID here
+                file_ids: vec![file_id_clone.id.to_string()], // Add file ID here
                 object: "object_value".to_string(),
                 created_at: 0,
                 description: Some("description_value".to_string()),

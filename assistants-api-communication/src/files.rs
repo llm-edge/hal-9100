@@ -7,20 +7,21 @@ use axum::{
     http::StatusCode,
     response::Json as JsonResponse,
 };
+use bytes::Buf;
+
 use log::{error, info};
 use serde_json::{json, Value};
 use std::io::Write;
 use tempfile;
-
 pub async fn retrieve_file_handler(
     Path(file_id): Path<String>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<OpenAIFile>, (StatusCode, String)> {
     match app_state.file_storage.retrieve_file(&file_id).await {
-        Ok(file) => Ok(JsonResponse(OpenAIFile {
+        Ok(mut file) => Ok(JsonResponse(OpenAIFile {
             id: file_id,
             object: "object".to_string(),
-            bytes: file.len() as u32,
+            bytes: file.bytes.get_u32(),
             created_at: 0,
             filename: "unknown".to_string(),
             purpose: OpenAIFilePurpose::Assistants,
@@ -82,12 +83,12 @@ pub async fn upload_file_handler(
 
     // Upload the file.
     info!("Uploading file: {:?}", temp_file_path);
-    let file_id = app_state
+    let mut file = app_state
         .file_storage
         .upload_file(&temp_file_path)
         .await
         .unwrap();
-    info!("Uploaded file: {:?}", file_id);
+    info!("Uploaded file: {:?}", file.id);
 
     // Inside upload_file_handler function, after writing the file data to the temporary file
     if content_type.starts_with("text/") {
@@ -96,7 +97,7 @@ pub async fn upload_file_handler(
             &app_state.pool,
             &file_data_str,
             100, // TODO
-            &file_id,
+            &file.id,
             None,
         )
         .await
@@ -104,11 +105,11 @@ pub async fn upload_file_handler(
     }
 
     Ok(JsonResponse(OpenAIFile {
-        id: file_id,
+        id: file.id,
         object: "object".to_string(),
-        bytes: file_data.len() as u32,
+        bytes: file.bytes.get_u32(),
         created_at: 0,
-        filename: "unknown".to_string(), // TODO
+        filename: "".to_string(), // TODO
         purpose: OpenAIFilePurpose::Assistants,
         status: Some("success".to_string()),
         status_details: Some("unknown".to_string()),
@@ -125,12 +126,12 @@ pub async fn list_files_handler(
         Ok(files) => Ok(JsonResponse(ListFilesResponse {
             data: files
                 .into_iter()
-                .map(|file| OpenAIFile {
-                    id: file.etag,
+                .map(|mut file| OpenAIFile {
+                    id: file.id,
                     object: "object".to_string(),
-                    bytes: 0,      // TODO
-                    created_at: 0, // ?
-                    filename: file.key,
+                    bytes: file.bytes.get_u32(),
+                    created_at: 0,            // ?
+                    filename: "".to_string(), // TODO
                     purpose: OpenAIFilePurpose::Assistants,
                     status: Some("unknown".to_string()),
                     status_details: Some("unknown".to_string()),

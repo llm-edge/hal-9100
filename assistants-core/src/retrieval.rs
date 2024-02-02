@@ -127,7 +127,7 @@ Your output will be used in the following code:
 // Convert the query to tsquery and execute it on the database
 let rows = sqlx::query!(
     r#\"
-    SELECT sequence, data, file_name, metadata FROM chunks 
+    SELECT * FROM chunks 
     WHERE to_tsvector(data) @@ to_tsquery($1)
     \"#,
     query,
@@ -139,8 +139,8 @@ Where \"query\" is your output.
 
 Rules:
 - If your output is not correctly a string containing a full-text search query, the universe will be terminated.
-- If your output is not a valid full-text search query, i will kill a human.
-- Only return a query, NOTHING ELSE OR I WILL KILL A HUMAN.
+- If your output is not a valid full-text search query, this will be the end of the universe.
+- Only return a query, NOTHING ELSE.
 
 1. Healthcare: the output could be \"heart & disease | stroke\".
 
@@ -211,7 +211,7 @@ pub async fn retrieve_file_contents(
     info!("Retrieving file contents for file_ids: {:?}", file_ids);
     let mut file_contents = Vec::new();
     for file_id in file_ids {
-        let file_string_content = match file_storage.retrieve_file(file_id).await {
+        let file_string_content = match file_storage.get_file_content(file_id).await {
             Ok(file_byte_content) => {
                 // info!("Retrieved file from storage: {:?}", file_byte_content);
                 // Check if the file is a PDF
@@ -374,13 +374,13 @@ The president of the Moon is TDB.
 
         // Retrieve the file.
         let file_id_clone = file_id.clone();
-        let file_contents = retrieve_file_contents(&vec![file_id], &fs).await;
+        let file_contents = retrieve_file_contents(&vec![file_id.id], &fs).await;
 
         // Check that the retrieval was successful and the content is correct.
         assert_eq!(file_contents, vec!["Hello, world!\n"]);
 
         // Delete the file.
-        fs.delete_file(&file_id_clone).await.unwrap();
+        fs.delete_file(&file_id_clone.id).await.unwrap();
     }
 
     #[tokio::test]
@@ -408,7 +408,7 @@ The president of the Moon is TDB.
 
         // Retrieve the file contents
         let file_contents =
-            retrieve_file_contents(&vec![String::from(file_path)], &file_storage).await;
+            retrieve_file_contents(&vec![String::from(file_path.id)], &file_storage).await;
 
         // Check the file contents
         assert!(

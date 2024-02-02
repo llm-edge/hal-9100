@@ -5,6 +5,11 @@ ifndef RUSTC
   $(warning "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
 endif
 
+# Check if .env file exists
+ifeq ("$(wildcard .env)","")
+  $(warning ".env file is not found. Please copy .env.example into .env and update the content accordingly.")
+endif
+
 .PHONY: help docker clean
 
 include .env

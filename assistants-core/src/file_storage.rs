@@ -13,10 +13,12 @@ use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer};
+use std::fmt;
 use tokio::io::AsyncReadExt;
 use url::Url;
 use uuid;
-
 const ONE_HOUR: Duration = Duration::from_secs(3600);
 
 pub struct FileStorage {
@@ -24,6 +26,59 @@ pub struct FileStorage {
     credentials: Credentials,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct StoredFile {
+    pub id: String,
+    // pub file_name: String, // ? no idea how to properly impl this w rusty s3 without using db for metadata :/
+    pub last_modified: String,
+    pub size: u64,
+    pub storage_class: Option<String>,
+    #[serde(deserialize_with = "deserialize_bytes")]
+    pub bytes: Bytes,
+}
+
+fn deserialize_bytes<'de, D>(deserializer: D) -> Result<Bytes, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct BytesVisitor;
+
+    impl<'de> Visitor<'de> for BytesVisitor {
+        type Value = Bytes;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a byte array")
+        }
+
+        fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Bytes::from(v.to_owned()))
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            let mut bytes = if let Some(size) = seq.size_hint() {
+                Vec::with_capacity(size)
+            } else {
+                Vec::new()
+            };
+
+            while let Some(elem) = seq.next_element()? {
+                bytes.push(elem);
+            }
+
+            Ok(Bytes::from(bytes))
+        }
+    }
+
+    deserializer.deserialize_byte_buf(BytesVisitor)
+}
+
+// TODO: all stuff bit inefficient but for now its k
 impl FileStorage {
     pub async fn new() -> Self {
         let endpoint =
@@ -65,14 +120,13 @@ impl FileStorage {
     pub async fn upload_file(
         &self,
         file_path: &Path,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // let extension = file_path
-        //     .extension()
-        //     .and_then(std::ffi::OsStr::to_str)
-        //     .unwrap_or("");
-        // let file_name = format!("{}.{}", uuid::Uuid::new_v4(), extension);
-        let file_name = file_path.file_name().unwrap().to_str().unwrap();
-        let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_name);
+    ) -> Result<StoredFile, Box<dyn std::error::Error + Send + Sync>> {
+        let extension = file_path
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("");
+        let file_id = format!("{}.{}", uuid::Uuid::new_v4(), extension);
+        let put = PutObject::new(&self.bucket, Some(&self.credentials), &file_id);
 
         let mut file = match File::open(file_path).await {
             Ok(file) => file,
@@ -94,13 +148,13 @@ impl FileStorage {
         if let Err(e) = response.error_for_status_ref() {
             return Err(Box::new(e));
         }
-        let data = response.text().await?;
+        let files = self.list_files().await?;
+        let file = files.iter().find(|f| f.id == file_id).unwrap();
 
-        Ok(file_name.to_string())
+        Ok(file.to_owned())
     }
 
-    pub async fn retrieve_file(
-        // TODO: bytes? where tf is the rest of metatda :)
+    pub async fn get_file_content(
         &self,
         object_name: &str,
     ) -> Result<Bytes, Box<dyn std::error::Error + Send + Sync>> {
@@ -114,12 +168,17 @@ impl FileStorage {
         let response = client.get(signed_url).send().await?.error_for_status()?;
 
         Ok(response.bytes().await?)
+    }
 
-        // // HACK until figure out how to get the file properly from S3
-        // let files = self.list_files().await?;
-        // let file = files.iter().find(|f| f.key == object_name).unwrap();
+    pub async fn retrieve_file(
+        &self,
+        object_name: &str,
+    ) -> Result<StoredFile, Box<dyn std::error::Error + Send + Sync>> {
+        // HACK until figure out how to get the file properly from S3
+        let files = self.list_files().await?;
+        let file = files.iter().find(|f| f.id == object_name).unwrap();
 
-        // Ok(file.to_owned())
+        Ok(file.to_owned())
     }
 
     pub async fn delete_file(
@@ -131,14 +190,14 @@ impl FileStorage {
 
         // You can then use this signed URL to delete the file from S3 using an HTTP client
         let client = reqwest::Client::new();
-        let response = client.delete(signed_url).send().await?.error_for_status()?;
+        let _ = client.delete(signed_url).send().await?.error_for_status()?;
 
         Ok(())
     }
 
     pub async fn list_files(
         &self,
-    ) -> Result<Vec<ListObjectsContent>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<StoredFile>, Box<dyn std::error::Error + Send + Sync>> {
         let action = ListObjectsV2::new(&self.bucket, Some(&self.credentials));
         let signed_url = action.sign(Duration::from_secs(3600)); // Sign the URL for the S3 action
 
@@ -148,7 +207,22 @@ impl FileStorage {
         let text = response.text().await?;
 
         let parsed = ListObjectsV2::parse_response(&text)?;
-        return Ok(parsed.contents);
+
+        // get each file
+        let mut files = Vec::new();
+        for file in parsed.contents {
+            let file_content = self.get_file_content(&file.key).await?;
+            files.push(StoredFile {
+                id: file.key,
+                // file_name: file.key,
+                last_modified: file.last_modified,
+                size: file.size,
+                storage_class: file.storage_class,
+                bytes: file_content,
+            });
+        }
+
+        return Ok(files);
     }
 }
 
@@ -206,7 +280,7 @@ mod tests {
         }
 
         // Check that the returned key is correct.
-        assert!(result.unwrap().ends_with(".txt"));
+        assert!(result.unwrap().id.ends_with(".txt"));
 
         // Clean up the temporary directory.
         dir.close().unwrap();
@@ -229,13 +303,13 @@ mod tests {
         let fs = FileStorage::new().await;
 
         // Upload the file.
-        let new_file_name = fs.upload_file(&file_path).await.unwrap();
+        let new_file = fs.upload_file(&file_path).await.unwrap();
 
         // Retrieve the file.
-        let result = fs.retrieve_file(&new_file_name).await;
+        let result = fs.retrieve_file(&new_file.id).await;
 
         // Check that the retrieval was successful and the content is correct.
-        assert_eq!(result.unwrap(), "Hello, world!\n");
+        assert_eq!(result.unwrap().bytes, "Hello, world!\n");
 
         // Clean up the temporary directory.
         dir.close().unwrap();
@@ -330,7 +404,7 @@ mod tests {
         println!("{:?}", files);
 
         // Check that at least the two uploaded files are in the list.
-        let uploaded_files: HashSet<_> = files.iter().map(|f| &f.key).collect();
+        let uploaded_files: HashSet<_> = files.iter().map(|f| &f.id).collect();
         println!("{:?}", uploaded_files);
         assert!(
             uploaded_files.contains(&file_path1.file_name().unwrap().to_str().unwrap().to_owned())
