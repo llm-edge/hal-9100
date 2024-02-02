@@ -1,6 +1,6 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/353b4cdc-41c1-42fd-a294-d37a7b30b2d7">
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/063d06c4-90d6-44a3-aa93-bd0c419e4c67">
   <h1 align="center">⭐️ Open Source Assistants API</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
@@ -18,6 +18,7 @@
     <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ Infra</a>
     <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
     <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
+    <a href="https://cal.com/louis030195/ai">📞 Help?</a>
 </p>
 
 -----
