@@ -29,7 +29,7 @@ pub async fn create_assistant_handler(
             inner: AssistantObject {
                 id: Default::default(),
                 instructions: Some(assistant["instructions"].as_str().unwrap().to_string()),
-                name: Some(assistant["name"].as_str().unwrap().to_string()),
+                name: Some(assistant["name"].as_str().unwrap_or_default().to_string()),
                 tools: match Tools::new(Some(tools)).to_tools() {
                     Ok(tools) => tools,
                     Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),

@@ -2,7 +2,7 @@ SHELL := /bin/bash
 RUSTC := $(shell command -v rustc 2> /dev/null)
 
 ifndef RUSTC
-  $(error "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+  $(warning "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
 endif
 
 .PHONY: help docker clean
