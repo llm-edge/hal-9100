@@ -69,7 +69,9 @@ check: ## Check db/queue content
 	@echo "docker exec -it pg psql -U postgres -d mydatabase -c \"SELECT * FROM runs;\""
 	@echo "Here's a one-liner Docker CLI command to display the content of your Redis instance:"
 	@echo "docker exec -it redis redis-cli LRANGE run_queue 0 -1"
-	
+	@echo "Here's a one-liner Docker CLI command to display the content of your Minio instance:"
+	@echo "docker exec -it minio1 sh -c \"mc alias set myminio http://localhost:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY} && mc ls myminio/${S3_BUCKET_NAME}\""
+
 ## Build the Docker image for the code interpreter
 docker-build-code-interpreter-amd64: ## Build the Docker image for the code interpreter for Linux amd64
 	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 .

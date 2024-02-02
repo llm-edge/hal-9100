@@ -176,8 +176,10 @@ impl FileStorage {
     ) -> Result<StoredFile, Box<dyn std::error::Error + Send + Sync>> {
         // HACK until figure out how to get the file properly from S3
         let files = self.list_files().await?;
-        let file = files.iter().find(|f| f.id == object_name).unwrap();
-
+        let file = match files.iter().find(|f| f.id == object_name) {
+            Some(file) => file,
+            None => return Err("File not found".into()), // Properly handle file not found
+        };
         Ok(file.to_owned())
     }
 
@@ -190,8 +192,12 @@ impl FileStorage {
 
         // You can then use this signed URL to delete the file from S3 using an HTTP client
         let client = reqwest::Client::new();
-        let _ = client.delete(signed_url).send().await?.error_for_status()?;
+        let r = client.delete(signed_url).send().await?.error_for_status()?;
 
+        // // if 204 raise error
+        // if r.status() == 204 {
+        //     return Err(format!("File {} not found, err: {:?}", object_name, r.text().await).into());
+        // }
         Ok(())
     }
 
@@ -279,8 +285,10 @@ mod tests {
             Err(e) => panic!("Upload failed with error: {:?}", e),
         }
 
+        let r = result.unwrap();
         // Check that the returned key is correct.
-        assert!(result.unwrap().id.ends_with(".txt"));
+        assert!(r.id.ends_with(".txt"));
+        assert_eq!(r.bytes, "Hello, world!\n");
 
         // Clean up the temporary directory.
         dir.close().unwrap();
@@ -332,19 +340,23 @@ mod tests {
         let fs = FileStorage::new().await;
 
         // Upload the file.
-        fs.upload_file(&file_path).await.unwrap();
+        let file = fs.upload_file(&file_path).await.unwrap();
 
         // Delete the file.
-        let result = fs.delete_file("test.txt").await;
+        let result = fs.delete_file(&file.id).await;
 
         // Check that the deletion was successful.
-        assert!(result.is_ok());
+        assert!(
+            result.is_ok(),
+            "Deletion failed with error: {:?}",
+            result.err()
+        );
 
-        // Try to retrieve the deleted file.
-        let result = fs.retrieve_file("test.txt").await;
-
-        // Check that the retrieval fails.
-        assert!(result.is_err());
+        // Attempt to retrieve the deleted file and handle potential failure.
+        match fs.retrieve_file(&file.id).await {
+            Ok(_) => panic!("Expected error, but file was retrieved."),
+            Err(_) => (), // Expected outcome, do nothing.
+        }
 
         // Clean up the temporary directory.
         dir.close().unwrap();
@@ -401,17 +413,11 @@ mod tests {
 
         // List the files.
         let files = fs.list_files().await.unwrap();
-        println!("{:?}", files);
 
         // Check that at least the two uploaded files are in the list.
-        let uploaded_files: HashSet<_> = files.iter().map(|f| &f.id).collect();
-        println!("{:?}", uploaded_files);
-        assert!(
-            uploaded_files.contains(&file_path1.file_name().unwrap().to_str().unwrap().to_owned())
-        );
-        assert!(
-            uploaded_files.contains(&file_path2.file_name().unwrap().to_str().unwrap().to_owned())
-        );
+        let uploaded_files: HashSet<_> = files.iter().map(|f| &f.bytes).collect();
+        assert!(uploaded_files.contains(&Bytes::from_static(b"Hello, world!\n")));
+        assert!(uploaded_files.contains(&Bytes::from_static(b"Hello again, world!\n")));
 
         // Clean up the temporary directory.
         dir.close().unwrap();

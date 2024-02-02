@@ -130,6 +130,7 @@ let rows = sqlx::query!(
     SELECT * FROM chunks 
     WHERE to_tsvector(data) @@ to_tsquery($1)
     \"#,
+    // This is where your answer will be used, so make sure to keep the right format
     query,
 )
 .fetch_all(pool)
@@ -140,19 +141,27 @@ Where \"query\" is your output.
 Rules:
 - If your output is not correctly a string containing a full-text search query, the universe will be terminated.
 - If your output is not a valid full-text search query, this will be the end of the universe.
-- Only return a query, NOTHING ELSE.
+- Only return a query, NOTHING ELSE or the big crunch will be initiated.
 
-1. Healthcare: the output could be \"heart & disease | stroke\".
+Good examples:
 
-2. Finance: the output could be \"stocks | bonds\".
+1. Healthcare: your output could be \"heart & disease | stroke\".
 
-3. Education: the output could be \"mathematics | physics\".
+2. Finance: your output could be \"stocks | bonds\".
 
-4. Automotive: the output could be \"sedan | SUV\".
+3. Education: your output could be \"mathematics | physics\".
 
-5. Agriculture: the output could be \"organic | conventional & farming\".
+4. Automotive: your output could be \"sedan | SUV\".
 
-Query?",
+5. Agriculture: your output could be \"organic | conventional & farming\".
+
+Bad examples:
+
+1. Math: wrong output: \"To | find | solutions | to | the | equation | `3x | +11 | = | 14`, | a | full-text | search | query ...\"
+
+2. Engineering: wrong output: \"neuromorphic computing\" instead of \"neuromorphic | computing\".
+
+Query:",
         context,
         Some(0.0),
         -1,
@@ -164,10 +173,11 @@ Query?",
     )
     .await?;
 
+    // TODO: bad processing
     // if the llm return two words like "dog food", just add a | between them
     // using a regex for safety 
-    let re = regex::Regex::new(r"\s+").unwrap();
-    let query = re.replace_all(&query, " | ").to_string();
+    // let re = regex::Regex::new(r"\s+").unwrap();
+    // let query = re.replace_all(&query, " | ").to_string();
 
     // Convert the query to tsquery and execute it on the database
     let rows = sqlx::query!(
