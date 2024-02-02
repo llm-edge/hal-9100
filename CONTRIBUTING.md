@@ -94,6 +94,8 @@ Just commit with Release and version number in the commit message. For example:
 
 `git commit -m "Release 1.0.0"`
 
+[Once the image is built](https://github.com/stellar-amenities/assistants/pkgs/container/assistants%2Fassistants), preferrably update [the Docker compose file](docker/docker-compose.yml) to use the new version.
+
 #### Tips
 
 - At any point you can compare your feature branch to the upstream/main of

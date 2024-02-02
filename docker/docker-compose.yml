@@ -41,7 +41,7 @@ services:
   
   assistants:
     container_name: assistants
-    image: ghcr.io/stellar-amenities/assistants/assistants:latest
+    image: ghcr.io/stellar-amenities/assistants/assistants:0.0.2
     ports:
       - 3000:3000
     depends_on:
