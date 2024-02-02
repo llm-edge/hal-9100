@@ -68,4 +68,4 @@ Remember, the only limit is your imagination. Happy coding!
 ## Troubleshooting
 
 If you run into issues, please contact @louis030195 on [Discord](https://discord.gg/XMetBW3zCG).
-Or book a call [here](https://cal.com/louis030195/unleash-llms). 
+Or book a call [here](https://cal.com/louis030195/ai). 

@@ -46,5 +46,5 @@ URL=$(kubectl get svc rust-api-service -n assistants -o jsonpath="{.status.loadB
 curl -X GET http://$URL/threads/1/runs/1 -H "Content-Type: application/json"
 ```
 
-If you need special support, [please reach out](https://cal.com/louis030195/unleash-llms).
+If you need special support, [please reach out](https://cal.com/louis030195/ai).
 

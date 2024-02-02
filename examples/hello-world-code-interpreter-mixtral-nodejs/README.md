@@ -81,4 +81,4 @@ If you run into any issues, here's what you can do:
 - Restart the infrastructure: `docker-compose --profile api -f docker/docker-compose.yml up -d`
 
 If you still run into issues, please contact @louis030195 on [Discord](https://discord.gg/XMetBW3zCG).
-Or book a call [here](https://cal.com/louis030195/unleash-llms). 
+Or book a call [here](https://cal.com/louis030195/ai). 
