@@ -114,16 +114,19 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 - [x] **Actions**: Execute requests to external APIs, automatically.
 - [x] **File Handling**: Supports a range of file formats.
 
-## Join the Movement
-- **For Developers**: We've got the docs, tools, and a community ready to help you build what's next.
-- **For Innovators**: Looking for an edge in AI? Here's where you leapfrog the competition.
-- **For the Visionaries**: Dreamt of a custom AI assistant? Let's make it a reality.
+## 😃 Who is it for?
 
-## Deployment
+- You operate on a large scale and want to reduce your costs
+- You want to increase your speed
+- You want to increase customization (e.g. use your own models, extend the API, etc.)
+- You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
+- Your product does have poor internet access (military, extreme environment, etc.)
+
+## 🚀 Deployment
 
 Please follow [this documentation](https://github.com/stellar-amenities/assistants/blob/main/ee/k8s/README.md).
 
-## FAQ
+## 🤔 FAQ
 
 <details>
 <summary>Which LLM API can I use?</summary>
