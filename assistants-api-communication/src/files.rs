@@ -45,16 +45,18 @@ pub async fn upload_file_handler(
     let mut file_data = Vec::new();
     let mut purpose = String::new();
     let mut content_type = String::new();
-
+    let mut file_name = String::new();
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        let name = field.name().unwrap().to_string();
+        let field_name = field.name().unwrap().to_string();
 
-        if name == "file" {
+        println!("field_name: {:?}", field_name);
+        if field_name == "file" {
             content_type = field.content_type().unwrap_or("text/plain").to_string();
+            file_name = field.file_name().unwrap_or("unknown.txt").to_string();
             while let Some(chunk) = field.chunk().await.unwrap() {
                 file_data.extend_from_slice(&chunk);
             }
-        } else if name == "purpose" {
+        } else if field_name == "purpose" {
             purpose = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
         }
     }
@@ -68,10 +70,8 @@ pub async fn upload_file_handler(
 
     // Create a temporary file with the same content type
     let mut temp_file = tempfile::Builder::new()
-        .suffix(&format!(
-            ".{}",
-            content_type.split("/").collect::<Vec<&str>>()[1]
-        ))
+        .prefix(file_name.as_str())
+        .rand_bytes(0)
         .tempfile()
         .unwrap();
 

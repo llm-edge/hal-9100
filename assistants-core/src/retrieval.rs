@@ -141,7 +141,16 @@ Where \"query\" is your output.
 Rules:
 - If your output is not correctly a string containing a full-text search query, the universe will be terminated.
 - If your output is not a valid full-text search query, this will be the end of the universe.
+- Do not add SPACES between words, only use the | character or & character to combine words.
 - Only return a query, NOTHING ELSE or the big crunch will be initiated.
+
+Bad examples:
+
+1. Math: wrong output: \"To | find | solutions | to | the | equation | `3x | +11 | = | 14`, | a | full-text | search | query ...\"
+
+2. Engineering: wrong output: \"neuromorphic computing\" instead of \"neuromorphic | computing\".
+
+3. Greentech: wrong output: \"solar panels | PDF manual | deal with | installation | maintenance\" instead of \"solar | panels | PDF | manual | deal | with | installation | maintenance\".
 
 Good examples:
 
@@ -154,12 +163,6 @@ Good examples:
 4. Automotive: your output could be \"sedan | SUV\".
 
 5. Agriculture: your output could be \"organic | conventional & farming\".
-
-Bad examples:
-
-1. Math: wrong output: \"To | find | solutions | to | the | equation | `3x | +11 | = | 14`, | a | full-text | search | query ...\"
-
-2. Engineering: wrong output: \"neuromorphic computing\" instead of \"neuromorphic | computing\".
 
 Query:",
         context,
