@@ -139,8 +139,8 @@ Please follow [this documentation](https://github.com/stellar-amenities/hal-9100
 <summary>Which LLM API can I use?</summary>
 
 Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
-- [ollama](https://github.com/stellar-amenities/hal-9100/issues/24)
-- [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
+- ollama (but any contribution to make it compatible would be appreciated)
+- llama.cpp server example
 
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
 - [MLC-LLM](https://github.com/mlc-ai/mlc-llm)
