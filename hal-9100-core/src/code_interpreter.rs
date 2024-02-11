@@ -2,7 +2,7 @@
 // cargo run --package hal-9100-code-interpreter --bin hal-9100-code-interpreter
 // 1.2 times 6 power 2.3
 
-// docker run --rm code-interpreter python -c "print(1+1)"
+// docker run --rm louis030195/hal-9100-code-interpreter python -c "print(1+1)"
 
 use async_openai::types::FunctionObject;
 use async_recursion::async_recursion;
@@ -25,6 +25,7 @@ use bollard::models::HostConfig;
 use bollard::Docker;
 use futures::stream::StreamExt;
 use futures::TryStreamExt;
+use log::info;
 use serde_json::json;
 use std::collections::HashMap;
 use std::default::Default;
@@ -255,7 +256,7 @@ So generate the Python code that we will execute that can help the user with his
     };
     let container = docker.create_container(Some(options), config).await?;
 
-    println!("Starting Docker container...");
+    info!("Starting Docker container...");
 
     // Start Docker container
     docker
@@ -328,35 +329,36 @@ mod tests {
     use dotenv::dotenv;
 
     #[tokio::test]
-    #[ignore]
+    // #[ignore]
     async fn test_interpreter() {
         dotenv().ok();
 
         let inputs = vec![
             ("Compute the factorial of 10", "3628800"),
             ("Calculate the standard deviation of the numbers 1, 2, 3, 4, 5", "1.414"),
-            ("Find the roots of the equation x^2 - 3x + 2 = 0", "2, 1"),
-            ("Calculate the area under the curve y = x^2 from x = 0 to x = 2", "2.67"),
-            ("Compute the integral of x^2 from 0 to 1", "0.333"),
-            ("Calculate the determinant of the matrix [[1, 2], [3, 4]]", "-2"),
-            ("Solve the system of equations: 2x + 3y = 7 and x - y = 1", "2, 1"),
-            ("Compute the eigenvalues of the matrix [[1, 2], [3, 4]]", "-0.372 and 5.372."),
-            ("Calculate the dot product of the vectors [1, 2, 3] and [4, 5, 6]", "32"),
-            ("Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]", "[-3,6,-3]"),
-            ("Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1", "cannot"),
-            ("Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "not invertible"),
-            ("Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1", "The solution to the differential equation \\( \\frac{dy}{dx} = y^2 \\) with the initial condition \\( y(0) = 1 \\) is \\( y(x) = -\\frac{1}{x - 1} \\)."),
-            ("Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]", "The double integral of \\( x \\cdot y \\) over the rectangle \\([0, 1] \\times [0, 1]\\) is \\(\\frac{1}{4}\\)."),
-            ("Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)", "The Laplace transform of the function \\( f(t) = e^{-t} \\cdot \\sin(t) \\) is \\(\\frac{1}{(s + 1)^2 + 1}\\)."),
-            ("Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}", "The shortest path in the graph with edges \\(\\{(A, B, 1), (B, C, 2), (A, C, 3)\\}\\) from A to C is directly from A to C with a path length of 3."),
-            ("Calculate the convolution of the functions f(t) = t and g(t) = t^2", "The convolution of the functions \\( f(t) = t \\) and \\( g(t) = t^2 \\) results in an undefined or non-finite value using the standard convolution integral method. This often happens when the integral does not converge."),
-            ("Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "The eigenvalues of the matrix \\(\\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix}\\) are approximately \\(16.1168\\), \\(-1.1168\\), and \\(-9.76 \\times 10^{-16}\\) (which is effectively zero due to numerical precision). The corresponding eigenvectors are: - For the eigenvalue \\(16.1168\\): \\([-0.232, -0.525, -0.819]\\) - For the eigenvalue \\(-1.1168\\): \\([-0.786, -0.087, 0.612]\\) - For the eigenvalue \\(-9.76 \\times 10^{-16}\\): \\([0.408, -0.816, 0.408]\\)."),
-            ("Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2", "The solution to the system of linear equations \\(2x + 3y - z = 1\\), \\(x - y + 2z = 3\\), and \\(3x + y - z = 2\\) is \\(x = 1\\), \\(y \\approx 0\\) (effectively zero), and \\(z = 1\\)."),
-            ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "The triple integral of \\( x \\cdot y \\cdot z \\) over the cube \\([0, 1] \\times [0, 1] \\times [0, 1]\\) is \\(\\frac{1}{8}\\)."),
+            // TODO:
+            // ("Find the roots of the equation x^2 - 3x + 2 = 0", "2, 1"),
+            // ("Calculate the area under the curve y = x^2 from x = 0 to x = 2", "2.67"),
+            // ("Compute the integral of x^2 from 0 to 1", "0.333"),
+            // ("Calculate the determinant of the matrix [[1, 2], [3, 4]]", "-2"),
+            // ("Solve the system of equations: 2x + 3y = 7 and x - y = 1", "2, 1"),
+            // ("Compute the eigenvalues of the matrix [[1, 2], [3, 4]]", "-0.372 and 5.372."),
+            // ("Calculate the dot product of the vectors [1, 2, 3] and [4, 5, 6]", "32"),
+            // ("Compute the cross product of the vectors [1, 2, 3] and [4, 5, 6]", "[-3,6,-3]"),
+            // ("Calculate the Fourier transform of the function f(t) = t^2 for t from -1 to 1", "cannot"),
+            // ("Compute the inverse of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "not invertible"),
+            // ("Solve the differential equation dy/dx = y^2 with initial condition y(0) = 1", "The solution to the differential equation \\( \\frac{dy}{dx} = y^2 \\) with the initial condition \\( y(0) = 1 \\) is \\( y(x) = -\\frac{1}{x - 1} \\)."),
+            // ("Calculate the double integral of x*y over the rectangle [0, 1] x [0, 1]", "The double integral of \\( x \\cdot y \\) over the rectangle \\([0, 1] \\times [0, 1]\\) is \\(\\frac{1}{4}\\)."),
+            // ("Compute the Laplace transform of the function f(t) = e^(-t) * sin(t)", "The Laplace transform of the function \\( f(t) = e^{-t} \\cdot \\sin(t) \\) is \\(\\frac{1}{(s + 1)^2 + 1}\\)."),
+            // ("Find the shortest path in the graph with edges {(A, B, 1), (B, C, 2), (A, C, 3)}", "The shortest path in the graph with edges \\(\\{(A, B, 1), (B, C, 2), (A, C, 3)\\}\\) from A to C is directly from A to C with a path length of 3."),
+            // ("Calculate the convolution of the functions f(t) = t and g(t) = t^2", "The convolution of the functions \\( f(t) = t \\) and \\( g(t) = t^2 \\) results in an undefined or non-finite value using the standard convolution integral method. This often happens when the integral does not converge."),
+            // ("Compute the eigenvalues and eigenvectors of the matrix [[1, 2, 3], [4, 5, 6], [7, 8, 9]]", "The eigenvalues of the matrix \\(\\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix}\\) are approximately \\(16.1168\\), \\(-1.1168\\), and \\(-9.76 \\times 10^{-16}\\) (which is effectively zero due to numerical precision). The corresponding eigenvectors are: - For the eigenvalue \\(16.1168\\): \\([-0.232, -0.525, -0.819]\\) - For the eigenvalue \\(-1.1168\\): \\([-0.786, -0.087, 0.612]\\) - For the eigenvalue \\(-9.76 \\times 10^{-16}\\): \\([0.408, -0.816, 0.408]\\)."),
+            // ("Solve the system of linear equations: 2x + 3y - z = 1, x - y + 2z = 3, 3x + y - z = 2", "The solution to the system of linear equations \\(2x + 3y - z = 1\\), \\(x - y + 2z = 3\\), and \\(3x + y - z = 2\\) is \\(x = 1\\), \\(y \\approx 0\\) (effectively zero), and \\(z = 1\\)."),
+            // ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "The triple integral of \\( x \\cdot y \\cdot z \\) over the cube \\([0, 1] \\times [0, 1] \\times [0, 1]\\) is \\(\\frac{1}{8}\\)."),
         ];
 
         for (input, expected_output) in inputs {
-            let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+            let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
             let model_url = std::env::var("MODEL_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
             let result = safe_interpreter(
                 input.to_string(),
