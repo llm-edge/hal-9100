@@ -126,6 +126,7 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 - You want to increase customization (e.g. use your own models, extend the API, etc.)
 - You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
 - Your product does have poor internet access (military, extreme environment, etc.)
+- You want to automate your home and run everything on a Raspberry PI
 
 ## 🚀 Deployment
 
