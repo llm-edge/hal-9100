@@ -28,6 +28,8 @@
 
 # Quickstart
 
+Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
+
 <img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
 
 Get started in less than a minute through GitHub Codespaces:
