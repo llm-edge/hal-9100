@@ -1,14 +1,16 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/063d06c4-90d6-44a3-aa93-bd0c419e4c67">
-  <h1 align="center">⭐️ Open Source Assistants API</h1>
-  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms</h2>
-  <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Same API/SDK.</h4>
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/5988babf-e13f-48b3-8548-7b0cf906a660">
+  <h1 align="center">🤖 HAL-9100</h1>
+  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms.</h2>
+  <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Using OpenAI SDK.</h4>
   <p align="center">
     <a href='https://codespaces.new/stellar-amenities/assistants?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
     <br />
     <a href="https://discord.gg/pj5VRqqs84"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
   </p>
+
+
 </p>
 
 
@@ -59,6 +61,9 @@ node examples/quickstart.js
 
 
 ## 📏 Principles
+
+<img align="center" width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
+  
 
 Assistants is a tool that is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
 
