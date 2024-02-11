@@ -19,7 +19,7 @@ S3_BUCKET_NAME=mybucket
 1. **Start the server**
 
 ```bash
-docker-compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up -d
 ```
 
 2. **Create an Assistant** 

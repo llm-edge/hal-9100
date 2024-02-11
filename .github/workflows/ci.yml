@@ -37,7 +37,7 @@ jobs:
       - name: Start Docker containers
         run: |
           cp .env.example .env
-          docker-compose -f docker/docker-compose.yml up -d
+          docker compose -f docker/docker-compose.yml up -d
 
       - name: Run tests
         env:

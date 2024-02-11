@@ -50,7 +50,7 @@ Install OpenAI SDK: `npm i openai`
 Start the infra:
 
 ```bash
-docker-compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up -d
 ```
 
 Run the [quickstart](./examples/quickstart.js):

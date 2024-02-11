@@ -27,7 +27,7 @@ We will use Perplexity API to get started quickly with an LLM but you can run th
 
 ## Setup
 
-1. Start the infra: `docker-compose --profile api -f docker/docker-compose.yml up -d`
+1. Start the infra: `docker compose --profile api -f docker/docker-compose.yml up -d`
 
 ## Running the example
 
@@ -78,7 +78,7 @@ Remember, the only limit is your imagination. Happy coding!
 
 If you run into any issues, here's what you can do:
 - Clean the database: `make reboot`
-- Restart the infrastructure: `docker-compose --profile api -f docker/docker-compose.yml up -d`
+- Restart the infrastructure: `docker compose --profile api -f docker/docker-compose.yml up -d`
 
 If you still run into issues, please contact @louis030195 on [Discord](https://discord.gg/XMetBW3zCG).
 Or book a call [here](https://cal.com/louis030195/ai). 

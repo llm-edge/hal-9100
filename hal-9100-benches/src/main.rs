@@ -218,7 +218,7 @@ Rules:
     Ok(())
 }
 
-// docker-compose -f docker/docker-compose.yml --profile api up
+// docker compose -f docker/docker-compose.yml --profile api up
 // cargo run --package hal-9100-benches --bin hal-9100-benches
 
 #[tokio::main]

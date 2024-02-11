@@ -49,7 +49,7 @@ curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/j
 1. **Start the server**
 
 ```bash
-docker-compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up -d
 ```
 
 2. **Create an Assistant** 
