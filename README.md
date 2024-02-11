@@ -1,6 +1,6 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/5988babf-e13f-48b3-8548-7b0cf906a660">
+<img width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/f512cf3d-1c24-4d87-85ca-c855c32f5099">
   <h1 align="center">🤖 HAL-9100</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms.</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Using OpenAI SDK.</h4>
