@@ -502,6 +502,7 @@ pub async fn run_executor(
 
         let steps = list_steps(
             pool,
+            thread_id,
             &run.inner.id,
             &run.user_id,
         ).await.map_err(|e| RunError {
@@ -824,8 +825,11 @@ pub async fn run_executor(
                         })
                     }
                 };
+                info!("Code interpreter results: {:?}", interpreter_results.clone());
+
                 code_output = Some(interpreter_results.0);
                 code = Some(interpreter_results.1);
+
 
                 if code_output.is_none() {
                     return Err(RunError {
@@ -877,27 +881,28 @@ pub async fn run_executor(
 
 
                 // Check if the all_file_ids includes any file IDs.
-                if all_file_ids.is_empty() {
-                    break;
-                }
-                info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
-                // Retrieve the contents of each file.
-                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
-                
-                let formatted_messages_clone = formatted_messages.clone();
-                let retrieval_chunks_future = generate_queries_and_fetch_chunks(
-                    &pool,
-                    &formatted_messages_clone,
-                    &assistant.inner.model,
-                );
-                
-                let (retrieval_files, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
+                if !all_file_ids.is_empty() {
+                    info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
+                    // Retrieve the contents of each file.
+                    let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                    
+                    let formatted_messages_clone = formatted_messages.clone();
+                    let retrieval_chunks_future = generate_queries_and_fetch_chunks(
+                        &pool,
+                        &formatted_messages_clone,
+                        &assistant.inner.model,
+                    );
+                    
+                    let (r_f, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
 
-                retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
-                    // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
-                    error!("Failed to retrieve chunks: {}", e);
-                    vec![]
-                });
+                    retrieval_chunks = retrieval_chunks_result.unwrap_or_else(|e| {
+                        // ! sometimes LLM generates stupid SQL queries. for now we dont crash the run
+                        error!("Failed to retrieve chunks: {}", e);
+                        vec![]
+                    });
+
+                    retrieval_files = r_f;
+                }
 
                 // Build instructions with the code output
                 instructions = build_instructions(
@@ -2394,7 +2399,7 @@ mod tests {
         assert_eq!(run.inner.status, RunStatus::Completed);
 
         // Fetch the steps from the database
-        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+        let steps = list_steps(&pool, &thread.inner.id, &run.inner.id, &assistant.user_id)
             .await
             .unwrap();
 
@@ -2605,7 +2610,7 @@ mod tests {
             &assistant.user_id,
         ).await.unwrap();
 
-        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+        let steps = list_steps(&pool, &thread.inner.id, &run.inner.id, &assistant.user_id)
             .await
             .unwrap();
 
@@ -2734,7 +2739,7 @@ mod tests {
             .clone();
 
         // Fetch the steps from the database
-        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+        let steps = list_steps(&pool, &thread.inner.id, &run.inner.id, &assistant.user_id)
             .await
             .unwrap();
 
@@ -2788,7 +2793,7 @@ mod tests {
 
 
         // Fetch the steps from the database again
-        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+        let steps = list_steps(&pool, &thread.inner.id, &run.inner.id, &assistant.user_id)
             .await
             .unwrap();
 
@@ -3008,7 +3013,7 @@ mod tests {
 
         // check there are 3 steps 
 
-        let steps = list_steps(&pool, &run.inner.id, &assistant.user_id)
+        let steps = list_steps(&pool, &thread.inner.id, &run.inner.id, &assistant.user_id)
             .await
             .unwrap();
 

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT * FROM run_steps WHERE run_id::text = $1 AND user_id::text = $2\n        ",
+  "query": "\n        SELECT * FROM run_steps WHERE thread_id::text = $1 AND run_id::text = $2 AND user_id::text = $3\n        ",
   "describe": {
     "columns": [
       {
@@ -92,6 +92,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -115,5 +116,5 @@
       true
     ]
   },
-  "hash": "24927d7d41a031a8205ade2d60b36c06d28871819f31ec0ff8a2ddec5888d5fe"
+  "hash": "8ff2dbb4caad19bd90cb6bcbddb591549b2815b6804df083eec1e34cc0b1fbba"
 }

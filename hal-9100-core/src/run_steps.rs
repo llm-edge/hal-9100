@@ -291,14 +291,16 @@ pub async fn get_step(pool: &PgPool, step_id: &str, user_id: &str) -> Result<Run
 
 pub async fn list_steps(
     pool: &PgPool,
+    thread_id: &str,
     run_id: &str,
     user_id: &str,
 ) -> Result<Vec<RunStep>, sqlx::Error> {
     info!("Listing steps for run_id: {}", run_id);
     let rows = sqlx::query!(
         r#"
-        SELECT * FROM run_steps WHERE run_id::text = $1 AND user_id::text = $2
+        SELECT * FROM run_steps WHERE thread_id::text = $1 AND run_id::text = $2 AND user_id::text = $3
         "#,
+        thread_id,
         run_id,
         user_id,
     )
@@ -453,9 +455,14 @@ mod tests {
         .await
         .unwrap();
 
-        let result = list_steps(&pool, &run.inner.id.to_string(), &user_id.to_string())
-            .await
-            .unwrap();
+        let result = list_steps(
+            &pool,
+            &thread.inner.id,
+            &run.inner.id.to_string(),
+            &user_id.to_string(),
+        )
+        .await
+        .unwrap();
 
         // Assert that the result contains the inserted run_step
         assert_eq!(result.len(), 1);

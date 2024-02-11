@@ -300,6 +300,8 @@ So generate the Python code that we will execute that can help the user with his
         }
     }
 
+    info!("Code interpreter output: {}", output);
+
     // remove container
     docker
         .remove_container(

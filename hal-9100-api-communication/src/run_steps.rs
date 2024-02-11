@@ -1,13 +1,13 @@
-use hal_9100_api_communication::models::AppState;
-use hal_9100_core::models::RunStep;
-use hal_9100_core::run_steps::{create_step, get_step, list_steps, update_step};
-use async_openai::types::RunStepObject;
+use async_openai::types::{ListRunStepsResponse, RunStepObject};
 use axum::{
     extract::{Extension, Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
     response::Json as JsonResponse,
 };
+use hal_9100_api_communication::models::AppState;
+use hal_9100_core::models::RunStep;
+use hal_9100_core::run_steps::{create_step, get_step, list_steps, update_step};
 
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -29,13 +29,25 @@ pub async fn get_step_handler(
 }
 
 pub async fn list_steps_handler(
-    Path((run_id,)): Path<(String,)>,
+    Path((thread_id, run_id,)): Path<(String, String)>,
     State(app_state): State<AppState>,
-) -> Result<JsonResponse<Vec<RunStepObject>>, (StatusCode, String)> {
+) -> Result<JsonResponse<ListRunStepsResponse>, (StatusCode, String)> {
     let user_id = Uuid::default().to_string();
-    let steps = list_steps(&app_state.pool, &run_id, &user_id).await;
+    let steps = list_steps(&app_state.pool, &thread_id, &run_id, &user_id).await;
+
     match steps {
-        Ok(steps) => Ok(JsonResponse(steps.into_iter().map(|s| s.inner).collect())),
+        Ok(steps) => {
+            // TODO: fck pagination for now
+            let first_id = steps.first().map(|s| s.inner.id.clone());
+            let last_id = steps.last().map(|s| s.inner.id.clone());
+            Ok(JsonResponse(ListRunStepsResponse {
+                data: steps.into_iter().map(|s| s.inner).collect(),
+                object: "list".to_string(),
+                has_more: false,
+                first_id,
+                last_id,
+            }))
+        }
         Err(e) => {
             error!("Error listing steps: {}", e);
             Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
@@ -66,7 +78,6 @@ mod tests {
             update_thread_handler,
         },
     };
-    use hal_9100_core::{executor::try_run_executor, file_storage::FileStorage};
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsFunction, CreateAssistantRequest,
         CreateRunRequest, FunctionObject, ListMessagesResponse, MessageContent, MessageRole,
@@ -81,6 +92,7 @@ mod tests {
         http::{self, HeaderName, Request},
     };
     use dotenv::dotenv;
+    use hal_9100_core::{executor::try_run_executor, file_storage::FileStorage};
     use hyper::{Method, StatusCode};
     use serde_json::json;
     use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -196,7 +208,8 @@ mod tests {
         let pool_clone = app_state.pool.clone();
 
         reset_db(&app_state.pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create an assistant with get_name and weather functions
         let assistant = CreateAssistantRequest {
