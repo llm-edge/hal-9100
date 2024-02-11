@@ -41,7 +41,7 @@ services:
   
   assistants:
     container_name: assistants
-    image: ghcr.io/stellar-amenities/assistants/assistants:0.0.2
+    image: ghcr.io/stellar-amenities/assistants/assistants:0.0.3
     ports:
       - 3000:3000
     depends_on:
@@ -57,7 +57,7 @@ services:
     env_file:
       - ../.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
