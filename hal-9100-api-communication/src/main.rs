@@ -2005,7 +2005,7 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let body: Value = serde_json::from_slice(&body).unwrap();
-        let file_id = body["file_id"].as_str().unwrap().to_string();
+        let file_id = body["id"].as_str().unwrap().to_string();
         let model_name = std::env::var("TEST_MODEL_NAME")
             .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
