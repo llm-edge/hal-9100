@@ -153,7 +153,7 @@ Examples of LLM APIs that does support OpenAI API-like, that you can use:
 
 <details>
 <summary>What's the difference with LangChain?</summary>
-You can write AI products in 50 lines of code instead of 5000.
+You can write AI products in 50 lines of code instead of 5000, and avoid being dependent on a feature-creep project.
 </details>
 
 <details>
