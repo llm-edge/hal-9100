@@ -71,7 +71,7 @@ HAL-9100 is in continuous development, with the aim of always offering better in
 <summary><strong>Edge-first</strong></summary>
 <p>
 
-HAL-9100 does not require internet access by focusing on open source LLMs. Which means you own your data and your models.
+HAL-9100 does not require internet access by focusing on open source LLMs. Which means you own your data and your models. It runs on a Raspberry PI (LLM included).
 
 </p>
 </details>
@@ -126,7 +126,6 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 - You want to increase customization (e.g. use your own models, extend the API, etc.)
 - You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
 - Your product does have poor internet access (military, extreme environment, etc.)
-- You want to automate your home and run everything on a Raspberry PI
 
 ## 🚀 Deployment
 
