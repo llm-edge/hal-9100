@@ -1,11 +1,11 @@
 
 <p align="center">
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/f512cf3d-1c24-4d87-85ca-c855c32f5099">
+<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/f512cf3d-1c24-4d87-85ca-c855c32f5099">
   <h1 align="center">🤖 HAL-9100</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms.</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Using OpenAI SDK.</h4>
   <p align="center">
-    <a href='https://codespaces.new/stellar-amenities/assistants?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
+    <a href='https://codespaces.new/stellar-amenities/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
     <br />
     <a href="https://discord.gg/pj5VRqqs84"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
   </p>
@@ -18,8 +18,8 @@
 
 <p align="center">
     <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ Infra</a>
-    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
-    <a href="https://github.com/stellar-amenities/assistants/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
+    <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
+    <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
     <a href="https://cal.com/louis030195/ai">📞 Help?</a>
 </p>
 
@@ -28,17 +28,17 @@
 
 # Quickstart
 
-<img width="600" alt="assistants" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
+<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
 
 Get started in less than a minute through GitHub Codespaces:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/assistants?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/hal-9100?quickstart=1)
 
 Or:
 
 ```bash
-git clone https://github.com/stellar-amenities/assistants
-cd assistants
+git clone https://github.com/stellar-amenities/hal-9100
+cd hal-9100
 cp .env.example .env
 ```
 
@@ -62,16 +62,16 @@ node examples/quickstart.js
 
 ## 📏 Principles
 
-<img align="center" width="600" alt="assistants" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
+<img align="center" width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
   
 
-Assistants is a tool that is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
+HAL-9100 is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
 
 <details>
 <summary><strong>Edge-first</strong></summary>
 <p>
 
-Assistants does not require internet access by focusing on open source LLMs. Which means you own your data and your models.
+HAL-9100 does not require internet access by focusing on open source LLMs. Which means you own your data and your models.
 
 </p>
 </details>
@@ -89,7 +89,7 @@ OpenAI spent a large amount of the best brain power to design this API, which ma
 <summary><strong>Reliable and deterministic</strong></summary>
 <p>
 
-Assistants focus on reliability and being as deterministic as possible by default. That's why everything has to be tested and benchmarked.
+HAL-9100 focus on reliability and being as deterministic as possible by default. That's why everything has to be tested and benchmarked.
 
 </p>
 </details>
@@ -130,7 +130,7 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 
 ## 🚀 Deployment
 
-Please follow [this documentation](https://github.com/stellar-amenities/assistants/blob/main/ee/k8s/README.md).
+Please follow [this documentation](https://github.com/stellar-amenities/hal-9100/blob/main/ee/k8s/README.md).
 
 ## 🤔 FAQ
 
@@ -138,14 +138,14 @@ Please follow [this documentation](https://github.com/stellar-amenities/assistan
 <summary>Which LLM API can I use?</summary>
 
 Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
-- [ollama](https://github.com/stellar-amenities/assistants/issues/24)
+- [ollama](https://github.com/stellar-amenities/hal-9100/issues/24)
 - [llama.cpp server example](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
 
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
 - [MLC-LLM](https://github.com/mlc-ai/mlc-llm)
-- [FastChat (good if you have a mac)](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-mistral-curl)
+- [FastChat (good if you have a mac)](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
-- [Perplexity API](https://github.com/stellar-amenities/assistants/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
+- [Perplexity API](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
 - Mistral API
 - anyscale
 - together ai

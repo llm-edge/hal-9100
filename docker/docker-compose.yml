@@ -12,7 +12,7 @@ services:
       - 5432:5432
     command: postgres -c 'max_connections=250'
     volumes:
-      - ../assistants-core/src/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
+      - ../hal-9100-core/src/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
       - ./pg-healthcheck.sh:/pg-healthcheck.sh
     healthcheck:
       test: ["CMD-SHELL", "/pg-healthcheck.sh"]
@@ -39,9 +39,9 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
   
-  assistants:
-    container_name: assistants
-    image: ghcr.io/stellar-amenities/assistants/assistants:0.0.3
+  hal-9100:
+    container_name: hal-9100
+    image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.3
     ports:
       - 3000:3000
     depends_on:

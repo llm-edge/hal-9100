@@ -1,14 +1,14 @@
-# Open Source Assistants API Quickstart Guide
+# HAL-9100 Quickstart Guide
 
-This guide demonstrates how to use the Open Source Assistants API to create an assistant that can answer questions about the weather using function calling.
+This guide demonstrates how to use HAL-9100 to create an assistant that can answer questions about the weather using function calling.
 
 Function calling is a more precise and automatic way to provide context to an LLM than retrieval.
 
 ## Setup
 
 ```bash
-git clone https://github.com/stellar-amenities/assistants
-cd assistants
+git clone https://github.com/stellar-amenities/hal-9100
+cd hal-9100
 cp .env.example .env
 ```
 
@@ -33,7 +33,7 @@ node examples/quickstart.js
 
 ## What did happen?
 
-In `quickstart.js`, we're creating a weather assistant using the Open Source Assistants API. Here's a step-by-step breakdown:
+In `quickstart.js`, we're creating a weather assistant using the HAL-9100. Here's a step-by-step breakdown:
 
 1. **Setup**: We import the OpenAI SDK and initialize it with the local server as base URL.
 
@@ -51,15 +51,13 @@ In `quickstart.js`, we're creating a weather assistant using the Open Source Ass
 
 8. **Get Messages**: Finally, we retrieve all messages in the thread. This includes the user's original question and the assistant's response. The LLM is able to answer the question by using the precise context provided by the function call.
 
-This script demonstrates how to use the Open Source Assistants API to create an interactive assistant that can answer questions using function calls.
+This script demonstrates how to use HAL-9100 to create an interactive assistant that can answer questions using function calls.
 
 ## What's Next?
 
-Now that you've got your feet wet with the Open Source Assistants API, it's time to dive deeper. Check out the `examples` directory for more complex examples and use-cases. 
+Now that you've got your feet wet with HAL-9100, it's time to dive deeper. Check out the `examples` directory for more complex examples and use-cases. 
 
 For those interested in self-hosting, take a look at the **Self-Hosting Guide** in the `./ee/k8s/` directory. It provides detailed instructions on how to set up and manage your own instance.
-
-If you're looking for inspiration on what to build next, check out the `IDEAS.md`` file in the `examples` directory. It contains a list of project ideas that leverage the power of the Open Source Assistants API, ranging from AI-powered personal budgeting apps to language learning apps, health trackers, and more.
 
 You can also explore the OpenAI Examples for a wider range of applications and to understand how to leverage the full power of the API.
 

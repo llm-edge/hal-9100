@@ -3,7 +3,7 @@ name: Concept or Idea
 about: Future idea, theory or concept for assistants as a standalone project or as part of an organization.
 title: '[Concept] : '
 labels: ["0", "enhancement"]
-projects: ["assistants"]
+projects: ["hal-9100"]
 assignees: ''
 
 ---

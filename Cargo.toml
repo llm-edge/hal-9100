@@ -1,6 +1,6 @@
 [workspace]
-members = ["assistants-core", "assistants-*"]
+members = ["hal-9100-core", "hal-9100-*"]
 # Only check / build main crates by default (check all with `--workspace`)
-default-members = ["assistants-core", "assistants-*"]
+default-members = ["hal-9100-core", "hal-9100-*"]
 exclude = []
 resolver = "2"

@@ -45,12 +45,12 @@ reboot: clean docker ## Clean and run docker compose up
 
 ## Run the consumer
 consumer: ## Run the consumer
-	@source .env && cargo run --package assistants-core --bin run_consumer
+	@source .env && cargo run --package hal-9100-core --bin run_consumer
 
 
 ## Run the server
 server: ## Run the server
-	@source .env && cargo run --package assistants-api-communication
+	@source .env && cargo run --package hal-9100-api-communication
 
 ## Run consumer, server, and dockers
 all:
@@ -77,8 +77,8 @@ docker-build-code-interpreter-amd64: ## Build the Docker image for the code inte
 	docker build --platform linux/amd64 -f docker/Dockerfile.code-interpreter -t code-interpreter-amd64 .
 
 docker-push-code-interpreter-amd64: ## Push the Docker image for the code interpreter to DockerHub for Linux amd64
-	docker tag code-interpreter-amd64:latest louis030195/assistants-code-interpreter:latest
-	docker push louis030195/assistants-code-interpreter:latest
+	docker tag code-interpreter-amd64:latest louis030195/hal-9100-code-interpreter:latest
+	docker push louis030195/hal-9100-code-interpreter:latest
 
 clean/rust: 
 	cargo clean

@@ -1,6 +1,6 @@
-# Open Source Assistants API Quickstart Guide
+# HAL-9100 Quickstart Guide
 
-This guide demonstrates how to use the Open Source Assistants API to create an assistant that can answer questions about startup investments using `code_interpreter` and `function` tools and `mixtral` LLM.
+This guide demonstrates how to use HAL-9100 to create an assistant that can answer questions about startup investments using `code_interpreter` and `function` tools and `mixtral` LLM.
 
 **Function calling** is a more precise and automatic way to provide context to an LLM than retrieval.
 
@@ -38,7 +38,7 @@ You should see at the end:
 >Based on your specified capital investment range of $10K to $1B, I recommend considering investing in StartupB. It has a revenue of $600,000, capital raised of $1.5M, a growth rate of 0.3, and is in Series B funding round. Investor Y is the investor for this startup.
 ## What did happen?
 
-In `quickstart.js`, we're creating a VC assistant using the Open Source Assistants API. Here's a step-by-step breakdown:
+In `quickstart.js`, we're creating a VC assistant using HAL-9100. Here's a step-by-step breakdown:
 
 1. **Setup**: We import the necessary modules and initialize the OpenAI SDK with the local server as base URL.
 
@@ -60,15 +60,15 @@ In `quickstart.js`, we're creating a VC assistant using the Open Source Assistan
 
 10. **Get Messages**: Finally, we retrieve all messages in the thread. This includes the user's original question and the assistant's response. The LLM is able to answer the question by using the precise context provided by the function call and the code interpreter.
 
-This script demonstrates how to use the Open Source Assistants API to create an interactive assistant that can answer questions using function calls and code interpretation.
+This script demonstrates how to use HAL-9100 to create an interactive assistant that can answer questions using function calls and code interpretation.
 
 ## What's Next?
 
-Now that you've got your feet wet with the Open Source Assistants API, it's time to dive deeper. Check out the `examples` directory for more complex examples and use-cases. 
+Now that you've got your feet wet with HAL-9100, it's time to dive deeper. Check out the `examples` directory for more complex examples and use-cases. 
 
 For those interested in self-hosting, take a look at the [Self-Hosting Guide](./ee/k8s/README.md) in the `./ee/k8s/` directory. It provides detailed instructions on how to set up and manage your own instance.
 
-If you're looking for inspiration on what to build next, check out the [IDEAS.md](../IDEAS.md) file in the `examples` directory. It contains a list of project ideas that leverage the power of the Open Source Assistants API, ranging from AI-powered personal budgeting apps to language learning apps, health trackers, and more.
+If you're looking for inspiration on what to build next, check out the [IDEAS.md](../IDEAS.md) file in the `examples` directory. It contains a list of project ideas that leverage the power of HAL-9100, ranging from AI-powered personal budgeting apps to language learning apps, health trackers, and more.
 
 You can also explore the OpenAI Examples for a wider range of applications and to understand how to leverage the full power of the API.
 

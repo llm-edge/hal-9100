@@ -4,16 +4,16 @@ FROM rust:bookworm as builder
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-COPY assistants-api-communication /app/assistants-api-communication
-COPY assistants-core /app/assistants-core
-COPY assistants-extra /app/assistants-extra
+COPY hal-9100-api-communication /app/hal-9100-api-communication
+COPY hal-9100-core /app/hal-9100-core
+COPY hal-9100-extra /app/hal-9100-extra
 COPY Cargo.toml /app/Cargo.toml
 COPY .sqlx /app/.sqlx
 
 ENV SQLX_OFFLINE true
 
 RUN cargo build --release --bin run_consumer && \
-    cargo build --release --bin assistants-api-communication
+    cargo build --release --bin hal-9100-api-communication
 
 # Start a new stage to create a lean final image
 FROM debian:bookworm-slim
@@ -37,7 +37,7 @@ RUN chmod +x /app/readiness-probe.sh
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/target/release/run_consumer /usr/local/bin/run_consumer
-COPY --from=builder /app/target/release/assistants-api-communication /usr/local/bin/assistants-api-communication
+COPY --from=builder /app/target/release/hal-9100-api-communication /usr/local/bin/hal-9100-api-communication
 
 # Copy the entrypoint script
 COPY ./docker/entrypoint.sh /app/entrypoint.sh

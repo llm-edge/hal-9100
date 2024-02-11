@@ -2,7 +2,7 @@
 
 At the moment, you need both **Docker** installed to run the API.
 
-Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need an API key that you can put in a `.env` file in the root of the project:
+Additionally, `HAL-9100` currently supports Anthropic and Open Source LLMs, you need an API key that you can put in a `.env` file in the root of the project:
 
 ```bash
 ANTHROPIC_API_KEY="..."

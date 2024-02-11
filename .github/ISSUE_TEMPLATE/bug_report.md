@@ -3,7 +3,7 @@ name: Bug report
 about: Create a bug report on any of our services.
 title: ''
 labels: ["0", "bug"]
-projects: ["assistants"]
+projects: ["hal-9100"]
 assignees: ''
 
 ---

@@ -2,7 +2,7 @@
 
 At the moment, you need **Docker** installed to run the API.
 
-Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
+Additionally, `HAL-9100` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
 
 ```bash
 DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase

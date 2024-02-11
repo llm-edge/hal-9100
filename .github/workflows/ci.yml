@@ -93,7 +93,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/assistants:${{ steps.regex-match.outputs.group1 }}
+          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -148,6 +148,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/assistants-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/assistants-code-interpreter:${{ steps.regex-match.outputs.group1 }}
+          tags: ghcr.io/${{ github.repository }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
