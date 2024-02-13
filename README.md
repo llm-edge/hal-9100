@@ -109,7 +109,7 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 
 ## ⭐️ Latest News
 
-- [2024/01/19] 🔥 Action tool. Let your Assistant make requests to APIs.
+- [2024/01/19] 🔥 Action tool. [Let your Assistant make requests to APIs](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mlc-llm-mistral-nodejs-action).
 - [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
 - [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
 - [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
