@@ -958,6 +958,7 @@ pub async fn run_executor(
                         // is_consequential: metadata["is_consequential"].to_string(),
                         content_type: metadata["content_type"].to_string().replace("\"", ""),
                         params: Some(serde_json::from_str(&function.arguments).unwrap()),
+                        headers: metadata.get("headers").cloned(),
                     }).await.map_err(|e| RunError {
                         message: format!("Failed to execute request: {}", e),
                         run_id: run_id.to_string(),

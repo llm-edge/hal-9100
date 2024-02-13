@@ -1,10 +1,13 @@
-use hal_9100_core::models::Function;
-use hal_9100_extra::llm::llm;
 use async_openai::types::ChatCompletionFunctions;
 use async_openai::types::FunctionCall;
 use async_openai::types::FunctionObject;
+use hal_9100_core::models::Function;
+use hal_9100_extra::llm::llm;
 use log::error;
 use log::info;
+use reqwest::header::HeaderMap;
+use reqwest::header::HeaderName;
+use reqwest::header::HeaderValue;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
@@ -343,6 +346,7 @@ pub async fn create_function_call(
 pub async fn register_openapi_functions(
     pool: &PgPool,
     openapi_spec_str: String,
+    headers: Option<serde_json::Value>,
     assistant_id: &str,
     user_id: &str,
 ) -> Result<Vec<String>, FunctionCallError> {
@@ -402,6 +406,7 @@ pub async fn register_openapi_functions(
                     // "operation_hash": None,
                     "is_consequential": false,
                     "content_type": "application/json".to_string(),
+                    "headers": headers.clone(),
                 })),
             };
             let function_id = register_function(pool, function).await?;
@@ -415,17 +420,43 @@ pub async fn register_openapi_functions(
 pub async fn execute_request(request: ActionRequest) -> Result<serde_json::Value, Box<dyn Error>> {
     let client = reqwest::Client::new();
     let url = format!("{}{}", request.domain, request.path);
-    // curl "https://en.wikipedia.org/w/api.php?action=query&format=json&list=random&rnnamespace=0&rnlimit=1"
+    let mut headers = HeaderMap::new();
+    if let Some(h) = request.headers {
+        for (k, v) in h.as_object().unwrap_or(&serde_json::Map::new()) {
+            let header_name = HeaderName::from_bytes(k.as_bytes()).unwrap();
+            let header_value = HeaderValue::from_str(v.as_str().unwrap()).unwrap();
+            headers.insert(header_name, header_value);
+        }
+    }
     let response = match request.method.to_lowercase().as_str() {
         "get" => {
             // let params: HashMap<String, String> =
             // serde_json::from_value(request.params.unwrap_or_default())?;
             println!("request.params: {:?}", request.params);
-            client.get(&url).query(&request.params).send().await?
+            client
+                .get(&url)
+                .query(&request.params)
+                .headers(headers)
+                .send()
+                .await?
         }
-        "post" => client.post(&url).json(&request.params).send().await?,
-        "put" => client.put(&url).json(&request.params).send().await?,
-        "delete" => client.delete(&url).send().await?,
+        "post" => {
+            client
+                .post(&url)
+                .json(&request.params)
+                .headers(headers)
+                .send()
+                .await?
+        }
+        "put" => {
+            client
+                .put(&url)
+                .json(&request.params)
+                .headers(headers)
+                .send()
+                .await?
+        }
+        "delete" => client.delete(&url).headers(headers).send().await?,
         _ => {
             return Err(Box::new(std::io::Error::new(
                 ErrorKind::Other,
@@ -661,12 +692,13 @@ mod tests {
         }
     }
 
-   #[tokio::test]
+    #[tokio::test]
     async fn test_generate_function_call_with_mixtral_8x7b() {
         let pool = setup().await;
         let user_id = Uuid::default().to_string();
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
-        
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
@@ -827,7 +859,8 @@ mod tests {
             }
         }
         "#;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Create assistant
         let assistant = create_assistant(
@@ -860,6 +893,7 @@ mod tests {
         let function_ids = register_openapi_functions(
             &pool,
             openapi_spec_str.to_string(),
+            None,
             &assistant_id,
             &user_id,
         )

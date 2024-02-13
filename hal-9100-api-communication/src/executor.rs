@@ -23,9 +23,6 @@ mod tests {
     };
 
     use super::*;
-    use hal_9100_core::{
-        executor::try_run_executor, file_storage::FileStorage, test_data::OPENAPI_SPEC,
-    };
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsExtra, CreateAssistantRequest,
         CreateMessageRequest, CreateRunRequest, CreateThreadRequest, ListMessagesResponse,
@@ -33,22 +30,24 @@ mod tests {
     };
     use axum::{
         body::Body,
-        extract::DefaultBodyLimit,
+        extract::{DefaultBodyLimit, Query},
         http::{self, HeaderName, Request, StatusCode},
         routing::{delete, get, post},
         Router,
     };
+    use axum::{extract::TypedHeader, response::Json};
     use dotenv::dotenv;
-    use hyper::{self, Method};
+    use hal_9100_core::{
+        executor::try_run_executor, file_storage::FileStorage, test_data::OPENAPI_SPEC,
+    };
+    use headers::{Authorization, Header};
+    use hyper::{self, HeaderMap, Method};
     use mime;
-    use serde_json::json;
+    use serde_json::{json, Value};
     use sqlx::{postgres::PgPoolOptions, PgPool};
     use tower::ServiceExt;
-    use tower_http::{
-        cors::{Any, CorsLayer},
-        limit::RequestBodyLimitLayer,
-        trace::TraceLayer,
-    }; // for `oneshot` and `ready`
+    use tower_http::cors::{Any, CorsLayer};
+    use tower_http::{limit::RequestBodyLimitLayer, trace::TraceLayer}; // for `oneshot` and `ready`
 
     /// Having a function that produces our app makes it easy to call it from tests
     /// without having to create an HTTP server.
@@ -144,21 +143,20 @@ mod tests {
         let model_name = std::env::var("TEST_MODEL_NAME")
             .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
-        let assistant = CreateAssistantRequest {
-            instructions: Some(
-                "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user."
-                    .to_string(),
-            ),
-            name: Some("Action Tool Assistant".to_string()),
-            tools: Some(vec![AssistantTools::Extra(AssistantToolsExtra {
-                r#type: "action".to_string(),
-                data: Some(serde_yaml::from_str(OPENAPI_SPEC).unwrap()),
-            })]),
-            model: model_name.to_string(),
-            file_ids: None,
-            description: None,
-            metadata: None,
-        };
+        let assistant = json!({
+            "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",
+            "name": "Action Tool Assistant",
+            "tools": [{
+                "type": "action",
+                "data": {
+                    "openapi_spec": OPENAPI_SPEC
+                }
+            }],
+            "model": model_name,
+            "file_ids": null,
+            "description": null,
+            "metadata": null,
+        });
 
         let response = app
             .clone()
@@ -231,7 +229,7 @@ mod tests {
                     .body(Body::from(
                         json!({
                             "assistant_id": assistant.id,
-                            "instructions": "Please help me find a random fact"
+                            "instructions": "Please help me find a random fact. Provide the exact output from the API"
                         })
                         .to_string(),
                     ))
@@ -302,5 +300,341 @@ mod tests {
         } else {
             panic!("Expected a Text message, but got something else.");
         }
+    }
+
+    #[tokio::test]
+    async fn test_create_action_assistant_with_headers() {
+        // Setup environment
+        let app_state = setup().await;
+        let app = app(app_state.clone());
+
+        // Define the expected API key
+        let expected_api_key = "Bearer SuperSecretApiKEYToInitiateTheBigCrunch";
+
+        async fn g(
+            headers: TypedHeader<Authorization<headers::authorization::Bearer>>,
+            query_param: Query<Value>,
+        ) -> Result<Json<Value>, (StatusCode, &'static str)> {
+            println!("Headers: {:?}", headers.0.token());
+            println!("Query: {:?}", query_param);
+            if headers.0.token() == "SuperSecretApiKEYToInitiateTheBigCrunch" {
+                Ok(Json(
+                    json!({"batchcomplete": "", "query": {"random": [{"id": 42, "title": "Life, the Universe and Everything"}]}}),
+                ))
+            } else {
+                Err((StatusCode::UNAUTHORIZED, "Unauthorized"))
+            }
+        }
+        let g = get(g);
+        // Start a mock Wikipedia API server with authorization check
+        let mock_api = Router::new()
+            .route("/api.php", g)
+            .layer(TraceLayer::new_for_http())
+            .layer(DefaultBodyLimit::disable());
+        let server_handle = tokio::spawn(async move {
+            let r = axum::Server::bind(&"127.0.0.1:4242".parse().unwrap())
+                .serve(mock_api.into_make_service())
+                .await
+                .unwrap();
+            println!("Server error: {:?}", r);
+        });
+
+        // wait 2 seconds for the server to start
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+        // try to do a request to the server to make sure it's running
+        let client = reqwest::Client::new();
+        let response = client
+            .get("http://127.0.0.1:4242/api.php?action=query&format=json&list=random")
+            .header("Authorization", expected_api_key)
+            .send()
+            .await
+            .unwrap();
+        // println!("Server is runnin {:?}", response.text().await.unwrap());
+
+        assert_eq!(
+            response.status(),
+            200,
+            "{:?}",
+            response.text().await.unwrap()
+        );
+
+        // Use the server's address in your test
+        let openapi_spec_modified =
+            OPENAPI_SPEC.replace("https://en.wikipedia.org/w", "http://127.0.0.1:4242");
+
+        let pool_clone = app_state.pool.clone();
+
+        reset_db(&app_state.pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
+        let assistant = json!({
+            "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",
+            "name": "Action Tool Assistant",
+            "tools": [{
+                "type": "action",
+                "data": {
+                    "openapi_spec": openapi_spec_modified
+                }
+            }],
+            "model": model_name,
+            "file_ids": null,
+            "description": null,
+            "metadata": null,
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        // create thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: ThreadObject = serde_json::from_slice(&body).unwrap();
+
+        // Send a message to the assistant
+        let message = CreateMessageRequest {
+            file_ids: None,
+            metadata: None,
+            role: "user".to_string(),
+            content: "Give me a random fact. Also provide the exact output from the API"
+                .to_string(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/messages", thread.id)) // Use the thread ID here
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&message).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": assistant.id,
+                            "instructions": "Please help me find a random fact"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool_clone, &mut con).await;
+        assert!(!result.is_ok(), "{:?}", result);
+
+        let run_err = result.unwrap_err();
+        // {message:"Failed to execute request: HTTP status client error (400 Bad Request) for url (http://127.0.0.1:4242/api.php?action=query&format=json&list=random)", ...}
+        assert!(
+            run_err.message.contains("HTTP status client error (400"),
+            "{:?}",
+            run_err
+        );
+
+        let assistant = json!({
+            "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",
+            "name": "Action Tool Assistant",
+            "tools": [{
+                "type": "action",
+                "data": {
+                    "openapi_spec": openapi_spec_modified,
+                    "headers": {
+                        "Authorization": expected_api_key,
+                    },
+                },
+            }],
+            "model": model_name,
+            "file_ids": null,
+            "description": null,
+            "metadata": null,
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        // create thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: ThreadObject = serde_json::from_slice(&body).unwrap();
+
+        // Send a message to the assistant
+        let message = CreateMessageRequest {
+            file_ids: None,
+            metadata: None,
+            role: "user".to_string(),
+            content: "Give me a random fact. Also provide the exact output from the API"
+                .to_string(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/messages", thread.id)) // Use the thread ID here
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&message).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": assistant.id,
+                            "instructions": "Please help me find a random fact"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool_clone, &mut con).await;
+        assert!(result.is_ok(), "{:?}", result);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+        assert_eq!(run.status, RunStatus::Completed);
+
+        // Fetch the messages from the database
+        let response = app
+            .clone()
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/messages", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let messages: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
+
+        // Check the assistant's response
+        assert_eq!(messages.data.len(), 2);
+        assert_eq!(messages.data[1].role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages.data[1].content[0] {
+            assert!(
+                text_object.text.value.contains("Life, the Universe and Everything"),
+                "Expected the assistant to return a text containing 'Life, the Universe and Everything', but got something else: {}",
+                text_object.text.value
+            );
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
+        server_handle.abort();
     }
 }

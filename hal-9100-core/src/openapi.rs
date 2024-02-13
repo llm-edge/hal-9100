@@ -20,6 +20,7 @@ pub struct ActionRequest {
     pub is_consequential: bool,
     pub content_type: String,
     pub params: Option<Value>,
+    pub headers: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,6 +57,7 @@ impl OpenAPISpec {
                     is_consequential: false,
                     content_type: "application/json".to_string(),
                     params: None,
+                    headers: None,
                 };
                 requests.insert(request.operation.clone(), request);
             }

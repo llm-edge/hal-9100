@@ -87,7 +87,7 @@ CREATE TABLE functions (
     assistant_id UUID REFERENCES assistants(id),
     name TEXT,
     description TEXT,
-    parameters JSONB, -- store as JSON object
+    parameters JSONB,
     metadata JSONB,
     created_at INTEGER NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()))
 );

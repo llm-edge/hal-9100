@@ -6,10 +6,10 @@ use redis::AsyncCommands;
 use serde_json::{self, Value};
 use sqlx::PgPool;
 
+use futures::future::join_all;
 use hal_9100_core::function_calling::register_function;
 use hal_9100_core::models::Assistant;
 use hal_9100_core::models::Function;
-use futures::future::join_all;
 use sqlx::types::Uuid;
 
 use hal_9100_core::function_calling::FunctionCallError;
@@ -214,11 +214,13 @@ pub async fn create_assistant(
             if let Some(data) = &extra_tool.data {
                 if let Some(openapi_spec) = data.get("openapi_spec") {
                     let openapi_spec_str: String = openapi_spec.as_str().unwrap().to_string();
+                    let headers = data.get("headers");
                     let future = Box::pin(async move {
-                        println!("f: {:?}", data);
+                        info!("Registering openapi functions");
                         match register_openapi_functions(
                             pool,
                             openapi_spec_str,
+                            headers.cloned(),
                             &row.id.to_string(),
                             &assistant.user_id,
                         )
