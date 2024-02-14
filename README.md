@@ -34,10 +34,10 @@
 - [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
 # ✨ Key Features
-- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (beta)
-- [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
-- [x] **Function Calling**: Defines and executes custom functions.
-- [x] **Actions**: Execute requests to external APIs, automatically.
+- [x] **Code Interpreter**: Generate and runs Python code in a sandboxed environment autonomously. (beta)
+- [x] **Knowledge Retrieval**: Retrieves external knowledge or documents autonomously.
+- [x] **Function Calling**: Defines and executes custom functions autonomously.
+- [x] **Actions**: Execute requests to external APIs autonomously.
 - [x] **Files**: Supports a range of file formats.
 - [x] **Production-ready**: scalable, observability (metrics, errors, traces, logs)
 
