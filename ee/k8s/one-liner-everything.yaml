@@ -49,7 +49,7 @@ spec:
         - ":9001"
 
       - name: rust-api
-        image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.5
+        image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.6
         imagePullPolicy: Always # for dev
         env:
         - name: DATABASE_URL
