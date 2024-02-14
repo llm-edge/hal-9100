@@ -1,9 +1,9 @@
 
 <p align="center">
-<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/f512cf3d-1c24-4d87-85ca-c855c32f5099">
+<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/335c9bab-6493-4259-a930-4edbff9dc742">
   <h1 align="center">🤖 HAL-9100</h1>
-  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms.</h2>
-  <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants. Using OpenAI SDK.</h4>
+  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms. Using OpenAI SDK.</h2>
+  <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants.</h4>
   <p align="center">
     <a href='https://codespaces.new/stellar-amenities/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
     <br />
@@ -26,43 +26,29 @@
 -----
 
 
-# Quickstart
+# ⭐️ Latest News
 
-Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
+- [2024/01/19] 🔥 Action tool. [Let your Assistant make requests to APIs](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mlc-llm-mistral-nodejs-action).
+- [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
+- [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
+- [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
 
-<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
+# ✨ Key Features
+- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (beta)
+- [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
+- [x] **Function Calling**: Defines and executes custom functions.
+- [x] **Actions**: Execute requests to external APIs, automatically.
+- [x] **File Handling**: Supports a range of file formats.
 
-Get started in less than a minute through GitHub Codespaces:
+# 😃 Who is it for?
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/hal-9100?quickstart=1)
+- You operate on a large scale and want to reduce your costs
+- You want to increase your speed
+- You want to increase customization (e.g. use your own models, extend the API, etc.)
+- You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
+- Your product does have poor internet access (military, extreme environment, etc.)
 
-Or:
-
-```bash
-git clone https://github.com/stellar-amenities/hal-9100
-cd hal-9100
-cp .env.example .env
-```
-
-To get started quickly, let's use Perplexity API.
-Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
-
-Install OpenAI SDK: `npm i openai`
-
-Start the infra:
-
-```bash
-docker compose --profile api -f docker/docker-compose.yml up -d
-```
-
-Run the [quickstart](./examples/quickstart.js):
-
-```bash
-node examples/quickstart.js
-```
-
-
-## 📏 Principles
+# 📏 Principles
 
 <img align="center" width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
   
@@ -105,35 +91,46 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 </p>
 </details>
 
+# Quickstart
 
+Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
 
-## ⭐️ Latest News
+<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
 
-- [2024/01/19] 🔥 Action tool. [Let your Assistant make requests to APIs](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mlc-llm-mistral-nodejs-action).
-- [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
-- [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
-- [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
+Get started in less than a minute through GitHub Codespaces:
 
-## ✨ Key Features
-- [x] **Code Interpreter**: Runs Python code in a sandboxed environment. (beta)
-- [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
-- [x] **Function Calling**: Defines and executes custom functions.
-- [x] **Actions**: Execute requests to external APIs, automatically.
-- [x] **File Handling**: Supports a range of file formats.
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/hal-9100?quickstart=1)
 
-## 😃 Who is it for?
+Or:
 
-- You operate on a large scale and want to reduce your costs
-- You want to increase your speed
-- You want to increase customization (e.g. use your own models, extend the API, etc.)
-- You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
-- Your product does have poor internet access (military, extreme environment, etc.)
+```bash
+git clone https://github.com/stellar-amenities/hal-9100
+cd hal-9100
+cp .env.example .env
+```
 
-## 🚀 Deployment
+To get started quickly, let's use Perplexity API.
+Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
+
+Install OpenAI SDK: `npm i openai`
+
+Start the infra:
+
+```bash
+docker compose --profile api -f docker/docker-compose.yml up -d
+```
+
+Run the [quickstart](./examples/quickstart.js):
+
+```bash
+node examples/quickstart.js
+```
+
+# 🚀 Deployment
 
 Please follow [this documentation](https://github.com/stellar-amenities/hal-9100/blob/main/ee/k8s/README.md).
 
-## 🤔 FAQ
+# 🤔 FAQ
 
 <details>
 <summary>Which LLM API can I use?</summary>
