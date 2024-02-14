@@ -1541,7 +1541,7 @@ mod tests {
         let assistant = Assistant {
             inner: AssistantObject {
                 id: "".to_string(),
-                instructions: Some("You help me find people's favourite numbers".to_string()),
+                instructions: Some("You help me find people's favourite numbers using retrieval and functions".to_string()),
                 name: Some("Number finder".to_string()),
                 tools: vec![
                     AssistantTools::Function(AssistantToolsFunction {
@@ -1651,7 +1651,7 @@ mod tests {
                 .tool_calls[0]
                 .id
                 .clone(),
-            output: "bob's favourite number is 43. bob's favourite number is 43".to_string(),
+            output: "My name is bob and my favourite number is 43".to_string(),
             run_id: run.inner.id.clone(),
             created_at: 0,
             user_id: assistant.user_id.clone(),
