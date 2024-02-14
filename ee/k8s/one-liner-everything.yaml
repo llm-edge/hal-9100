@@ -49,7 +49,7 @@ spec:
         - ":9001"
 
       - name: rust-api
-        image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.6
+        image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.7
         imagePullPolicy: Always # for dev
         env:
         - name: DATABASE_URL
@@ -112,7 +112,7 @@ spec:
 # kubectl apply -f ee/k8s/one-liner-everything.yaml -n hal-9100 
 # kubectl replace -f ee/k8s/one-liner-everything.yaml -n hal-9100 --force
 # kubectl delete -f ee/k8s/one-liner-everything.yaml -n hal-9100
-# kubectl set image deployment/hal-9100 rust-api=ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.6 -n hal-9100
+# kubectl set image deployment/hal-9100 rust-api=ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.7 -n hal-9100
 
 # kubectl get pods -n hal-9100 -l app=hal-9100
 # POD_NAME=$(kubectl get pods -n hal-9100 -l app=hal-9100 -o jsonpath="{.items[0].metadata.name}")
