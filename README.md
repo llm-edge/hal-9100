@@ -38,15 +38,16 @@
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents.
 - [x] **Function Calling**: Defines and executes custom functions.
 - [x] **Actions**: Execute requests to external APIs, automatically.
-- [x] **File Handling**: Supports a range of file formats.
+- [x] **Files**: Supports a range of file formats.
+- [x] **Production**: scalable, observability (metrics, errors, traces, logs)
 
 # 😃 Who is it for?
 
 - You operate on a large scale and want to reduce your costs
 - You want to increase your speed
 - You want to increase customization (e.g. use your own models, extend the API, etc.)
-- You work in a data-sensitive environment (healthcare, home AI assistant, military, law, etc.)
-- Your product does have poor internet access (military, extreme environment, etc.)
+- You work in a data-sensitive environment (healthcare, IoT, military, law, etc.)
+- Your product does have poor internet access (military, IoT, extreme environment, etc.)
 
 # 📏 Principles
 
