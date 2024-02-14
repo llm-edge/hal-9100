@@ -38,7 +38,9 @@ mod tests {
     use axum::{extract::TypedHeader, response::Json};
     use dotenv::dotenv;
     use hal_9100_core::{
-        executor::try_run_executor, file_storage::FileStorage, test_data::OPENAPI_SPEC,
+        executor::try_run_executor,
+        file_storage::FileStorage,
+        test_data::{OPENAPI_SPEC, OPENAPI_SPEC_SUPABASE_API},
     };
     use headers::{Authorization, Header};
     use hyper::{self, HeaderMap, Method};
@@ -636,5 +638,186 @@ mod tests {
             panic!("Expected a Text message, but got something else.");
         }
         server_handle.abort();
+    }
+
+    #[tokio::test] // TODO: this test should only run on main due to leaking api key unsecure shit
+    #[ignore]
+    async fn test_end_to_end_action_tool_for_supabase_api() {
+        let app_state = setup().await;
+        let app = app(app_state.clone());
+        let pool_clone = app_state.pool.clone();
+
+        reset_db(&app_state.pool).await;
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+
+        let supabase_api_key =
+            std::env::var("SUPABASE_ANON_API_KEY").expect("SUPABASE_ANON_API_KEY must be set");
+
+        let supabase_api_url = std::env::var("SUPABASE_URL").expect("SUPABASE_URL must be set");
+
+        // replace "https://api.supabase.io" with the value of SUPABASE_URL
+        let openapi_spec_modified =
+            OPENAPI_SPEC_SUPABASE_API.replace("https://api.supabase.io", &supabase_api_url);
+
+        let assistant = json!({
+            "instructions": "You are a personal assistant. Fetch people's schedules using filters. Make sure to use like filters in description by providing arguments to actions",
+            "name": "Action Tool Assistant That Do Requests to Supabase API with REST",
+            "tools": [{
+                "type": "action",
+                "data": {
+                    "openapi_spec": openapi_spec_modified,
+                    "headers": {
+                        "apikey": supabase_api_key,
+                        "Authorization": format!("Bearer {}", supabase_api_key),
+                        "Range": "0-9" // Weird Supabase API - dont think Assistants API should generate headers?
+                    },
+                }
+            }],
+            "model": model_name,
+            "file_ids": null,
+            "description": null,
+            "metadata": null,
+        });
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/assistants")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&assistant).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let assistant: AssistantObject = serde_json::from_slice(&body).unwrap();
+
+        // create thread and run
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/threads")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let thread: ThreadObject = serde_json::from_slice(&body).unwrap();
+
+        // Send a message to the assistant
+        let message = CreateMessageRequest {
+            file_ids: None,
+            metadata: None,
+            role: "user".to_string(),
+            content: "Give me the schedules related to physical activity".to_string(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/messages", thread.id)) // Use the thread ID here
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_vec(&message).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri(format!("/threads/{}/runs", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(
+                        json!({
+                            "assistant_id": assistant.id,
+                            "instructions": "When do people workout?"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+
+        let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
+        let client = redis::Client::open(redis_url).unwrap();
+        let mut con = client.get_async_connection().await.unwrap();
+        let result = try_run_executor(&pool_clone, &mut con).await;
+        assert!(result.is_ok(), "{:?}", result);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/runs/{}", thread.id, run.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let run: RunObject = serde_json::from_slice(&body).unwrap();
+        assert_eq!(run.status, RunStatus::Completed);
+
+        // Fetch the messages from the database
+        let response = app
+            .clone()
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::GET)
+                    .uri(format!("/threads/{}/messages", thread.id))
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let messages: ListMessagesResponse = serde_json::from_slice(&body).unwrap();
+
+        // Check the assistant's response
+        assert_eq!(messages.data.len(), 2);
+        assert_eq!(messages.data[1].role, MessageRole::Assistant);
+        if let MessageContent::Text(text_object) = &messages.data[1].content[0] {
+            // Based on the provided input and the user's request, the following schedule entries contain the "Workout" activity:
+            // [{"created_at":"2023-09-01T06:00:00+00:00","description":"Morning workout session","end_at":"2023-09-01T07:00:00+00:00","id":1,"start_at":"2023-09-01T06:00:00+00:00","title":"Workout","user_id":"8d2c203f-2a8d-4fb6-bacc-3e1c7c4e4eea"},{"created_at":"2023-09-02T06:00:00+00:00","description":"Morning workout session","end_at":"2023-09-02T07:00:00+00:00","id":7,"start_at":"2023-09-02T06:00:00+00:00","title":"Workout","user_id":"8d2c203f-2a8d-4fb6-bacc-3e1c7c4e4eea"}]
+            // These schedules represent the morning workout sessions for the user with the given user_id.
+            assert!(
+                text_object.text.value.contains("Workout"),
+                "Expected the assistant to return a text containing 'Workout', but got something else: {}",
+                text_object.text.value
+            );
+        } else {
+            panic!("Expected a Text message, but got something else.");
+        }
     }
 }

@@ -934,7 +934,9 @@ pub async fn run_executor(
                     create_function_call(&pool, 
                         &assistant.inner.id,
                         user_id, 
-                        model_config.clone()).await.map_err(|e| RunError {
+                        model_config.clone()
+                    )
+                    .await.map_err(|e| RunError {
                         message: format!("Failed to create function call: {}", e),
                         run_id: run_id.to_string(),
                         thread_id: thread_id.to_string(),
@@ -965,6 +967,8 @@ pub async fn run_executor(
                         thread_id: thread_id.to_string(),
                         user_id: user_id.to_string(),
                     })?;
+
+                    info!("Action results: {:?}", output);
 
                     action_calls = format!(
                         "<input>{:?}</input>\n\n<output>{:?}</output>",
