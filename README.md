@@ -57,6 +57,15 @@
 HAL-9100 is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
 
 <details>
+<summary><strong>Less prompt is more</strong></summary>
+<p>
+
+As few prompts as possible should be hard-coded into the infrastructure, just enough to bridge the gap between **Software 1.0** and **Software 3.0** and give the client as much control as possible on the prompts.
+
+</p>
+</details>
+
+<details>
 <summary><strong>Edge-first</strong></summary>
 <p>
 
