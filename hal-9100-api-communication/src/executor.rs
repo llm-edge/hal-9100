@@ -820,4 +820,7 @@ mod tests {
             panic!("Expected a Text message, but got something else.");
         }
     }
+
+    #[tokio::test]
+    async fn test_action_tool_with_multiple_operations() {}
 }
