@@ -1,3 +1,15 @@
+use axum::{
+    debug_handler,
+    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
+    http::header::HeaderName,
+    http::Method,
+    http::StatusCode,
+    response::IntoResponse,
+    response::Json as JsonResponse,
+    routing::{delete, get, post},
+    Router,
+};
+use env_logger;
 use hal_9100_api_communication::assistants::{
     create_assistant_handler, delete_assistant_handler, get_assistant_handler,
     list_assistants_handler, update_assistant_handler,
@@ -21,18 +33,6 @@ use hal_9100_api_communication::threads::{
     update_thread_handler,
 };
 use hal_9100_core::file_storage::FileStorage;
-use axum::{
-    debug_handler,
-    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
-    http::header::HeaderName,
-    http::Method,
-    http::StatusCode,
-    response::IntoResponse,
-    response::Json as JsonResponse,
-    routing::{delete, get, post},
-    Router,
-};
-use env_logger;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -121,11 +121,9 @@ async fn shutdown_signal() {
 #[allow(dead_code)]
 fn app(app_state: AppState) -> Router {
     let cors = CorsLayer::new()
-        // allow `GET` and `POST` when accessing the resource
-        .allow_methods([Method::GET, Method::POST])
-        // allow requests from any origin
+        .allow_methods(Any)
         .allow_origin(Any)
-        .allow_headers(vec![HeaderName::from_static("content-type")]);
+        .allow_headers(Any);
 
     Router::new()
         // https://platform.openai.com/docs/api-reference/assistants
@@ -220,8 +218,6 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use hal_9100_api_communication::runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest};
-    use hal_9100_core::executor::try_run_executor;
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, CreateAssistantRequest,
@@ -234,6 +230,8 @@ mod tests {
         http::{self, Request, StatusCode},
     };
     use dotenv::dotenv;
+    use hal_9100_api_communication::runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest};
+    use hal_9100_core::executor::try_run_executor;
     use hyper;
     use mime;
     use serde_json::{json, Value};
