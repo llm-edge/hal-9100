@@ -1,16 +1,15 @@
-
-use hal_9100_api_communication::models::AppState;
-use hal_9100_core::models::{Run, SubmittedToolCall};
-use hal_9100_core::runs::{
-    create_run, create_run_and_produce_to_executor_queue, delete_run, get_run, list_runs,
-    submit_tool_outputs, update_run,
-};
-use async_openai::types::{CreateRunRequest, ModifyRunRequest, RunObject};
+use async_openai::types::{CreateRunRequest, ListRunsResponse, ModifyRunRequest, RunObject};
 use axum::{
     extract::{Extension, Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
     response::Json as JsonResponse,
+};
+use hal_9100_api_communication::models::AppState;
+use hal_9100_core::models::{Run, SubmittedToolCall};
+use hal_9100_core::runs::{
+    create_run, create_run_and_produce_to_executor_queue, delete_run, get_run, list_runs,
+    submit_tool_outputs, update_run,
 };
 
 use log::error;
@@ -166,14 +165,19 @@ pub async fn delete_run_handler(
         }
     }
 }
-
 pub async fn list_runs_handler(
     Path((thread_id,)): Path<(String,)>,
     State(app_state): State<AppState>,
-) -> Result<JsonResponse<Vec<RunObject>>, (StatusCode, String)> {
+) -> Result<JsonResponse<ListRunsResponse>, (StatusCode, String)> {
     let runs = list_runs(&app_state.pool, &thread_id, &Uuid::default().to_string()).await;
     match runs {
-        Ok(runs) => Ok(JsonResponse(runs.into_iter().map(|r| r.inner).collect())),
+        Ok(runs) => Ok(JsonResponse(ListRunsResponse {
+            object: "thread.run".to_string(),
+            data: runs.into_iter().map(|r| r.inner).collect(),
+            first_id: None, // TODO
+            last_id: None,
+            has_more: false,
+        })),
         Err(e) => {
             let error_message = e.to_string();
             error!("Failed to list runs: {}", error_message);
@@ -185,7 +189,6 @@ pub async fn list_runs_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hal_9100_core::file_storage::FileStorage;
     use async_openai::types::CreateRunRequest;
     use axum::body::Body;
     use axum::http::{self, Request};
@@ -193,6 +196,7 @@ mod tests {
     use axum::routing::post;
     use axum::Router;
     use dotenv::dotenv;
+    use hal_9100_core::file_storage::FileStorage;
     use hyper::StatusCode;
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;

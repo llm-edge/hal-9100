@@ -68,7 +68,8 @@ pub async fn get_thread_handler(
     }
 }
 
-// List all threads
+// List all threads 
+// ! THIS endpont does not exist??? https://platform.openai.com/docs/api-reference/threads
 pub async fn list_threads_handler(
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<Vec<ThreadObject>>, (StatusCode, String)> {

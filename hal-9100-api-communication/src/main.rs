@@ -221,9 +221,9 @@ mod tests {
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
         AssistantToolsRetrieval, ChatCompletionFunctions, CreateAssistantRequest,
-        CreateMessageRequest, FunctionObject, ListMessagesResponse, MessageContent, MessageObject,
-        MessageRole, ModifyAssistantRequest, ModifyMessageRequest, ModifyThreadRequest, RunObject,
-        RunStatus, ThreadObject,
+        CreateMessageRequest, FunctionObject, ListMessagesResponse, ListRunsResponse,
+        MessageContent, MessageObject, MessageRole, ModifyAssistantRequest, ModifyMessageRequest,
+        ModifyThreadRequest, RunObject, RunStatus, ThreadObject,
     };
     use axum::{
         body::Body,
@@ -1715,9 +1715,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let runs: Vec<RunObject> = serde_json::from_slice(&body).unwrap();
-        assert_eq!(runs.len(), 1);
-        assert_eq!(runs[0].instructions, "Test instructions");
+        let runs: ListRunsResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(runs.data.len(), 1);
+        assert_eq!(runs.data[0].instructions, "Test instructions");
     }
 
     #[tokio::test]

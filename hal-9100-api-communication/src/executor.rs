@@ -218,8 +218,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let body: MessageObject = serde_json::from_slice(&body).unwrap();
 
         let response = app
             .clone()
