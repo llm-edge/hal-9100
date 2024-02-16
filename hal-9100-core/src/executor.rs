@@ -1024,18 +1024,18 @@ pub async fn run_executor(
 
                     info!("Action results: {:?}", output);
 
+                    let stringified_function = serde_json::to_string(&json!({
+                        "name": function.name,
+                        "arguments": function.arguments,
+                    })).unwrap().replace("\\", "");
+
                     action_calls = format!(
                         "{:?}\n<input>{:?}</input>\n\n<output>{:?}</output>",
                         action_calls,
-                        serde_json::to_string(&json!({
-                            "name": function.name,
-                            "arguments": function.arguments,
-                        })).unwrap(), 
+                        stringified_function, 
                         string_output
-                    );
+                    ).replace("\\\\", "").replace("\\\"", "");
 
-                    // HACK: remove "\" from the string 
-                    action_calls = action_calls.replace("\\", "");
                 }
 
                 instructions = build_instructions(
