@@ -2,6 +2,7 @@ use async_openai::types::{
     AssistantTools, FunctionCall, MessageContent, MessageContentTextObject, MessageRole,
     RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData, RunStepType, StepDetails, RunStepDetailsMessageCreationObject, MessageCreation, RunStepDetailsToolCallsObject, RunStepDetailsToolCalls, RunStepDetailsToolCallsCodeObject, CodeInterpreter, CodeInterpreterOutput, RunStepDetailsToolCallsCodeOutputLogsObject, RunStepDetailsToolCallsRetrievalObject, RunStepDetailsToolCallsFunctionObject, RunStepFunctionObject,
 };
+use futures::future::try_join_all;
 use log::{error, info};
 use redis::AsyncCommands;
 use serde_json::{self, json};
@@ -945,97 +946,110 @@ pub async fn run_executor(
 
                 info!("Function results: {:?}", function_results);
 
-                // TODO: parallel
-                for function in function_results {
-
+                // Before the loop, convert the loop into a vector of futures
+                let futures: Vec<_> = function_results.into_iter().map(|function| {
+                    let pool = pool.clone();
+                    let assistant_id = assistant_id.clone();
+                    let run_inner_id = run.inner.id.clone();
+                    let run_user_id = run.user_id.clone();
                     let tool_call_id = uuid::Uuid::new_v4().to_string();
-                    let step = create_step(
-                        pool,
-                        &run.inner.id,
-                        &assistant_id,
-                        &run.inner.thread_id,
-                        RunStepType::ToolCalls,
-                        RunStatus::InProgress,
-                        StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
-                            r#type: "function".to_string(), // TODO not sure it should be function or action
-                            tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
-                                id: tool_call_id.clone(),
+                    async move {
+                        let step = create_step(
+                            &pool,
+                            &run_inner_id,
+                            &assistant_id,
+                            &thread_id,
+                            RunStepType::ToolCalls,
+                            RunStatus::InProgress,
+                            StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
+                                r#type: "function".to_string(), // TODO not sure it should be function or action
+                                tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                                    id: tool_call_id.clone(),
+                                    r#type: "function".to_string(),
+                                    function: RunStepFunctionObject {
+                                        name: function.name.clone(),
+                                        arguments: function.arguments.clone(),
+                                        output: None,
+                                    }
+                                })],
+                            }),
+                            &run_user_id,
+                        ).await.map_err(|e| RunError {
+                            message: format!("Failed to create step: {}", e),
+                            run_id: run_id.to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                        })?;
+                        let metadata = function.metadata.unwrap();
+                        let output = execute_request(ActionRequest{
+                            domain: metadata["domain"].to_string().replace("\"", ""),
+                            path: metadata["path"].to_string().replace("\"", ""),
+                            method: metadata["method"].to_string().replace("\"", ""),
+                            operation: metadata["operation"].to_string().replace("\"", ""),
+                            operation_hash: None,
+                            is_consequential: false,
+                            content_type: metadata["content_type"].to_string().replace("\"", ""),
+                            params: Some(serde_json::from_str(&function.arguments).unwrap()),
+                            headers: metadata.get("headers").cloned(),
+                        }).await.map_err(|e| RunError {
+                            message: format!("Failed to execute request: {}", e),
+                            run_id: run_id.to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                        })?;
+                        let string_output = serde_json::to_string(&output).unwrap();
+                        update_step(
+                            &pool,
+                            &step.inner.id,
+                            RunStatus::Completed,
+                            StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
                                 r#type: "function".to_string(),
-                                function: RunStepFunctionObject {
-                                    name: function.name.clone(),
-                                    arguments: function.arguments.clone(),
-                                    output: None,
-                                }
-                            })],
-                        }),
-                        &run.user_id,
-                    ).await.map_err(|e| RunError {
-                        message: format!("Failed to create step: {}", e),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    })?;
+                                tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                                    id: tool_call_id,
+                                    r#type: "function".to_string(),
+                                    function: RunStepFunctionObject {
+                                        name: function.name.clone(),
+                                        arguments: function.arguments.clone(),
+                                        output: Some(string_output.clone()),
+                                    }
+                                })],
+                            }),
+                            &run_user_id,
+                        ).await.map_err(|e| RunError {
+                            message: format!("Failed to update step: {}", e),
+                            run_id: run_id.to_string(),
+                            thread_id: thread_id.to_string(),
+                            user_id: user_id.to_string(),
+                        })?;
 
-                    let metadata = function.metadata.unwrap();
-                    // println!("function: {:?}", function.clone());
-                    let output = execute_request(ActionRequest{
-                        domain: metadata["domain"].to_string().replace("\"", ""),
-                        path: metadata["path"].to_string().replace("\"", ""),
-                        method: metadata["method"].to_string().replace("\"", ""),
-                        operation: metadata["operation"].to_string().replace("\"", ""),
-                        operation_hash: None,
-                        // operation_hash: metadata["metoperation_hashhod"].to_string(),
-                        is_consequential: false,
-                        // is_consequential: metadata["is_consequential"].to_string(),
-                        content_type: metadata["content_type"].to_string().replace("\"", ""),
-                        params: Some(serde_json::from_str(&function.arguments).unwrap()),
-                        headers: metadata.get("headers").cloned(),
-                    }).await.map_err(|e| RunError {
-                        message: format!("Failed to execute request: {}", e),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    })?;
+                        info!("Action results: {:?}", output);
 
-                    let string_output = serde_json::to_string(&output).unwrap();
-                    update_step(
-                        pool,
-                        &step.inner.id,
-                        RunStatus::Completed,
-                        StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
-                            r#type: "function".to_string(),
-                            tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
-                                id: tool_call_id,
-                                r#type: "function".to_string(),
-                                function: RunStepFunctionObject {
-                                    name: function.name.clone(),
-                                    arguments: function.arguments.clone(),
-                                    output: Some(string_output.clone()),
-                                }
-                            })],
-                        }),
-                        &run.user_id,
-                    ).await.map_err(|e| RunError {
-                        message: format!("Failed to update step: {}", e),
-                        run_id: run_id.to_string(),
-                        thread_id: thread_id.to_string(),
-                        user_id: user_id.to_string(),
-                    })?;
+                        let stringified_function = serde_json::to_string(&json!({
+                            "name": function.name,
+                            "arguments": function.arguments,
+                        })).unwrap().replace("\\", "");
 
-                    info!("Action results: {:?}", output);
+                        Ok::<_, RunError>(format!(
+                            "<input>{:?}</input>\n\n<output>{:?}</output>",
+                            stringified_function, 
+                            string_output
+                        ).replace("\\\\", "").replace("\\\"", ""))
+                    }
+                }).collect();
 
-                    let stringified_function = serde_json::to_string(&json!({
-                        "name": function.name,
-                        "arguments": function.arguments,
-                    })).unwrap().replace("\\", "");
+                // Then, use tokio::try_join! to execute them concurrently
+                let results: Result<Vec<_>, _> = try_join_all(futures).await;
 
-                    action_calls = format!(
-                        "{:?}\n<input>{:?}</input>\n\n<output>{:?}</output>",
-                        action_calls,
-                        stringified_function, 
-                        string_output
-                    ).replace("\\\\", "").replace("\\\"", "");
-
+                // Handle the results
+                match results {
+                    Ok(outputs) => {
+                        // Concatenate all outputs into action_calls
+                        action_calls = outputs.join("\n");
+                    },
+                    Err(e) => {
+                        // Handle the error
+                        return Err(e);
+                    }
                 }
 
                 instructions = build_instructions(

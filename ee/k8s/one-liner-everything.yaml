@@ -13,80 +13,75 @@ spec:
         app: hal-9100
     spec:
       containers:
-      - name: postgres
-        image: postgres
-        env:
-        - name: POSTGRES_PASSWORD
-          value: secret
-        - name: POSTGRES_DB
-          value: mydatabase
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: migration-script
-          mountPath: /docker-entrypoint-initdb.d/migrations.sql
-          subPath: migrations.sql
+        - name: postgres
+          image: postgres
+          env:
+            - name: POSTGRES_PASSWORD
+              value: secret
+            - name: POSTGRES_DB
+              value: mydatabase
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: migration-script
+              mountPath: /docker-entrypoint-initdb.d/migrations.sql
+              subPath: migrations.sql
 
-      - name: redis
-        image: redis
-        ports:
-        - containerPort: 6379
+        - name: redis
+          image: redis
+          ports:
+            - containerPort: 6379
 
-      - name: minio
-        image: minio/minio
-        env:
-        - name: MINIO_ROOT_USER
-          value: minioadmin
-        - name: MINIO_ROOT_PASSWORD
-          value: minioadmin
-        ports:
-        - containerPort: 9000
-        - containerPort: 9001
-        args:
-        - server
-        - /data
-        - --console-address
-        - ":9001"
+        - name: minio
+          image: minio/minio
+          env:
+            - name: MINIO_ROOT_USER
+              value: minioadmin
+            - name: MINIO_ROOT_PASSWORD
+              value: minioadmin
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
 
-      - name: rust-api
-        image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.9
-        imagePullPolicy: Always # for dev
-        env:
-        - name: DATABASE_URL
-          value: postgres://postgres:secret@localhost:5432/mydatabase
-        - name: REDIS_URL
-          value: redis://localhost/
-        - name: S3_ENDPOINT
-          value: http://localhost:9000
-        - name: S3_ACCESS_KEY
-          value: minioadmin
-        - name: S3_SECRET_KEY
-          value: minioadmin
-        - name: S3_BUCKET_NAME
-          value: mybucket
-        - name: PORT
-          value: "3000"
-        - name: MODEL_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: model-api-key
-              key: MODEL_API_KEY
-        - name: MODEL_URL
-          valueFrom:
-            secretKeyRef:
-              name: model-url
-              key: MODEL_URL
-        # readinessProbe:
-        #   exec:
-        #     command:
-        #     - /app/readiness-probe.sh
-        #     - http://localhost:3000
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 10
+        - name: rust-api
+          image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.10
+          imagePullPolicy: Always # for dev
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              value: postgres://postgres:secret@localhost:5432/mydatabase
+            - name: REDIS_URL
+              value: redis://localhost/
+            - name: S3_ENDPOINT
+              value: http://localhost:9000
+            - name: S3_ACCESS_KEY
+              value: minioadmin
+            - name: S3_SECRET_KEY
+              value: minioadmin
+            - name: S3_BUCKET_NAME
+              value: mybucket
+            - name: PORT
+              value: "3000"
+            - name: MODEL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: model-api-key
+                  key: MODEL_API_KEY
+            - name: MODEL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: model-url
+                  key: MODEL_URL
       volumes:
-      - name: migration-script
-        configMap:
-          name: migration-script
+        - name: migration-script
+          configMap:
+            name: migration-script
 ---
 apiVersion: v1
 kind: Service
@@ -97,28 +92,47 @@ spec:
     app: hal-9100
   ports:
     - protocol: TCP
-      port: 80
+      port: 8080
       targetPort: 3000
-  type: LoadBalancer
+      name: http
+  type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rust-api-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "hal-9100-ip"
+    ingressClassName: "gce"
+spec:
+  defaultBackend:
+    service:
+      name: rust-api-service
+      port:
+        number: 8080
 
+# gcloud compute addresses create hal-9100-ip --global
+# gcloud compute addresses list
 
-# kubectl create namespace hal-9100 
+# kubectl create namespace hal-9100
 # kubectl delete secret model-url -n hal-9100
 # kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep MODEL_URL .env | head -n1 | cut -d '=' -f2 | tr -d '"') -n hal-9100
 # kubectl delete secret model-api-key -n hal-9100
 # kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep MODEL_API_KEY .env | head -n1 | cut -d '=' -f2) -n hal-9100
 # kubectl create configmap migration-script --from-file=hal-9100-core/src/migrations.sql -n hal-9100
 # kubectl delete configmap migration-script -n hal-9100
-# kubectl apply -f ee/k8s/one-liner-everything.yaml -n hal-9100 
+# kubectl apply -f ee/k8s/one-liner-everything.yaml -n hal-9100
 # kubectl replace -f ee/k8s/one-liner-everything.yaml -n hal-9100 --force
 # kubectl delete -f ee/k8s/one-liner-everything.yaml -n hal-9100
-# kubectl set image deployment/hal-9100 rust-api=ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.9 -n hal-9100
+# kubectl set image deployment/hal-9100 rust-api=ghcr.io/stellar-amenities/hal-9100/hal-9100:0.10.0 -n hal-9100
 
 # kubectl get pods -n hal-9100 -l app=hal-9100
+# kubectl get ingress -n hal-9100
 # POD_NAME=$(kubectl get pods -n hal-9100 -l app=hal-9100 -o jsonpath="{.items[0].metadata.name}")
 # kubectl describe pod/$POD_NAME -n hal-9100
 # kubectl logs $POD_NAME -n hal-9100 -c rust-api
 # kubectl logs $POD_NAME -c postgres -n hal-9100
+# kubectl describe ingress/rust-api-ingress -n hal-9100
 # URL=$(kubectl get svc rust-api-service -n hal-9100 -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 # curl -X POST http://$URL/threads -H "Content-Type: application/json"
 
