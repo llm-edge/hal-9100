@@ -681,36 +681,56 @@ pub async fn run_executor(
                     })?;
 
                     // create a step with output None for each function call
-
-                    // TODO: parallel
-                    for (i, function) in function_results.iter().enumerate() {
-                        create_step(
-                            pool,
-                            &run.inner.id,
-                            &assistant_id,
-                            &run.inner.thread_id,
-                            RunStepType::ToolCalls,
-                            RunStatus::InProgress,
-                            StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
-                                r#type: "function".to_string(),
-                                tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
-                                    id: tool_call_ids[i].clone(),
+                    // Convert the loop into a vector of futures
+                    let futures: Vec<_> = function_results.iter().enumerate().map(|(i, function)| {
+                        let pool = pool.clone();
+                        let run_inner_id = run.inner.id.clone();
+                        let assistant_id = assistant_id.clone();
+                        let run_inner_thread_id = run.inner.thread_id.clone();
+                        let tool_call_id = tool_call_ids[i].clone();
+                        let user_id = run.user_id.clone();
+                        let function_name = function.name.clone();
+                        let function_arguments = function.arguments.clone();
+                        async move {
+                            create_step(
+                                &pool,
+                                &run_inner_id,
+                                &assistant_id,
+                                &run_inner_thread_id,
+                                RunStepType::ToolCalls,
+                                RunStatus::InProgress,
+                                StepDetails::ToolCalls(RunStepDetailsToolCallsObject {
                                     r#type: "function".to_string(),
-                                    function: RunStepFunctionObject {
-                                        name: function.name.clone(),
-                                        arguments: function.arguments.clone(),
-                                        output: None,
-                                    }
-                                })],
-                            }),
-                            &run.user_id,
-                        ).await.map_err(|e| RunError {
-                            message: format!("Failed to create step: {}", e),
-                            run_id: run_id.to_string(),
-                            thread_id: thread_id.to_string(),
-                            user_id: user_id.to_string(),
-                        })?;
-                    }
+                                    tool_calls: vec![RunStepDetailsToolCalls::Function(RunStepDetailsToolCallsFunctionObject{
+                                        id: tool_call_id,
+                                        r#type: "function".to_string(),
+                                        function: RunStepFunctionObject {
+                                            name: function_name,
+                                            arguments: function_arguments,
+                                            output: None,
+                                        }
+                                    })],
+                                }),
+                                &user_id,
+                            ).await.map_err(|e| RunError {
+                                message: format!("Failed to create step: {}", e),
+                                run_id: run_inner_id,
+                                thread_id: run_inner_thread_id,
+                                user_id: user_id,
+                            })
+                        }
+                    }).collect();
+
+                    // Use try_join_all to wait for all futures to complete
+                    try_join_all(futures).await.map_err(|e| {
+                        // Handle the error from any of the futures if they fail
+                        RunError {
+                            message: format!("Failed to create steps in parallel: {}", e),
+                            run_id: run.inner.id.clone(),
+                            thread_id: run.inner.thread_id.clone(),
+                            user_id: run.user_id.clone(),
+                        }
+                    })?;
 
                     
                     info!(
