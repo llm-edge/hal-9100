@@ -78,6 +78,12 @@ spec:
                 secretKeyRef:
                   name: model-url
                   key: MODEL_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
       volumes:
         - name: migration-script
           configMap:
