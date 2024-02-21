@@ -102,6 +102,19 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 </details>
 
 # Quickstart
+Start server:
+
+```bash
+docker compose -f docker/docker-compose.yml up
+
+# in another terminal
+make server
+
+# in another terminal
+maker consumer
+```
+
+Start client:
 
 Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
 

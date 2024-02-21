@@ -285,7 +285,10 @@ pub async fn call_openai_api_with_messages(
 
     match api_res {
         Ok(res_body) => Ok(res_body),
-        Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
+        Err(err) => {
+            println!("Error calling OpenAI API: {}", &raw_res);
+            Err(OpenAIApiError::JSONDeserialize(err))
+        },
     }
 }
 
