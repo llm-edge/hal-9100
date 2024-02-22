@@ -51,6 +51,29 @@ pub struct ChatCompletion {
     pub usage: Usage,
 }
 
+// aliyun completion
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Output {
+    pub finish_reason: String,
+    pub text: String,
+    pub choices: Option<Vec<Choice>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AliyunUsage {
+    pub total_tokens: i32,
+    pub output_tokens: i32,
+    pub input_tokens: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AliyunChatCompletion {
+    pub request_id: String,
+    pub output: Output,
+    pub usage: AliyunUsage,
+}
+// -----------------
+
 pub type OpenAIResponse<T> = Result<T, OpenAIApiError>;
 
 #[derive(Debug)]
@@ -165,6 +188,58 @@ pub async fn call_openai_api(
         Ok(res_body) => Ok(res_body),
         Err(err) => Err(OpenAIApiError::JSONDeserialize(err)),
     }
+}
+
+
+pub async fn call_aliyun_openai_api_with_messages(
+    messages: Vec<Message>,
+    max_tokens_to_sample: i32,
+    model: String, // model is required for open-source API
+    temperature: Option<f32>,
+    stop_sequences: Option<Vec<String>>,
+    top_p: Option<f32>,
+    url: String, // url is required for Aliyun API
+) -> Result<AliyunChatCompletion, OpenAIApiError> {
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+    let api_key = std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string());
+
+    let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
+        .map_err(|_| OpenAIApiError::InvalidArgument("Invalid API Key".to_string()))?;
+    headers.insert("Authorization", auth_value);
+
+    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
+    body.insert("model", serde_json::json!(model));
+    body.insert("input", serde_json::json!({"messages": messages}));
+    body.insert("parameters", serde_json::json!({}));
+    body.insert("max_tokens", serde_json::json!(max_tokens_to_sample));
+    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert("stream", serde_json::json!(false));
+
+    if let Some(stop_sequences) = stop_sequences {
+        body.insert("stop", serde_json::json!(stop_sequences));
+    }
+    if let Some(top_p) = top_p {
+        body.insert("top_p", serde_json::json!(top_p));
+    }
+    let client = reqwest::Client::new();
+    let res = client.post(url).headers(headers).json(&body).send().await?;
+    let status = res.status();
+    let raw_res = res.text().await?;
+
+    if !status.is_success() {
+        return Err(OpenAIApiError::ApiError(ApiErrorResponse {
+            error: ApiErrorDetail {
+                message: format!("API request failed with status {}: {}", status, raw_res),
+                r#type: "API Request Error".to_string(),
+                param: None,
+                code: None,
+            },
+        }));
+    }
+
+    serde_json::from_str(&raw_res).map_err(OpenAIApiError::JSONDeserialize)
 }
 
 pub async fn call_open_source_openai_api(

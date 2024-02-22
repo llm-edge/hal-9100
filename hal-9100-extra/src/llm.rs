@@ -1,6 +1,9 @@
 use hal_9100_extra::anthropic::call_anthropic_api;
 use hal_9100_extra::openai::{
-    call_open_source_openai_api_with_messages, call_openai_api_with_messages, Message,
+    call_open_source_openai_api_with_messages,
+    call_openai_api_with_messages,
+    call_aliyun_openai_api_with_messages,
+    Message,
 };
 use log::{error, info};
 use std::collections::HashMap;
@@ -91,6 +94,43 @@ pub async fn llm(
             error!("Error calling OpenAI API: {}", e);
             Box::new(e) as Box<dyn Error>
         })
+    } else if model_name.contains("aliyun/") {
+        // ! super hacky
+        let model_name = model_name.split('/').last().unwrap_or_default();
+        let url = model_url.unwrap_or_else(|| {
+            std::env::var("MODEL_URL")
+                .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"))
+        });
+        info!(
+            "Calling Aliyun LLM {} through OpenAI API with messages: {:?}",
+            url,
+            messages
+        );
+
+        if max_tokens_to_sample == -1 {
+            let bpe = p50k_base().unwrap();
+            let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
+            max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
+            info!(
+                "Automatically computed max_tokens_to_sample: {}",
+                max_tokens_to_sample
+            );
+        }
+        call_aliyun_openai_api_with_messages(
+            messages,
+            max_tokens_to_sample,
+            model_name.to_string(),
+            temperature,
+            stop_sequences,
+            top_p,
+            url,
+        )
+            .await
+            .map(|res| res.output.text.clone())
+            .map_err(|e| {
+                error!("Error calling Aliyun LLM through OpenAI API: {}", e);
+                Box::new(e) as Box<dyn Error>
+            })
     } else if model_name.contains("/") {
         // ! super hacky
         let model_name = model_name.split('/').last().unwrap_or_default();
@@ -99,7 +139,8 @@ pub async fn llm(
                 .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"))
         });
         info!(
-            "Calling Open Source LLM through OpenAI API with messages: {:?}",
+            "Calling Open Source LLM {} through OpenAI API with messages: {:?}",
+            url,
             messages
         );
         if max_tokens_to_sample == -1 {
