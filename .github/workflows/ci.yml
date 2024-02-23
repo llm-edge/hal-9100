@@ -53,11 +53,18 @@ jobs:
           TEST_MODEL_NAME: ${{ secrets.TEST_MODEL_NAME }}
         run: RUST_TEST_THREADS=1 cargo test
 
-  docker-build:
+  rust-build:
     needs: test
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'Release')
-
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            docker_platform: linux/amd64
+          - target: aarch64-unknown-linux-gnu
+            docker_platform: linux/arm64
+          - target: aarch64-unknown-linux-gnu
+            docker_platform: linux/arm64/v8
     steps:
       - uses: actions/checkout@v2
 
@@ -76,23 +83,30 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      # Install cross
+      - name: Install cross
+        run: cargo install cross
 
-      # This step builds the Rust binaries
-      - name: Build Rust binaries
+      # Cross-compile Rust binaries for each platform
+      - name: Build Rust binaries for ${{ matrix.target }}
         run: |
-          cargo build --release --bin hal-9100-executor
-          cargo build --release --bin hal-9100
-          # Ensure the target directory structure is correct for the Docker build context
+          cross build --target ${{ matrix.target }} --release --bin hal-9100-executor
+          cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
-          cp ./target/release/hal-9100-executor ./docker/target/release/
-          cp ./target/release/hal-9100 ./docker/target/release/
+          cp ./target/${{ matrix.target }}/release/hal-9100-executor ./docker/target/release/
+          cp ./target/${{ matrix.target }}/release/hal-9100 ./docker/target/release/
         env:
           SQLX_OFFLINE: true
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        docker_platform: [linux/amd64, linux/arm64, linux/arm64/v8]
+    if: contains(github.event.head_commit.message, 'Release')
+
+    steps:
+      - uses: actions/checkout@v2
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -121,14 +135,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      # Build and push Docker image for each platform
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ steps.regex-match.outputs.group1 }}
+          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ github.sha }}
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/arm64/v8
+          platforms: ${{ matrix.docker_platform }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -184,4 +199,3 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
-
