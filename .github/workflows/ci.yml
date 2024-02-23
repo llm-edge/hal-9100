@@ -87,6 +87,12 @@ jobs:
       - name: Install cross
         run: cargo install cross
 
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev openssl curl
+
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}
         run: |
