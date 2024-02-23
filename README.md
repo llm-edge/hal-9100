@@ -20,7 +20,7 @@
     <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ Infra</a>
     <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
     <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
-    <a href="https://cal.com/louis030195/ai">📞 Help?</a>
+    <a href="https://cal.com/louis030195/applied-ai">📞 Help?</a>
 </p>
 
 -----
@@ -146,6 +146,12 @@ Please follow [this documentation](https://github.com/stellar-amenities/hal-9100
 # 🤔 FAQ
 
 <details>
+<summary>Is there a hosted version?</summary>
+
+No. HAL-9100 is not a hosted service. It's a software that you can deploy on your infrastructure. We can help you deploy it on your infrastructure. [Contact us](https://cal.com/louis030195/applied-ai).
+</details>
+
+<details>
 <summary>Which LLM API can I use?</summary>
 
 Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
@@ -160,6 +166,12 @@ Examples of LLM APIs that does support OpenAI API-like, that you can use:
 - Mistral API
 - anyscale
 - together ai
+
+We recommend these models:
+- mistralai/Mixtral-8x7B-Instruct-v0.1
+- mistralai/mistral-7b
+
+Other models have not been extensively tested and may not work as expected, but you can try them.
 </details>
 
 <details>
