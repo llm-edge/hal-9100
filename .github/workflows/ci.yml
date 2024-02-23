@@ -90,7 +90,8 @@ jobs:
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}
         run: |
-          sudo apt-get update && sudo apt-get install -y libssl-dev openssl curl
+          sudo apt-get update && sudo apt-get install -y libssl-dev
+          echo "PKG_CONFIG_PATH=/usr/lib/pkgconfig" >> $GITHUB_ENV
           cross build --target ${{ matrix.target }} --release --bin hal-9100-executor
           cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
