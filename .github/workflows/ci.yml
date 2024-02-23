@@ -87,11 +87,15 @@ jobs:
       - name: Install cross
         run: cargo install cross
 
-      # Cross-compile Rust binaries for each platform
-      - name: Build Rust binaries for ${{ matrix.target }}
+      # Install libssl-dev for cross-compiling
+      - name: Install libssl-dev
         run: |
           sudo apt-get update && sudo apt-get install -y libssl-dev
           echo "PKG_CONFIG_PATH=/usr/lib/pkgconfig" >> $GITHUB_ENV
+
+      # Cross-compile Rust binaries for each platform
+      - name: Build Rust binaries for ${{ matrix.target }}
+        run: |
           cross build --target ${{ matrix.target }} --release --bin hal-9100-executor
           cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
@@ -99,6 +103,7 @@ jobs:
           cp ./target/${{ matrix.target }}/release/hal-9100 ./docker/target/release/
         env:
           SQLX_OFFLINE: true
+          PKG_CONFIG_PATH: /usr/lib/pkgconfig
   docker-build:
     needs: rust-build
     runs-on: ubuntu-latest
