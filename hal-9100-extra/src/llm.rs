@@ -5,7 +5,7 @@ use hal_9100_extra::openai::{
 use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
-use tiktoken_rs::p50k_base;
+use tiktoken_rs::cl100k_base;
 // TODO async backoff
 // TODO unsure if worthwhile to use async openai here due to nonopenai llms
 pub async fn llm(
@@ -40,7 +40,7 @@ pub async fn llm(
         info!("Calling Claude API with instructions: {}", instructions);
         // if max_tokens_to_sample == -1 we just use maximum length based on current prompt
         if max_tokens_to_sample == -1 {
-            let bpe = p50k_base().unwrap();
+            let bpe = cl100k_base().unwrap();
             let tokens = bpe.encode_with_special_tokens(&instructions);
             max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
             info!(
@@ -68,7 +68,7 @@ pub async fn llm(
     } else if model_name.contains("gpt") {
         info!("Calling OpenAI API with messages: {:?}", messages);
         if max_tokens_to_sample == -1 {
-            let bpe = p50k_base().unwrap();
+            let bpe = cl100k_base().unwrap();
             let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
             max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
             info!(
@@ -100,7 +100,7 @@ pub async fn llm(
             model_name, url, messages
         );
         if max_tokens_to_sample == -1 {
-            let bpe = p50k_base().unwrap();
+            let bpe = cl100k_base().unwrap();
             let tokens = bpe.encode_with_special_tokens(&serde_json::to_string(&messages).unwrap());
             max_tokens_to_sample = context_size.unwrap_or(4096) - tokens.len() as i32;
             info!(
@@ -115,12 +115,15 @@ pub async fn llm(
             temperature,
             stop_sequences,
             top_p,
-            url,
+            url.clone(),
         )
         .await
         .map(|res| res.choices[0].message.content.clone())
         .map_err(|e| {
-            error!("Error calling Open Source LLM through OpenAI API: {}", e);
+            error!(
+                "Error calling Open Source {:?} LLM through OpenAI API on URL {:?}: {}",
+                model_name, url, e
+            );
             Box::new(e) as Box<dyn Error>
         })
     }

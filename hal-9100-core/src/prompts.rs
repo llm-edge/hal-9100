@@ -1,6 +1,6 @@
 use hal_9100_core::models::Message;
 
-use tiktoken_rs::p50k_base;
+use tiktoken_rs::cl100k_base;
 
 // This function formats the messages into a string
 pub fn format_messages(messages: &Vec<Message>) -> String {
@@ -53,7 +53,7 @@ pub fn build_instructions(
     context_size: Option<usize>,
     action_calls: &str,
 ) -> String {
-    let bpe = p50k_base().unwrap();
+    let bpe = cl100k_base().unwrap();
 
     // if context_size is None, use env var or default to x
     let context_size = context_size.unwrap_or_else(|| {
@@ -85,7 +85,7 @@ pub fn build_instructions(
     let mut final_instructions = instructions_part;
 
     // List of other parts ordered by priority
-    let mut other_parts = [
+    let other_parts = [
         function_calls_part,
         action_calls_part,
         previous_messages_part,
@@ -118,7 +118,7 @@ pub fn build_instructions(
 #[cfg(test)]
 mod tests {
     use hal_9100_core::prompts::build_instructions;
-    use tiktoken_rs::p50k_base;
+    use tiktoken_rs::cl100k_base;
 
     #[test]
     fn test_build_instructions_context_limit() {
@@ -149,7 +149,7 @@ mod tests {
         );
 
         // Use tiktoken to count tokens
-        let bpe = p50k_base().unwrap();
+        let bpe = cl100k_base().unwrap();
         let tokens = bpe.encode_with_special_tokens(&instructions);
 
         // Check that the instructions do not exceed the context limit

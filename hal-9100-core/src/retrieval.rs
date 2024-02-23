@@ -7,7 +7,7 @@ use sqlx::types::JsonValue;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::error::Error;
-use tiktoken_rs::p50k_base;
+use tiktoken_rs::cl100k_base;
 
 use hal_9100_core::file_storage::FileStorage;
 use hal_9100_core::pdf_utils::pdf_mem_to_text;
@@ -18,7 +18,7 @@ use hal_9100_core::models::PartialChunk;
 
 // Function to split a string into smaller chunks
 pub fn split_into_chunks(text: &str, chunk_size: usize) -> Vec<PartialChunk> {
-    let bpe = p50k_base().unwrap();
+    let bpe = cl100k_base().unwrap();
     let tokens = bpe.encode_with_special_tokens(text);
 
     let mut chunks = Vec::new();

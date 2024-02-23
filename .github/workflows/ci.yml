@@ -48,9 +48,9 @@ jobs:
           S3_SECRET_KEY: minioadmin
           S3_BUCKET_NAME: mybucket
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }} # TODO: dont think these api keys are used
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           MODEL_URL: ${{ secrets.MODEL_URL }}
+          TEST_MODEL_NAME: ${{ secrets.TEST_MODEL_NAME }}
         run: RUST_TEST_THREADS=1 cargo test
 
   docker-build:

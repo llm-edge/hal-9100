@@ -39,7 +39,10 @@
 - [x] **Function Calling**: Defines and executes custom functions autonomously.
 - [x] **Actions**: Execute requests to external APIs autonomously.
 - [x] **Files**: Supports a range of file formats.
-- [x] **Production-ready**: scalable, observability (metrics, errors, traces, logs)
+- [x] **Enterprise production-ready**: 
+  - [x] observability (metrics, errors, traces, logs, etc.)
+  - [x] scalability (serverless, caching, autoscaling, etc.)
+  - [x] security (encryption, authentication, authorization, etc.)
 
 # 😃 Who is it for?
 
