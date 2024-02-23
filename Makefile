@@ -43,18 +43,18 @@ clean: ## Stop and remove docker-postgres-1, docker-redis-1, docker-minio-1 cont
 ## Clean and run docker compose up
 reboot: clean docker ## Clean and run docker compose up
 
-## Run the consumer
-consumer: ## Run the consumer
-	@source .env && cargo run --package hal-9100-core --bin run_consumer
+## Run the executor
+executor: ## Run the executor
+	@source .env && cargo run --package hal-9100-core --bin hal-9100-executor
 
 
 ## Run the server
 server: ## Run the server
-	@source .env && cargo run --package hal-9100-api-communication
+	@source .env && cargo run --package hal-9100
 
-## Run consumer, server, and dockers
+## Run executor, server, and dockers
 all:
-	@source .env && $(MAKE) -j2 consumer server
+	@source .env && $(MAKE) -j2 executor server
 
 
 ## Test all

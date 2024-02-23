@@ -2,7 +2,7 @@
 // set all env var in the terminal:
 // export $(cat .env | xargs)
 // run the consumer:
-// cargo run --package hal-9100-core --bin run_consumer
+// cargo run --package hal-9100-core --bin hal-9100-executor
 
 use hal_9100_core::executor::{loop_through_runs, try_run_executor};
 use env_logger;
@@ -27,7 +27,7 @@ async fn main() {
     let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_async_connection().await.unwrap();
 
-    info!("Starting consumer");
+    info!("Starting hal-9100-executor");
 
     let ascii_art = r"
                ___           ___           ___              

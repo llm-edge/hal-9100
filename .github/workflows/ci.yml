@@ -61,6 +61,39 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # Cache Rust dependencies
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo target directory
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      # This step builds the Rust binaries
+      - name: Build Rust binaries
+        run: |
+          cargo build --release --bin hal-9100-executor
+          cargo build --release --bin hal-9100
+          # Ensure the target directory structure is correct for the Docker build context
+          mkdir -p ./docker/target/release
+          cp ./target/release/hal-9100-executor ./docker/target/release/
+          cp ./target/release/hal-9100 ./docker/target/release/
+        env:
+          SQLX_OFFLINE: true
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -68,7 +101,7 @@ jobs:
         id: regex-match
         with:
           text: ${{ github.event.head_commit.message }}
-          regex: '^Release ([^ ]+)'
+          regex: "^Release ([^ ]+)"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -116,7 +149,7 @@ jobs:
         id: regex-match
         with:
           text: ${{ github.event.head_commit.message }}
-          regex: '^Release ([^ ]+)'
+          regex: "^Release ([^ ]+)"
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -151,4 +184,3 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
-

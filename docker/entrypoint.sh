@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Run the consumer and server applications concurrently
-run_consumer &
-hal-9100-api-communication &
+# Run the executor and server applications concurrently
+hal-9100-executor &
+hal-9100 &
 
 # Wait for all background processes to finish
 wait
