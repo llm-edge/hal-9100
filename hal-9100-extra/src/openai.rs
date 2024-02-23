@@ -357,7 +357,8 @@ pub async fn call_open_source_openai_api_with_messages(
 mod tests {
     use super::*;
     use dotenv;
-
+    
+    #[ignore]
     #[tokio::test]
     async fn test_call_openai_api() {
         dotenv::dotenv().ok();
