@@ -23,8 +23,7 @@ pub async fn llm(
 ) -> Result<String, Box<dyn Error>> {
     let messages = vec![
         Message {
-            // role: "user".to_string(),
-            role: "system".to_string(), // TODO: do we give a shit?
+            role: "system".to_string(),
             content: system_prompt.to_string(),
         },
         Message {
@@ -92,8 +91,6 @@ pub async fn llm(
             Box::new(e) as Box<dyn Error>
         })
     } else {
-        // ! super hacky
-        // let model_name = model_name.split('/').last().unwrap_or_default();
         let url = model_url.unwrap_or_else(|| {
             std::env::var("MODEL_URL")
                 .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"))

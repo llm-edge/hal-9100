@@ -224,7 +224,7 @@ Your answer will be used to use the tool so it must be very concise and make sur
     // Call the llm function
     let result = llm(
         &assistant.inner.model,
-        None, // TODO not sure how to best configure this
+        None,
         system_prompt,
         &user_prompt,
         Some(0.0), // temperature

@@ -7,12 +7,12 @@ on:
       - "**.toml"
       - "**/workflows/**.yml"
       - "**/docker/**"
-  pull_request:
-    paths:
-      - "**.rs"
-      - "**.toml"
-      - "**/workflows/**.yml"
-      - "**/docker/**"
+  # pull_request: # ! leaking creds
+  #   paths:
+  #     - "**.rs"
+  #     - "**.toml"
+  #     - "**/workflows/**.yml"
+  #     - "**/docker/**"
   workflow_dispatch:
 
 permissions:
