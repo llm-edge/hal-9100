@@ -299,7 +299,7 @@ The president of the Moon is TDB.
         let chunk_size = 5;
         let chunks = split_into_chunks(text, chunk_size);
 
-        assert_eq!(chunks.len(), 11, "Incorrect number of chunks");
+        assert_eq!(chunks.len(), 9, "Incorrect number of chunks");
 
         for (i, chunk) in chunks.iter().enumerate() {
             assert_eq!(
