@@ -119,8 +119,8 @@ cd hal-9100
 cp .env.example .env
 ```
 
-To get started quickly, let's use Perplexity API.
-Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
+To get started quickly, let's use Anyscale API.
+Get an API key from Anyscale. You can get it [here](https://app.endpoints.anyscale.com/credentials). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
 
 Install OpenAI SDK: `npm i openai`
 

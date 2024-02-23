@@ -143,7 +143,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mixtral-8x7b-instruct".to_string());
 
         let assistant = json!({
             "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",

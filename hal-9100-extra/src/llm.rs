@@ -23,8 +23,8 @@ pub async fn llm(
 ) -> Result<String, Box<dyn Error>> {
     let messages = vec![
         Message {
-            role: "user".to_string(),
-            // role: "system".to_string(), // TODO: do we give a shit?
+            // role: "user".to_string(),
+            role: "system".to_string(), // TODO: do we give a shit?
             content: system_prompt.to_string(),
         },
         Message {
@@ -91,16 +91,16 @@ pub async fn llm(
             error!("Error calling OpenAI API: {}", e);
             Box::new(e) as Box<dyn Error>
         })
-    } else if model_name.contains("/") {
+    } else {
         // ! super hacky
-        let model_name = model_name.split('/').last().unwrap_or_default();
+        // let model_name = model_name.split('/').last().unwrap_or_default();
         let url = model_url.unwrap_or_else(|| {
             std::env::var("MODEL_URL")
                 .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"))
         });
         info!(
-            "Calling Open Source LLM through OpenAI API with messages: {:?}",
-            messages
+            "Calling Open Source LLM {:?} through OpenAI API on URL {:?} with messages: {:?}",
+            model_name, url, messages
         );
         if max_tokens_to_sample == -1 {
             let bpe = p50k_base().unwrap();
@@ -126,11 +126,6 @@ pub async fn llm(
             error!("Error calling Open Source LLM through OpenAI API: {}", e);
             Box::new(e) as Box<dyn Error>
         })
-    } else {
-        Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Unknown model",
-        )))
     }
 }
 
@@ -140,5 +135,36 @@ mod tests {
     use dotenv;
     use std::collections::HashMap;
 
+    #[tokio::test]
+    async fn test_llm() {
+        dotenv::dotenv().ok();
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
+        let system_prompt = "System prompt";
+        let user_prompt = "User prompt";
+        let temperature = Some(0.5);
+        let max_tokens_to_sample = 50;
+        // let stop_sequences = Some(vec!["\n".to_string()]);
+        let top_p = Some(0.9);
+        let top_k = Some(50);
+        let metadata = Some(HashMap::new());
+        let context_size = Some(4096);
+        let res = llm(
+            &model_name,
+            None,
+            system_prompt,
+            user_prompt,
+            temperature,
+            max_tokens_to_sample,
+            None,
+            top_p,
+            top_k,
+            metadata,
+            context_size,
+        )
+        .await;
+        assert!(res.is_ok(), "Error: {:?}", res.err());
+        info!("Result: {}", res.unwrap());
+    }
 }

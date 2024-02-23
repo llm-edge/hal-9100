@@ -142,7 +142,7 @@ Rules:
 - If your output is not correctly a string containing a full-text search query, the universe will be terminated.
 - If your output is not a valid full-text search query, this will be the end of the universe.
 - Do not add SPACES between words, only use the | character or & character to combine words.
-- Only return a query, NOTHING ELSE or the big crunch will be initiated.
+- Only return a query, NOTHING ELSE, do not comment on the query! or the big crunch will be initiated.
 
 Bad examples:
 
