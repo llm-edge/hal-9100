@@ -15,7 +15,7 @@ WORKDIR /app
 ARG BINARY_PATH=./target/release/hal-9100
 
 # TODO temporary debug hack
-RUN LS -la $BINARY_PATH
+RUN ls -la $BINARY_PATH
 
 # Copy the pre-built binaries into the image
 COPY $BINARY_PATH /usr/local/bin/hal-9100
