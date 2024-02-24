@@ -163,7 +163,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
-            BINARY_PATH=../target/${{ matrix.target }}/release/hal-9100
+            BINARY_PATH=./target/${{ matrix.target }}/release/hal-9100
 
       - name: Move cache
         run: |
