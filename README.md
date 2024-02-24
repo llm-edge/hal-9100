@@ -72,7 +72,7 @@ As few prompts as possible should be hard-coded into the infrastructure, just en
 <summary><strong>Edge-first</strong></summary>
 <p>
 
-HAL-9100 does not require internet access by focusing on open source LLMs. Which means you own your data and your models. It runs on a Raspberry PI (LLM included).
+HAL-9100 does not require internet access by focusing on **open source LLMs**. Which means you own your data and your models. It runs on a Raspberry PI (LLM included).
 
 </p>
 </details>
@@ -81,7 +81,7 @@ HAL-9100 does not require internet access by focusing on open source LLMs. Which
 <summary><strong>OpenAI-compatible</strong></summary>
 <p>
 
-OpenAI spent a large amount of the best brain power to design this API, which makes it an incredible experience for developers.
+OpenAI spent a large amount of the best brain power to design this API, which makes it an incredible experience for developers. Support for OpenAI LLMs are not a priority at all though.
 
 </p>
 </details>
