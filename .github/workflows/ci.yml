@@ -54,6 +54,7 @@ jobs:
 
   rust-build:
     needs: test
+    if: contains(github.event.head_commit.message, 'Release')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -92,19 +93,36 @@ jobs:
           cargo clean # https://github.com/cross-rs/cross/issues/724
           cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
-          cp ./target/${{ matrix.target }}/release/hal-9100 ./docker/target/release/
         env:
           SQLX_OFFLINE: true
+
+      - name: Upload Rust build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rust-build-artifact
+          path: ./target
   docker-build:
     needs: rust-build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        docker_platform: [linux/amd64, linux/arm64, linux/arm64/v8]
+        include:
+          - target: x86_64-unknown-linux-gnu
+            docker_platform: linux/amd64
+          - target: aarch64-unknown-linux-gnu
+            docker_platform: linux/arm64
+          - target: aarch64-unknown-linux-gnu
+            docker_platform: linux/arm64/v8
     if: contains(github.event.head_commit.message, 'Release')
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Download Rust build artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: rust-build-artifact
+          path: ./target
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -144,6 +162,8 @@ jobs:
           platforms: ${{ matrix.docker_platform }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
+          build-args: |
+            BINARY_PATH=../target/${{ matrix.target }}/release/hal-9100
 
       - name: Move cache
         run: |

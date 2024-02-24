@@ -8,11 +8,17 @@ ENV S3_ACCESS_KEY=minioadmin
 ENV S3_SECRET_KEY=minioadmin
 ENV S3_BUCKET_NAME=mybucket
 
-# Set the working directory in the image to /app
+# Set the${BINARY_PATH} working directory in the image to /app
 WORKDIR /app
 
+# Define a build argument for the binary path
+ARG BINARY_PATH=./target/release/hal-9100
+
+# TODO temporary debug hack
+RUN LS -la $BINARY_PATH
+
 # Copy the pre-built binaries into the image
-COPY ./docker/target/release/hal-9100 /usr/local/bin/hal-9100
+COPY $BINARY_PATH /usr/local/bin/hal-9100
 
 # Copy the wait script to the image
 COPY ./ee/k8s/readiness-probe.sh /app/readiness-probe.sh
