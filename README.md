@@ -153,11 +153,9 @@ No. HAL-9100 is not a hosted service. It's a software that you can deploy on you
 <details>
 <summary>Which LLM API can I use?</summary>
 
-Examples of LLM APIs that does not support OpenAI API-like, that you can't use:
-- ollama (but any contribution to make it compatible would be appreciated)
-- llama.cpp server example
 
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
+- ollama
 - [MLC-LLM](https://github.com/mlc-ai/mlc-llm)
 - [FastChat (good if you have a mac)](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
