@@ -84,7 +84,7 @@ jobs:
 
       # Install cross
       - name: Install cross
-        run: cargo install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}
@@ -196,4 +196,3 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
-
