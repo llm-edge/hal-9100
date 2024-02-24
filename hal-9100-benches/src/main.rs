@@ -1,4 +1,6 @@
-use hal_9100_extra::llm::llm;
+use hal_9100_extra::llm::HalLLMClient;
+use hal_9100_extra::llm::HalLLMRequestArgs;
+use hal_9100_extra::openai::Message;
 use reqwest::Client;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -7,7 +9,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Write};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Deserialize, Serialize)]
 struct TestCase {
@@ -132,20 +134,24 @@ Rules:
                     "expected_response": step.expected_response,
                 }))?;
                 println!("User prompt: {}", user_prompt);
-                let llm_score = llm(
-                    "claude-2.1",
-                    None,
-                    p,
-                    &user_prompt,
-                    Some(0.5),
-                    -1,
-                    None,
-                    Some(1.0),
-                    None,
-                    None,
-                    Some(16_000),
-                )
-                .await?;
+                let client = HalLLMClient::new(
+                    std::env::var("TEST_MODEL_NAME")
+                        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                    std::env::var("MODEL_URL").unwrap_or_else(|_| "".to_string()),
+                    std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string()),
+                );
+
+                let request = HalLLMRequestArgs::default()
+                    .messages(vec![Message {
+                        role: "user".to_string(),
+                        content: "1+1=?".to_string(),
+                    }])
+                    .temperature(0.7)
+                    .max_tokens_to_sample(50)
+                    // Add other method calls to set fields as needed
+                    .build()
+                    .unwrap();
+                let llm_score = client.create_chat_completion(request).await?;
                 println!("LLM score: {}", llm_score);
 
                 let end_time = SystemTime::now()
@@ -179,8 +185,6 @@ Rules:
                     end_time: end_time,
                     duration: duration,
                 });
-
-                
             }
             scored_test_cases
                 .entry(model.to_string())

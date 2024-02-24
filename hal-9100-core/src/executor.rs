@@ -3,30 +3,29 @@ use async_openai::types::{
     RequiredAction, RunStatus, RunToolCallObject, SubmitToolOutputs, TextData, RunStepType, StepDetails, RunStepDetailsMessageCreationObject, MessageCreation, RunStepDetailsToolCallsObject, RunStepDetailsToolCalls, RunStepDetailsToolCallsCodeObject, CodeInterpreter, CodeInterpreterOutput, RunStepDetailsToolCallsCodeOutputLogsObject, RunStepDetailsToolCallsRetrievalObject, RunStepDetailsToolCallsFunctionObject, RunStepFunctionObject,
 };
 use futures::future::try_join_all;
+use hal_9100_extra::llm::{HalLLMClient, HalLLMRequestArgs};
 use log::{error, info};
 use redis::AsyncCommands;
 use serde_json::{self, json};
 use sqlx::PgPool;
 
-use hal_9100_core::assistants::{create_assistant, get_assistant};
+use hal_9100_core::assistants::{get_assistant};
 use hal_9100_core::file_storage::FileStorage;
 use hal_9100_core::messages::{add_message_to_thread, list_messages};
-use hal_9100_core::models::{Assistant, Message, Run, Thread};
-use hal_9100_core::threads::{create_thread, get_thread};
-use hal_9100_extra::llm::llm;
+use hal_9100_core::models::{Assistant, Message, Run};
+use hal_9100_core::threads::{get_thread};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use hal_9100_core::runs::{get_run, update_run, update_run_status};
+use std::fmt;
+use hal_9100_core::runs::{get_run, update_run_status};
 
-use hal_9100_core::function_calling::ModelConfig;
 
 use hal_9100_core::function_calling::create_function_call;
 
 use hal_9100_core::runs::get_tool_calls;
 use hal_9100_core::code_interpreter::safe_interpreter;
 
-use hal_9100_core::code_interpreter::InterpreterModelConfig;
 use hal_9100_core::models::SubmittedToolCall;
 
 use hal_9100_core::retrieval::retrieve_file_contents;
@@ -35,7 +34,7 @@ use hal_9100_core::models::Chunk;
 use hal_9100_core::retrieval::generate_queries_and_fetch_chunks;
 
 use crate::function_calling::execute_request;
-use crate::models::RunStep;
+use crate::models::{RunStep};
 use crate::openapi::ActionRequest;
 use crate::prompts::{format_messages, build_instructions};
 use crate::run_steps::{create_step, update_step, list_steps, set_all_steps_status};
@@ -65,12 +64,34 @@ pub fn extract_step_id_and_function_output(steps: Vec<RunStep>, tool_calls: Vec<
     result
 }
 
+#[derive(Debug)]
+pub enum DecideToolError {
+    // JsonError(serde_json::Error),
+    // SqlxError(sqlx::Error),
+    Other(String),
+}
+
+impl fmt::Display for DecideToolError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            // FunctionCallError::JsonError(e) => write!(f, "JSON error: {}", e),
+            // FunctionCallError::SqlxError(e) => write!(f, "SQLx error: {}", e),
+            DecideToolError::Other(e) => write!(f, "Other error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for DecideToolError {}
+
+
 pub async fn decide_tool_with_llm(
     assistant: &Assistant,
     previous_messages: &[Message],
     run: &Run,
-    tool_calls_db: Vec<SubmittedToolCall>
-) -> Result<Vec<String>, Box<dyn Error>> {
+    tool_calls_db: Vec<SubmittedToolCall>,
+    mut client: HalLLMClient,
+    mut request: HalLLMRequestArgs,
+) -> Result<Vec<String>, DecideToolError> {
 
     // if there are no tools, return empty
     if assistant.inner.tools.is_empty() {
@@ -221,21 +242,19 @@ Your answer will be used to use the tool so it must be very concise and make sur
         assistant.inner.instructions.as_ref().unwrap()
     ));    
 
-    // Call the llm function
-    let result = llm(
-        &assistant.inner.model,
-        None,
-        system_prompt,
-        &user_prompt,
-        Some(0.0), // temperature
-        -1,        // max_tokens_to_sample
-        None,      // stop_sequences
-        Some(1.0), // top_p
-        None,      // top_k
-        None,      // metadata
-        None,      // metadata
-    )
-    .await?;
+    client.set_model_name(assistant.inner.model.clone());
+    request.set_system_prompt(system_prompt.to_string());
+    request.set_last_user_prompt(user_prompt);
+    
+    let result = 
+        client.create_chat_completion(request.temperature(0.0))
+        .await.map_err(|e| {
+            error!(
+                "Error calling Open Source {:?} LLM through OpenAI API on URL {:?}: {}",
+                client.model_name, client.model_url, e
+            );
+            DecideToolError::Other(e.to_string())
+        })?;
 
     info!("decide_tool_with_llm raw result: {}", result);
 
@@ -318,9 +337,10 @@ impl std::error::Error for RunError {}
 pub async fn loop_through_runs(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
+    client: HalLLMClient, // Not using a reference here because we want to be able to tweak the client at runtime
 ) {
     loop {
-        match try_run_executor(&pool, con).await {
+        match try_run_executor(&pool, con, client.clone()).await {
             Ok(_) => continue,
             Err(e) => error!("Error: {}", e),
         }
@@ -330,8 +350,9 @@ pub async fn loop_through_runs(
 pub async fn try_run_executor(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
+    client: HalLLMClient,
 ) -> Result<Run, RunError> {
-    match run_executor(&pool, con).await {
+    match run_executor(&pool, con, client).await {
         Ok(run) => { 
             info!("Execution done: {:?}", run);
             set_all_steps_status(&pool, &run.inner.id, &run.user_id, RunStatus::Completed).await.map_err(|e| RunError {
@@ -376,6 +397,7 @@ pub async fn run_executor(
     // TODO: split in smaller functions if possible
     pool: &PgPool,
     con: &mut redis::aio::Connection,
+    mut client: HalLLMClient,
 ) -> Result<Run, RunError> {
     info!("Consuming queue");
     let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
@@ -463,6 +485,7 @@ pub async fn run_executor(
     let mut code_output: Option<String> = None;
     let mut code: Option<String> = None;
     let mut tool_calls_db: Vec<SubmittedToolCall> = vec![];
+    let mut request = HalLLMRequestArgs::default();
 
     // Check if the run has a required action
     if let Some(required_action) = &run.inner.required_action {
@@ -560,7 +583,10 @@ pub async fn run_executor(
     info!("Asking LLM to decide which tool to use");
 
     // Decide which tool to use
-    let mut tools_decision = decide_tool_with_llm(&assistant, &messages, &run, tool_calls_db).await.map_err(|e| RunError {
+    let mut tools_decision = decide_tool_with_llm(&assistant, &messages, &run, tool_calls_db, 
+        client.clone(),
+        request.clone()
+    ).await.map_err(|e| RunError {
         message: format!("Failed to decide tool: {}", e),
         run_id: run_id.to_string(),
         thread_id: thread_id.to_string(),
@@ -589,20 +615,9 @@ pub async fn run_executor(
     );
 
     let model = assistant.inner.model.clone();
-    let url = std::env::var("MODEL_URL")
-        .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
-    // Call create_function_call here
-    let model_config = ModelConfig {
-        model_name: model.clone(),
-        model_url: url.clone().into(),
-        user_prompt: formatted_messages.clone(), // TODO: assuming this is the user prompt. Should it be just last message? Or more custom?
-        temperature: Some(0.0),
-        max_tokens_to_sample: 200,
-        stop_sequences: None,
-        top_p: Some(1.0),
-        top_k: None,
-        metadata: None,
-    };
+    client.set_model_name(model.clone());
+    request.set_last_user_prompt(formatted_messages.clone());
+    request.set_system_prompt(instructions.clone());
 
     // Sort the tools_decision so that "function" comes first if present
     tools_decision.sort_by(|a, b| {
@@ -634,7 +649,9 @@ pub async fn run_executor(
                     create_function_call(&pool, 
                         &assistant.inner.id,
                         user_id, 
-                        model_config.clone()).await.map_err(|e| RunError {
+                        client.clone(),
+                        request.clone().temperature(0.0),
+                    ).await.map_err(|e| RunError {
                         message: format!("Failed to create function call: {}", e),
                         run_id: run_id.to_string(),
                         thread_id: thread_id.to_string(),
@@ -762,8 +779,8 @@ pub async fn run_executor(
                 let formatted_messages_clone = formatted_messages.clone();
                 let retrieval_chunks_future = generate_queries_and_fetch_chunks(
                     &pool,
-                    &formatted_messages_clone,
-                    &assistant.inner.model,
+                    client.clone(),
+                    request.set_last_user_prompt(formatted_messages_clone).clone().temperature(0.0),
                 );
                 
                 let results = tokio::join!(retrieval_files_future, retrieval_chunks_future);
@@ -820,15 +837,10 @@ pub async fn run_executor(
             }
             "code_interpreter" => {
                 // Call the safe_interpreter function // TODO: not sure if we should pass formatted_messages or just last user message
-                let interpreter_results = match safe_interpreter(formatted_messages.clone(), 0, 3, InterpreterModelConfig {
-                    model_name: model.clone(),
-                    model_url: url.clone().into(),
-                    max_tokens_to_sample: -1,
-                    stop_sequences: None,
-                    top_p: Some(1.0),
-                    top_k: None,
-                    metadata: None,
-                }).await {
+                let interpreter_results = match safe_interpreter(formatted_messages.clone(), 0, 3, 
+                client.clone(),
+                request.clone().temperature(0.0)
+            ).await {
                     Ok((code_output, code)) => {
                         // Handle the successful execution of the code
                         // You might want to store the result or send it back to the user
@@ -910,8 +922,8 @@ pub async fn run_executor(
                     let formatted_messages_clone = formatted_messages.clone();
                     let retrieval_chunks_future = generate_queries_and_fetch_chunks(
                         &pool,
-                        &formatted_messages_clone,
-                        &assistant.inner.model,
+                        client.clone(),
+                        request.set_last_user_prompt(formatted_messages_clone).clone().temperature(0.0)
                     );
                     
                     let (r_f, retrieval_chunks_result) = tokio::join!(retrieval_files_future, retrieval_chunks_future);
@@ -955,7 +967,8 @@ pub async fn run_executor(
                     create_function_call(&pool, 
                         &assistant.inner.id,
                         user_id, 
-                        model_config.clone()
+                        client.clone(),
+                        request.clone().temperature(0.0),
                     )
                     .await.map_err(|e| RunError {
                         message: format!("Failed to create function call: {}", e),
@@ -1121,18 +1134,12 @@ These are additional instructions from the user that you must obey absolutely:
 
 ", assistant.inner.instructions.as_ref().unwrap_or(&"".to_string()));
 
-    let result = llm(
-        &assistant.inner.model,
-        url.clone().into(),
-        &system_prompt,
-        &instructions,
-        None, // temperature
-        -1,
-        None,      // stop_sequences
-        None, // top_p
-        None,      // top_k
-        None,      // metadata
-        None,      // metadata
+    request
+            .set_system_prompt(system_prompt)
+            .set_last_user_prompt(instructions);
+
+    let result = client.create_chat_completion(
+        request.temperature(0.0),
     ).await;
 
     match result {
@@ -1222,10 +1229,12 @@ mod tests {
     use serde_json::json;
     use sqlx::types::Uuid;
 
+    use crate::assistants::create_assistant;
     use crate::models::SubmittedToolCall;
     use crate::run_steps::list_steps;
     use crate::runs::{create_run, submit_tool_outputs};
     use crate::test_data::OPENAPI_SPEC;
+    use crate::threads::create_thread;
 
     use super::*;
     use dotenv::dotenv;
@@ -1360,8 +1369,13 @@ mod tests {
         assert_eq!(run.inner.status, RunStatus::Queued);
 
         // 6. Run the queue consumer
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1474,7 +1488,15 @@ mod tests {
             user_id: "".to_string(),
         }];
         // Call the function
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model.clone(),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("ANTHROPIC_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let request = HalLLMRequestArgs::default().temperature(0.0);
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![], llm_client,
+            request
+    ).await;
         let mut result = result.unwrap();
         // Check if the result is one of the expected tools
         let mut expected_tools = vec!["function".to_string(), "retrieval".to_string()];
@@ -1532,7 +1554,13 @@ mod tests {
             user_id: "".to_string(),
         }];
 
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model.clone(),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let request = HalLLMRequestArgs::default().temperature(0.0);
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![], llm_client, request).await;
 
         let result = result.unwrap();
         assert_eq!(result, vec!["code_interpreter"]);
@@ -1605,8 +1633,13 @@ mod tests {
             user_id: "".to_string(),
         }];
 
-        // Call the decide_tool_with_llm function using the open-source LLM
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model.clone(),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let request = HalLLMRequestArgs::default().temperature(0.0);
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![], llm_client, request).await;
 
         let mut result = result.unwrap();
         // Check if the result is one of the expected tools
@@ -1721,7 +1754,12 @@ mod tests {
 
         // 9. Run the queue consumer
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client.clone()).await;
 
         // 10. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1765,7 +1803,8 @@ mod tests {
 
         // 13. Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         // 14. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1883,7 +1922,12 @@ mod tests {
     
         // 6. Run the queue consumer
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
     
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2029,7 +2073,12 @@ mod tests {
 
         // 6. Run the queue consumer
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2180,7 +2229,12 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model.clone(),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client.clone()).await;
 
         // Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2225,7 +2279,9 @@ mod tests {
             &assistant.user_id,
         ).await.unwrap();
 
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone()).await;
+
+        let request = HalLLMRequestArgs::default().temperature(0.0);
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &run, tool_outputs.clone(), llm_client, request).await;
 
         let result = result.unwrap();
         println!("{:?}", result);
@@ -2287,7 +2343,13 @@ mod tests {
         }];
 
         // Call the function
-        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![]).await;
+        let llm_client = HalLLMClient::new(
+            assistant.inner.model.clone(),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
+        );
+        let request = HalLLMRequestArgs::default().temperature(0.0);
+        let result = decide_tool_with_llm(&assistant, &previous_messages, &Run::default(), vec![], llm_client, request).await;
         let result = result.unwrap();
 
         // Check if the result is "action"
@@ -2375,7 +2437,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2490,7 +2558,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2666,7 +2740,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2821,7 +2901,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2883,7 +2969,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3021,7 +3113,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3087,7 +3185,13 @@ mod tests {
 
         // Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
 
         assert!(result.is_ok(), "{:?}", result);
 

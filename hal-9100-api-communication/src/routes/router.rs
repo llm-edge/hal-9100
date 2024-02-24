@@ -1,125 +1,40 @@
 use axum::{
-    debug_handler,
-    extract::{DefaultBodyLimit, FromRef, Json, Multipart, Path, State},
-    http::header::HeaderName,
-    http::Method,
+    extract::DefaultBodyLimit,
     http::StatusCode,
     response::IntoResponse,
-    response::Json as JsonResponse,
     routing::{delete, get, post},
     Router,
 };
-use env_logger;
-use hal_9100_api_communication::assistants::{
+use hal_9100_api_communication::models::AppState;
+use hal_9100_api_communication::routes::assistants::{
     create_assistant_handler, delete_assistant_handler, get_assistant_handler,
     list_assistants_handler, update_assistant_handler,
 };
-use hal_9100_api_communication::chat::chat_handler;
-use hal_9100_api_communication::files::{
+use hal_9100_api_communication::routes::files::{
     list_files_handler, retrieve_file_handler, upload_file_handler,
 };
-use hal_9100_api_communication::messages::{
+use hal_9100_api_communication::routes::messages::{
     add_message_handler, delete_message_handler, get_message_handler, list_messages_handler,
     update_message_handler,
 };
-use hal_9100_api_communication::models::AppState;
-use hal_9100_api_communication::run_steps::{get_step_handler, list_steps_handler};
-use hal_9100_api_communication::runs::{
+use hal_9100_api_communication::routes::run_steps::{get_step_handler, list_steps_handler};
+use hal_9100_api_communication::routes::runs::{
     create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
     submit_tool_outputs_handler, update_run_handler,
 };
-use hal_9100_api_communication::threads::{
+use hal_9100_api_communication::routes::threads::{
     create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
     update_thread_handler,
 };
-use hal_9100_core::file_storage::FileStorage;
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
-use tempfile;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 
-#[tokio::main]
-async fn main() {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
-
-    let db_connection_str = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:password@localhost".to_string());
-
-    // set up connection pool
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .idle_timeout(Duration::from_secs(3))
-        .connect(&db_connection_str)
-        .await
-        .expect("can't connect to database");
-    let app_state = AppState {
-        pool: Arc::new(pool),
-        file_storage: Arc::new(FileStorage::new().await),
-    };
-
-    let app = app(app_state);
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = SocketAddr::from(([0, 0, 0, 0], port.parse().unwrap()));
-    info!("Starting server on {}", addr);
-
-    let ascii_art = r"
-               ___           ___           ___              
-              /\__\         /\  \         /\__\             
-             /:/  /        /::\  \       /:/  /             
-            /:/__/        /:/\:\  \     /:/  /              
-           /::\  \ ___   /::\~\:\  \   /:/  /               
-          /:/\:\  /\__\ /:/\:\ \:\__\ /:/__/                
-          \/__\:\/:/  / \/__\:\/:/  / \:\  \                
-               \::/  /       \::/  /   \:\  \               
-               /:/  /        /:/  /     \:\  \              
-              /:/  /        /:/  /       \:\__\             
-              \/__/         \/__/         \/__/             
-      ___                    ___                    ___     
-     /\  \                  /\  \                  /\  \    
-     \:\  \                 \:\  \                 \:\  \   
-      \:\  \                 \:\  \                 \:\  \  
-      /::\  \                /::\  \                /::\  \ 
-     /:/\:\__\              /:/\:\__\              /:/\:\__\
-    /:/  \/__/             /:/  \/__/             /:/  \/__/
-   /:/  /                 /:/  /                 /:/  /     
-   \/__/                  \/__/                  \/__/      
-                                                            
-    ";
-
-    info!("{}", ascii_art);
-
-    let server = axum::Server::bind(&addr).serve(app.into_make_service());
-
-    let graceful_shutdown = server.with_graceful_shutdown(shutdown_signal());
-
-    if let Err(e) = graceful_shutdown.await {
-        error!("server error: {}", e);
-    }
-}
-
-async fn shutdown_signal() {
-    // Wait for the SIGINT or SIGTERM signal
-    tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())
-        .unwrap()
-        .recv()
-        .await
-        .unwrap();
-
-    info!("signal received, starting graceful shutdown");
-}
-
 /// Having a function that produces our app makes it easy to call it from tests
 /// without having to create an HTTP server.
 #[allow(dead_code)]
-fn app(app_state: AppState) -> Router {
+pub fn app(app_state: AppState) -> Router {
     let cors = CorsLayer::new()
         .allow_methods(Any)
         .allow_origin(Any)
@@ -215,31 +130,38 @@ struct RunInput {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, sync::Arc, time::Duration};
+
+    use hal_9100_extra::config::Hal9100Config;
 
     use super::*;
     use async_openai::types::{
         AssistantObject, AssistantTools, AssistantToolsCode, AssistantToolsFunction,
-        AssistantToolsRetrieval, ChatCompletionFunctions, CreateAssistantRequest,
-        CreateMessageRequest, FunctionObject, ListMessagesResponse, ListRunsResponse,
-        MessageContent, MessageObject, MessageRole, ModifyAssistantRequest, ModifyMessageRequest,
-        ModifyThreadRequest, RunObject, RunStatus, ThreadObject,
+        AssistantToolsRetrieval, CreateAssistantRequest, CreateMessageRequest, FunctionObject,
+        ListMessagesResponse, ListRunsResponse, MessageContent, MessageObject, MessageRole,
+        ModifyAssistantRequest, ModifyMessageRequest, ModifyThreadRequest, RunObject, RunStatus,
+        ThreadObject,
     };
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
     };
     use dotenv::dotenv;
-    use hal_9100_api_communication::runs::{ApiSubmittedToolCall, SubmitToolOutputsRequest};
-    use hal_9100_core::executor::try_run_executor;
+    use hal_9100_api_communication::routes::runs::{
+        ApiSubmittedToolCall, SubmitToolOutputsRequest,
+    };
+    use hal_9100_core::{executor::try_run_executor, file_storage::FileStorage};
+    use hal_9100_extra::llm::HalLLMClient;
     use hyper;
     use mime;
     use serde_json::{json, Value};
+    use sqlx::{postgres::PgPoolOptions, PgPool};
     use tower::ServiceExt; // for `oneshot` and `ready`
 
     async fn setup() -> AppState {
         dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .idle_timeout(Duration::from_secs(3))
@@ -247,6 +169,7 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         let app_state = AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
         };
@@ -1214,10 +1137,16 @@ mod tests {
         println!("Run: {:?}", run);
 
         // 6. Run the queue consumer
+        let model_api_url = std::env::var("MODEL_URL").expect("MODEL_URL must be set");
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
 
         // 7. Check the result
         assert!(
@@ -1869,7 +1798,12 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
 
         assert!(
             result.is_ok(),
@@ -1925,7 +1859,8 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+
+        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app
@@ -2120,10 +2055,16 @@ mod tests {
 
         // 7. Run the queue consumer
 
+        let model_api_url = std::env::var("MODEL_URL").expect("MODEL_URL must be set");
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
 
         let run = result.unwrap();
 
@@ -2170,7 +2111,8 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+
+        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
 
         assert!(
             result.is_ok(),
@@ -2358,10 +2300,16 @@ mod tests {
         assert_eq!(run.status, RunStatus::Queued);
 
         // Run the queue consumer
+        let model_api_url = std::env::var("MODEL_URL").expect("MODEL_URL must be set");
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&app_state.pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&app_state.pool, &mut con, llm_client).await;
 
         assert!(
             result.is_ok(),

@@ -36,7 +36,6 @@ jobs:
 
       - name: Start Docker containers
         run: |
-          cp .env.example .env
           docker compose -f docker/docker-compose.yml up -d
 
       - name: Run tests
@@ -86,12 +85,6 @@ jobs:
       # Install cross
       - name: Install cross
         run: cargo install cross
-
-      # Install libssl-dev for cross-compiling
-      - name: Install libssl-dev
-        run: |
-          sudo apt-get update && sudo apt-get install -y libssl-dev
-          echo "PKG_CONFIG_PATH=/usr/lib/pkgconfig" >> $GITHUB_ENV
 
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}

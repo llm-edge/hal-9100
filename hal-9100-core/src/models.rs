@@ -1,19 +1,16 @@
 use async_openai::types::{
-    AssistantObject, ChatCompletionFunctions, FunctionObject, MessageCreation, MessageObject,
-    MessageRole, RunObject, RunStatus, RunStepDetailsMessageCreationObject, RunStepObject,
-    RunStepType, StepDetails, ThreadObject,
+    AssistantObject, FunctionObject, MessageCreation, MessageObject, MessageRole, RunObject,
+    RunStatus, RunStepDetailsMessageCreationObject, RunStepObject, RunStepType, StepDetails,
+    ThreadObject,
 };
-use hal_9100_extra::anthropic;
+use hal_9100_extra::llm::{HalLLMClient, HalLLMRequestArgs};
 use redis::RedisError;
 use serde::{self, Deserialize, Serialize};
-use serde_json::Value;
 use sqlx::Error as SqlxError;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use uuid::Uuid;
-
-use crate::function_calling::ModelConfig;
 
 #[derive(Debug)]
 pub enum MyError {
@@ -174,8 +171,8 @@ pub struct Function {
 #[derive(Debug)]
 pub struct FunctionCallInput {
     pub function: Function,
-    pub user_context: String,
-    pub model_config: ModelConfig,
+    pub client: HalLLMClient,
+    pub request: HalLLMRequestArgs, // ! is it possible to do like in TS "omit the message propt tihng"
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]

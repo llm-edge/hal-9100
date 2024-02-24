@@ -5,16 +5,10 @@ This LLM runs at 60+ tokens per second on my MacBook Pro M2.
 
 At the moment, you need **Docker** installed to run the API.
 
-You need some env vars that you can put in a `.env` file in the root of the project:
+You need to update the config `hal-9100.toml` file in the root of the project:
 
 ```bash
-DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase
-REDIS_URL=redis://127.0.0.1/
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET_NAME=mybucket
-MODEL_URL="http://host.docker.internal:8000/v1/chat/completions"
+model_url="http://host.docker.internal:8000/v1/chat/completions"
 ```
 
 We will use [OpenAI's JS SDK](https://github.com/openai/openai-node), but feel free to use the [python one](https://github.com/openai/openai-python), you can copy paste this doc in chatgpt to translate to python!

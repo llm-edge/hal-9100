@@ -1,14 +1,15 @@
 use axum::extract::FromRef;
-use hal_9100_core::file_storage::FileStorage;
-use hal_9100_core::models::Message;
-use sqlx::postgres::PgPool;
-use std::{collections::HashMap, sync::Arc};
+use hal_9100_extra::config::Hal9100Config;
 
-use serde::{self, Deserialize, Serialize};
-use validator::Validate;
+use hal_9100_core::file_storage::FileStorage;
+use sqlx::postgres::PgPool;
+use std::sync::Arc;
+
+use serde::{self, Deserialize};
 
 #[derive(Clone)]
 pub struct AppState {
+    pub hal_9100_config: Arc<Hal9100Config>,
     pub pool: Arc<PgPool>,
     pub file_storage: Arc<FileStorage>,
 }

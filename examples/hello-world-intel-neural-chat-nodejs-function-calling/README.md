@@ -2,16 +2,10 @@
 
 At the moment, you need **Docker** installed to run the API.
 
-Additionally, `Assistants` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
+Additionally, `Assistants` you need some config that you can put in the `hal-9100.toml` file in the root of the project, just update the `model_url` to point to your local server:
 
 ```bash
-DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase
-REDIS_URL=redis://127.0.0.1/
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET_NAME=mybucket
-MODEL_URL="http://host.docker.internal:8000/v1/chat/completions"
+model_url="http://host.docker.internal:8000/v1/chat/completions"
 ```
 
 We will use [OpenAI's JS SDK](https://github.com/openai/openai-node), but feel free to use the [python one](https://github.com/openai/openai-python), you can copy paste this doc in chatgpt to translate to python!
@@ -88,7 +82,7 @@ You should see something like this:
 1. **Start the server**
 
 ```bash
-docker compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up
 ```
 
 2. **Create an Assistant** 

@@ -5,15 +5,8 @@ ifndef RUSTC
   $(warning "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
 endif
 
-# Check if .env file exists
-ifeq ("$(wildcard .env)","")
-  $(warning ".env file is not found. Please copy .env.example into .env and update the content accordingly.")
-endif
-
 .PHONY: help docker clean
 
-include .env
-export
 
 .DEFAULT_GOAL := help
 
@@ -45,22 +38,19 @@ reboot: clean docker ## Clean and run docker compose up
 
 ## Run the executor
 executor: ## Run the executor
-	@source .env && cargo run --package hal-9100-core --bin hal-9100-executor
+	cargo run --bin hal-9100-executor executor
 
+## Run the api
+api: ## Run the api
+	cargo run --bin hal-9100-executor api
 
-## Run the server
-server: ## Run the server
-	@source .env && cargo run --package hal-9100
-
-## Run executor, server, and dockers
+## Run executor & api
 all:
-	@source .env && $(MAKE) -j2 executor server
-
+	$(MAKE) -j2 executor api
 
 ## Test all
 test: ## Run all tests
-	@source .env && RUST_TEST_THREADS=1 cargo test --features ci
-
+	RUST_TEST_THREADS=1 cargo test
 
 ##@ Development
 ## Check db/queue content

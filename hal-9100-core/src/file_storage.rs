@@ -1,7 +1,6 @@
 use bytes::Bytes;
 use log::{info, warn};
 use reqwest;
-use rusty_s3::actions::list_objects_v2::ListObjectsContent;
 use rusty_s3::actions::{
     CreateBucket, DeleteObject, GetObject, ListObjectsV2, PutObject, S3Action,
 };
@@ -11,7 +10,6 @@ use std::env;
 use std::path::Path;
 use std::time::Duration;
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
 
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer};
@@ -79,7 +77,7 @@ where
 }
 
 // TODO: all stuff bit inefficient but for now its k
-impl FileStorage {
+impl FileStorage { // TODO use config.rs
     pub async fn new() -> Self {
         let endpoint =
             Url::parse(&env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set")).unwrap();
@@ -243,21 +241,15 @@ mod tests {
     use tempfile::tempdir;
     use tokio::io::AsyncWriteExt;
     fn setup_env() {
-        match dotenv::dotenv() {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("Couldn't read .env file: {}", e);
-                std::env::set_var("S3_ENDPOINT", "http://localhost:9000");
-                std::env::set_var("S3_ACCESS_KEY", "minioadmin");
-                std::env::set_var("S3_SECRET_KEY", "minioadmin");
-                std::env::set_var("S3_BUCKET_NAME", "mybucket");
-                std::env::set_var("REDIS_URL", "redis://localhost:6379");
-                std::env::set_var(
-                    "DATABASE_URL",
-                    "postgres://postgres:secret@localhost:5432/mydatabase",
-                );
-            }
-        }
+        std::env::set_var("S3_ENDPOINT", "http://localhost:9000");
+        std::env::set_var("S3_ACCESS_KEY", "minioadmin");
+        std::env::set_var("S3_SECRET_KEY", "minioadmin");
+        std::env::set_var("S3_BUCKET_NAME", "mybucket");
+        std::env::set_var("REDIS_URL", "redis://localhost:6379");
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://postgres:secret@localhost:5432/mydatabase",
+        );
     }
 
     #[tokio::test]

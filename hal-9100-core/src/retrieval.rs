@@ -1,5 +1,6 @@
 use hal_9100_core::models::Chunk;
-use hal_9100_extra::llm::llm;
+use hal_9100_extra::llm::HalLLMClient;
+use hal_9100_extra::llm::HalLLMRequestArgs;
 use log::error;
 use log::info;
 use serde_json::{self, Value};
@@ -112,14 +113,11 @@ pub async fn split_and_insert(
 
 pub async fn generate_queries_and_fetch_chunks(
     pool: &PgPool,
-    context: &str,
-    model_name: &str,
+    client: HalLLMClient,
+    mut request: HalLLMRequestArgs,
 ) -> Result<Vec<Chunk>, Box<dyn Error>> {
     // Generate full-text search queries using the llm() function
-    let query = llm(
-        model_name,
-        None, // TODO: better prompt + testing/benchmarking over multiple contexts and llms
-        "You are a helpful assistant that generate full-text search queries for the user.
+    let p = "You are a helpful assistant that generate full-text search queries for the user.
 You must return return the best full-text search query for the given context to solve the user's problem.
 
 Your output will be used in the following code:
@@ -164,21 +162,14 @@ Good examples:
 
 5. Agriculture: your output could be \"organic | conventional & farming\".
 
-Query:",
-        context,
-        Some(0.0),
-        -1,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .await?;
+Query:";
+
+    request.set_system_prompt(p.to_string());
+    let query = client.create_chat_completion(request).await?;
 
     // TODO: bad processing
     // if the llm return two words like "dog food", just add a | between them
-    // using a regex for safety 
+    // using a regex for safety
     // let re = regex::Regex::new(r"\s+").unwrap();
     // let query = re.replace_all(&query, " | ").to_string();
 
@@ -347,12 +338,18 @@ The president of the Moon is TDB.
         let _ = split_and_insert(&pool, text, chunk_size, file_name, metadata.clone())
             .await
             .unwrap();
-        let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         // Call the function
         let context = "dog food";
-        let result = generate_queries_and_fetch_chunks(&pool, context, &model_name).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let mut request = HalLLMRequestArgs::default();
+        request.set_last_user_prompt(context.to_string());
+        let result = generate_queries_and_fetch_chunks(&pool, llm_client, request).await;
 
         // Check the result
         assert!(

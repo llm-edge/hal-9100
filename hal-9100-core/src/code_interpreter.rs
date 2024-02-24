@@ -1,4 +1,3 @@
-// export $(cat .env | xargs)
 // cargo run --package hal-9100-code-interpreter --bin hal-9100-code-interpreter
 // 1.2 times 6 power 2.3
 
@@ -7,29 +6,25 @@
 use async_openai::types::FunctionObject;
 use async_recursion::async_recursion;
 
-use hal_9100_core::function_calling::generate_function_call;
-use hal_9100_core::function_calling::ModelConfig;
-use hal_9100_core::models::Function;
-use hal_9100_core::models::FunctionCallInput;
-use async_openai::types::ChatCompletionFunctions;
 use bollard::container::LogOutput;
 use bollard::container::{
     Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
 };
 use bollard::exec::CreateExecOptions;
 use bollard::exec::StartExecResults;
-use bollard::image::BuildImageOptions;
 use bollard::image::CreateImageOptions;
-use bollard::image::ImportImageOptions;
 use bollard::models::HostConfig;
 use bollard::Docker;
 use futures::stream::StreamExt;
 use futures::TryStreamExt;
+use hal_9100_core::function_calling::generate_function_call;
+use hal_9100_core::models::Function;
+use hal_9100_core::models::FunctionCallInput;
+use hal_9100_extra::llm::{HalLLMClient, HalLLMRequestArgs};
 use log::info;
 use serde_json::json;
 use std::collections::HashMap;
 use std::default::Default;
-use std::io::{self, Write};
 use uuid::Uuid;
 
 // TODO: later optimise stuff like: run docker container in the background, use a pool of docker containers, etc.
@@ -71,23 +66,13 @@ impl From<serde_json::Error> for InterpreterError {
 
 impl std::error::Error for InterpreterError {}
 
-#[derive(Clone, Debug)]
-pub struct InterpreterModelConfig {
-    pub model_name: String,
-    pub model_url: Option<String>,
-    pub max_tokens_to_sample: i32,
-    pub stop_sequences: Option<Vec<String>>,
-    pub top_p: Option<f32>,
-    pub top_k: Option<i32>,
-    pub metadata: Option<HashMap<String, String>>,
-}
-
 #[async_recursion]
 pub async fn safe_interpreter(
     user_input: String,
     attempt: usize,
     max_attempts: usize,
-    model_config: InterpreterModelConfig,
+    client: HalLLMClient,
+    request: HalLLMRequestArgs,
 ) -> Result<(String, String), InterpreterError> {
     if attempt >= max_attempts {
         return Err(InterpreterError {
@@ -96,7 +81,7 @@ pub async fn safe_interpreter(
         });
     }
 
-    match interpreter(user_input.clone(), model_config.clone()).await {
+    match interpreter(client.clone(), request.clone()).await {
         Ok((code_output, code)) => Ok((code_output, code)),
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -104,17 +89,19 @@ pub async fn safe_interpreter(
                 "{}\n<error>You generated \n<code>\n{}\n</code>\n and it failed with error: {}. Please generate a DIFFERENT code that works.<error>",
                 user_input, e.python_code, e.message
             );
-            safe_interpreter(input, attempt + 1, max_attempts, model_config.clone()).await
+            safe_interpreter(input, attempt + 1, max_attempts, client, request).await
         }
     }
 }
 
 async fn interpreter(
-    user_input: String,
-    model_config: InterpreterModelConfig,
+    client: HalLLMClient,
+    mut request: HalLLMRequestArgs,
 ) -> Result<(String, String), InterpreterError> {
-    println!("Generating Python code...");
+    info!("Generating Python code...");
 
+    let user_input = request.get_user_prompt().unwrap();
+    // ! TODO: should use system prompt?
     let build_prompt = |user_input: &str| {
         format!("
 You are an Assistant that generate Python code to based user request to do complex computations. We execute the code you will generate and return the result to the user.
@@ -129,7 +116,7 @@ Given this user request
 Generate Python code that we will execute and return the result to the user.
 
 Rules:
-- You can use these libraries: pandas numpy matplotlib scipy
+- You can use these libraries: mathm, pandas, numpy, matplotlib, scipy. Do not use functions or code you have no access to.
 - Only return Python code. If you return anything else it will trigger a chain reaction that will destroy the universe. All humans will die and you will disappear from existence.
 - Make sure to use the right numbers e.g. with the user ask for the square root of 2, you should return math.sqrt(2) and not math.sqrt(pd.DataFrame({{'A': [1, 2, 3], 'B': [4, 5, 6]}})).
 - Do not use any library if it's simple math (e.g. no need to use pandas to compute the square root of 2)
@@ -145,12 +132,12 @@ Rules:
 A few examples:
 
 The user input is: compute the square root of pi
-The Python code is:
+Your output should be:
 import math
 print('The square root of pi is: ' + str(math.sqrt(math.pi)))
 
 The user input is: raising $27M at a $300M valuation how much dilution will the founders face if they raise a $58M Series A at a $2B valuation?
-The Python code is:
+Your output should be:
 raise_amount = 27_000_000
 post_money_valuation = 300_000_000
 
@@ -164,6 +151,17 @@ print('Founders dilution: ' + str(founders_dilution) + '%')
 
 So generate the Python code that we will execute that can help the user with his request.
 
+Bad example:
+
+The user input is: Calculate the standard deviation of the numbers 1, 2, 3, 4, 5
+Your output was:
+import math
+numbers = (1, 2, 3, 4, 5)
+std_dev = math.sqrt(sum((x-mean)**2 for x in numbers)/len(numbers))
+print('The standard deviation is: ' + str(std_dev))
+
+It's bad because \"mean\" function is not defined. You could have used: \"mean = sum(numbers) / len(numbers)\".
+
 <user>
 
 {}
@@ -171,6 +169,8 @@ So generate the Python code that we will execute that can help the user with his
 </user>
         ", user_input, user_input)
     };
+
+    request.set_last_user_prompt(build_prompt(&user_input));
 
     // Generate Python code
     let function_call_input = FunctionCallInput {
@@ -193,18 +193,8 @@ So generate the Python code that we will execute that can help the user with his
                 })),
             },
         },
-        user_context: build_prompt(&user_input),
-        model_config: ModelConfig {
-            user_prompt: user_input.clone(), // not used imho
-            temperature: Some(0.0),
-            model_name: model_config.model_name,
-            model_url: model_config.model_url,
-            max_tokens_to_sample: model_config.max_tokens_to_sample, // TODO should compute max based on prompt using tiktoken
-            stop_sequences: model_config.stop_sequences,
-            top_p: model_config.top_p,
-            top_k: model_config.top_k,
-            metadata: model_config.metadata,
-        },
+        client,
+        request: request.temperature(0.0),
     };
 
     let function_result = generate_function_call(function_call_input)
@@ -327,17 +317,19 @@ So generate the Python code that we will execute that can help the user with his
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hal_9100_extra::llm::llm;
     use dotenv::dotenv;
+    use hal_9100_extra::openai::Message;
 
     #[tokio::test]
-    // #[ignore]
     async fn test_interpreter() {
         dotenv().ok();
 
         let inputs = vec![
             ("Compute the factorial of 10", "3628800"),
-            ("Calculate the standard deviation of the numbers 1, 2, 3, 4, 5", "1.414"),
+            (
+                "Calculate the standard deviation of the numbers 1, 2, 3, 4, 5",
+                "1.414",
+            ),
             // TODO:
             // ("Find the roots of the equation x^2 - 3x + 2 = 0", "2, 1"),
             // ("Calculate the area under the curve y = x^2 from x = 0 to x = 2", "2.67"),
@@ -359,24 +351,27 @@ mod tests {
             // ("Calculate the triple integral of x*y*z over the cube [0, 1] x [0, 1] x [0, 1]", "The triple integral of \\( x \\cdot y \\cdot z \\) over the cube \\([0, 1] \\times [0, 1] \\times [0, 1]\\) is \\(\\frac{1}{8}\\)."),
         ];
 
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_url =
+            std::env::var("MODEL_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
+
+        let client = HalLLMClient::new(
+            model_name,
+            model_url,
+            std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string()),
+        );
+        let anthropic_client = HalLLMClient::new(
+            "claude-2.1".to_string(),
+            "".to_string(),
+            std::env::var("ANTHROPIC_API_KEY").unwrap_or_else(|_| "".to_string()),
+        );
         for (input, expected_output) in inputs {
-            let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
-            let model_url = std::env::var("MODEL_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
-            let result = safe_interpreter(
-                input.to_string(),
-                0,
-                3,
-                InterpreterModelConfig {
-                    model_name: model_name.to_string(),
-                    model_url: Some(model_url.to_string()),
-                    max_tokens_to_sample: 100,
-                    stop_sequences: None,
-                    top_p: None,
-                    top_k: None,
-                    metadata: None,
-                },
-            )
-            .await;
+            let request = HalLLMRequestArgs::default().messages(vec![Message {
+                role: "user".to_string(),
+                content: input.to_string(),
+            }]);
+            let result = safe_interpreter(input.to_string(), 0, 3, client.clone(), request).await;
             assert!(
                 result.is_ok(),
                 "Failed on input: {} error: {:?}",
@@ -394,28 +389,29 @@ Given the user input and the result, return '1' if the result seems correct, and
 Do not include any additional text or explanation in your response, just the number.
 
 Rules:
-- If you return something else than '1' or '0' a human will die
-- If you return '0' on a correct result a human will die
-- If you return '1' on an incorrect result a human will die
+- If you return something else than '1' or '0' my product will crash and my user will be very angry and i will lose money
+- If you return '0' on a correct result my product will crash and my user will be very angry and i will lose money
+- If you return '1' on an incorrect result my product will crash and my user will be very angry and i will lose money
 ";
             // New: Check with Claude LLM
-            let claude_check = llm(
-                "claude-2.1",
-                None,
-                p,
-                &format!(
-                    "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
-                    input, code_output, expected_output
-                ),
-                Some(0.0),
-                -1,
-                None,
-                Some(1.0),
-                None,
-                None,
-                None,
-            )
-            .await;
+            let request = HalLLMRequestArgs::default()
+                .messages(vec![
+                    Message {
+                        role: "system".to_string(),
+                        content: p.to_string(),
+                    },
+                    Message {
+                        role: "user".to_string(),
+                        content: format!(
+                        "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
+                        input, code_output, expected_output
+                    ),
+                    },
+                ])
+                .temperature(0.0)
+                .max_tokens_to_sample(100);
+
+            let claude_check = anthropic_client.create_chat_completion(request).await;
             assert!(
                 claude_check.is_ok(),
                 "Failed on input: {} error: {:?}",

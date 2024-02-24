@@ -1,4 +1,3 @@
-
 use async_openai::types::AssistantTools;
 use async_openai::types::AssistantToolsRetrieval;
 use async_openai::types::RequiredAction;
@@ -9,9 +8,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use sqlx::PgPool;
 
+use futures::stream::StreamExt; // Don't forget to import StreamExt
 use hal_9100_core::models::Run;
 use hal_9100_core::models::SubmittedToolCall;
-use futures::stream::StreamExt; // Don't forget to import StreamExt
 use redis::AsyncCommands;
 use serde_json::json;
 use sqlx::types::Uuid;
@@ -704,10 +703,11 @@ mod tests {
 
     use super::*;
     use async_openai::types::{
-        AssistantObject, FunctionCall, RunToolCallObject, SubmitToolOutputs, ThreadObject
+        AssistantObject, FunctionCall, RunToolCallObject, SubmitToolOutputs, ThreadObject,
     };
-    use hal_9100_core::models::{Thread};
     use dotenv::dotenv;
+    use hal_9100_core::models::Thread;
+    use hal_9100_extra::llm::HalLLMClient;
     use sqlx::postgres::PgPoolOptions;
     use std::env;
     use std::io::Write;
@@ -767,7 +767,7 @@ mod tests {
         };
         let assistant = create_assistant(&pool, &assistant).await.unwrap();
         println!("assistant: {:?}", assistant);
-                let thread_object = Thread {
+        let thread_object = Thread {
             inner: ThreadObject {
                 id: "".to_string(),
                 object: "".to_string(),
@@ -776,9 +776,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string(),
         };
-        let thread = create_thread(&pool, &thread_object)
-            .await
-            .unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &thread_object).await.unwrap(); // Create a new thread
         println!("thread: {:?}", thread);
 
         // Get Redis URL from environment variable
@@ -861,9 +859,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string(),
         };
-        let thread = create_thread(&pool, &thread_object)
-            .await
-            .unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &thread_object).await.unwrap(); // Create a new thread
         let run = create_run(
             &pool,
             &thread.inner.id,
@@ -915,9 +911,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string(),
         };
-        let thread = create_thread(&pool, &thread_object)
-            .await
-            .unwrap(); // Create a new thread
+        let thread = create_thread(&pool, &thread_object).await.unwrap(); // Create a new thread
         let assistant = create_assistant(
             &pool,
             &Assistant {
@@ -987,7 +981,8 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
         // Create assistant
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME")
+            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
 
         let assistant = create_assistant(
             &pool,
@@ -1023,9 +1018,7 @@ mod tests {
             },
             user_id: Uuid::default().to_string(),
         };
-        let thread = create_thread(&pool, &thread_object)
-            .await
-            .unwrap();
+        let thread = create_thread(&pool, &thread_object).await.unwrap();
 
         // Create run with invalid assistant_id to trigger failure
         let result = create_run(
@@ -1044,7 +1037,13 @@ mod tests {
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool, &mut con, llm_client).await;
         assert!(result.is_ok());
 
         println!("result: {:?}", result);

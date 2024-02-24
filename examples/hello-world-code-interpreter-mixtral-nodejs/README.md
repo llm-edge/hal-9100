@@ -21,13 +21,12 @@ StartupE,900000,3000000,0.6,Series E,InvestorV
 
 We will use Perplexity API to get started quickly with an LLM but you can run this example with any LLM.
 
-1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key.
+1. Get an API key from Perplexity. You can get it [here](https://docs.perplexity.ai/docs). Replace in [hal-9100.toml](./hal-9100.toml) the `model_api_key` with your API key.
 2. Install OpenAI SDK: `npm i openai`
-3. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 ## Setup
 
-1. Start the infra: `docker compose --profile api -f docker/docker-compose.yml up -d`
+1. Start the infra: `docker compose --profile api -f docker/docker-compose.yml up`
 
 ## Running the example
 

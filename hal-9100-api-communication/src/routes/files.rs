@@ -1,5 +1,3 @@
-use hal_9100_api_communication::models::AppState;
-use hal_9100_core::retrieval::split_and_insert;
 use async_openai::types::{ListFilesResponse, OpenAIFile, OpenAIFilePurpose};
 use axum::{
     debug_handler,
@@ -8,6 +6,8 @@ use axum::{
     response::Json as JsonResponse,
 };
 use bytes::Buf;
+use hal_9100_api_communication::models::AppState;
+use hal_9100_core::retrieval::split_and_insert;
 
 use log::{error, info};
 use serde_json::{json, Value};
@@ -151,6 +151,8 @@ pub async fn list_files_handler(
 
 #[cfg(test)]
 mod tests {
+    use hal_9100_extra::config::Hal9100Config;
+
     use super::*;
     use axum::{
         body::Body,
@@ -161,16 +163,17 @@ mod tests {
     use mime;
     use serde_json::json;
 
-    use hal_9100_core::file_storage::FileStorage;
     use axum::Router;
     use dotenv::dotenv;
+    use hal_9100_core::file_storage::FileStorage;
     use sqlx::{postgres::PgPoolOptions, PgPool};
     use std::{sync::Arc, time::Duration};
     use tower::ServiceExt;
     use tower_http::limit::RequestBodyLimitLayer;
     async fn setup() -> AppState {
         dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .idle_timeout(Duration::from_secs(3))
@@ -180,6 +183,7 @@ mod tests {
         let file_storage = FileStorage::new().await;
 
         AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
             pool: Arc::new(pool),
             file_storage: Arc::new(file_storage),
         }

@@ -1,14 +1,14 @@
-use hal_9100_api_communication::models::AppState;
-use hal_9100_core::models::Thread;
-use hal_9100_core::threads::{
-    create_thread, delete_thread, get_thread, list_threads, update_thread,
-};
 use async_openai::types::{ModifyThreadRequest, ThreadObject};
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
     response::Json as JsonResponse,
+};
+use hal_9100_api_communication::models::AppState;
+use hal_9100_core::models::Thread;
+use hal_9100_core::threads::{
+    create_thread, delete_thread, get_thread, list_threads, update_thread,
 };
 use serde_json::Value;
 use sqlx::types::Uuid;
@@ -68,7 +68,7 @@ pub async fn get_thread_handler(
     }
 }
 
-// List all threads 
+// List all threads
 // ! THIS endpont does not exist??? https://platform.openai.com/docs/api-reference/threads
 pub async fn list_threads_handler(
     State(app_state): State<AppState>,
@@ -115,8 +115,9 @@ pub async fn delete_thread_handler(
 
 #[cfg(test)]
 mod tests {
+    use hal_9100_extra::config::Hal9100Config;
+
     use super::*;
-    use hal_9100_core::file_storage::FileStorage;
     use async_openai::types::CreateRunRequest;
     use axum::body::Body;
     use axum::http::{self, status, Request};
@@ -124,6 +125,7 @@ mod tests {
     use axum::routing::post;
     use axum::Router;
     use dotenv::dotenv;
+    use hal_9100_core::file_storage::FileStorage;
     use hyper::StatusCode;
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
@@ -136,7 +138,8 @@ mod tests {
     async fn setup() -> AppState {
         dotenv().ok();
 
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .idle_timeout(Duration::from_secs(3))
@@ -144,9 +147,9 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
-            // Add other AppState fields here
         }
     }
 

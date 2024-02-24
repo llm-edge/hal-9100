@@ -5,28 +5,44 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# change bin to be "hal-9100"
 [[bin]]
 name = "hal-9100"
-path = "src/main.rs"
+path = "src/cli.rs"
+
 
 [dependencies]
-axum = { version= "0.6.20", features = ["headers", "multipart", "macros", "tracing"] }
+hal-9100-core = { path = "../hal-9100-core" }
+hal-9100-extra = { path = "../hal-9100-extra" }
+
 futures = "0.3"
 headers = "0.3"
-tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
+tokio = { version = "1.0", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# infra
+
 sqlx = { version = "0.7.3", features = ["macros", "postgres", "runtime-async-std-rustls", "json", "uuid"] }
-hal-9100-core = { path = "../hal-9100-core" }
 redis = { version = "0.23.3", features = ["tokio-comp"] }
 minio = "0.1.0"
+
+# parsing
+
 serde_json = "1.0"
 serde_yaml = "0.9"
 serde = { version = "1.0", features = ["derive"] }
+
+
 tempfile = "3.2.0"
+
+# http
+
+axum = { version= "0.6.20", features = ["headers", "multipart", "macros", "tracing"] }
 tower-http = { version = "0.4.0", features = ["fs", "limit", "trace", "cors"] }
 tower = "0.4.12"
+
+# logging
+
 log = "0.4"
 env_logger = "0.8"
 validator = { version = "0.14.0", features = ["derive"] }
@@ -40,6 +56,12 @@ tokio-stream = { version = "0.1.14", features = ["sync"] }
 url = "2.2.2"
 
 bytes = "1.0.1"
+
+# prod
+
+dotenv = "0.15.0"
+clap = { version = "4.5.1", features = ["derive", "env"] }
+toml = "0.8.10"
 
 [dev-dependencies]
 mime = "0.3.16"

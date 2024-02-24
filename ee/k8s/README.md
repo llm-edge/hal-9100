@@ -14,11 +14,11 @@ Then you can deploy HAL-9100 to Kubernetes:
 # Create a new namespace for HAL-9100
 kubectl create namespace hal-9100 
 
-# Create a secret for the model URL, extracting it from your .env file
-kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep MODEL_URL .env | head -n 1 | cut -d '=' -f2) -n hal-9100
+# Create a secret for the model URL, extracting it from your hal-9100.toml file
+kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep model_url hal-9100.toml | head -n 1 | cut -d '=' -f2) -n hal-9100
 
-# If your LLM requires an API key, create a secret for it, again extracting from your .env file
-kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep MODEL_API_KEY .env | head -n 1 | cut -d '=' -f2) -n hal-9100
+# If your LLM requires an API key, create a secret for it, again extracting from your hal-9100.toml file
+kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep model_api_key hal-9100.toml | head -n 1 | cut -d '=' -f2) -n hal-9100
 
 # Create a ConfigMap for the migration script
 kubectl create configmap migration-script --from-file=hal-9100-core/src/migrations.sql -n hal-9100

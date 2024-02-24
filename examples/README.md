@@ -9,11 +9,10 @@ Function calling is a more precise and automatic way to provide context to an LL
 ```bash
 git clone https://github.com/stellar-amenities/hal-9100
 cd hal-9100
-cp .env.example .env
 ```
 
 To get started quickly, let's use Anyscale API.
-Get an API key from Anyscale. You can get it [here](https://app.endpoints.anyscale.com/credentials). Replace in [.env](./.env) the `MODEL_API_KEY` with your API key
+Get an API key from Anyscale. You can get it [here](https://app.endpoints.anyscale.com/credentials). Replace in [hal-9100.toml](./hal-9100.toml) the `model_api_key` with your API key
 
 Install OpenAI SDK: `npm i openai`
 

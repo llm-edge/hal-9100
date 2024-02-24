@@ -352,12 +352,11 @@ pub async fn call_open_source_openai_api_with_messages(
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use dotenv;
-    
+
     #[ignore]
     #[tokio::test]
     async fn test_call_openai_api() {
@@ -393,7 +392,8 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn test_call_openai_api_with_llm() { // TODO: just use perplexity ai api for this test?
+    async fn test_call_openai_api_with_llm() {
+        // TODO: just use perplexity ai api for this test?
         dotenv::dotenv().ok();
         let prompt = "What is the ultimate solution to the universe according to the Hitchhiker's Guide to the Galaxy (answer very concisely, max one sentence)?";
         let max_tokens_to_sample = 60;

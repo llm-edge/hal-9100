@@ -29,7 +29,7 @@ pub async fn get_step_handler(
 }
 
 pub async fn list_steps_handler(
-    Path((thread_id, run_id,)): Path<(String, String)>,
+    Path((thread_id, run_id)): Path<(String, String)>,
     State(app_state): State<AppState>,
 ) -> Result<JsonResponse<ListRunStepsResponse>, (StatusCode, String)> {
     let user_id = Uuid::default().to_string();
@@ -58,24 +58,27 @@ pub async fn list_steps_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hal_9100_extra::config::Hal9100Config;
+    
     use crate::{
-        assistants::{
-            create_assistant_handler, delete_assistant_handler, get_assistant_handler,
-            list_assistants_handler, update_assistant_handler,
-        },
-        messages::{
-            add_message_handler, delete_message_handler, get_message_handler,
-            list_messages_handler, update_message_handler,
-        },
-        models::AppState,
-        runs::{
-            create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
-            submit_tool_outputs_handler, update_run_handler, ApiSubmittedToolCall,
-            SubmitToolOutputsRequest,
-        },
-        threads::{
-            create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
-            update_thread_handler,
+        routes::{
+            assistants::{
+                create_assistant_handler, delete_assistant_handler, get_assistant_handler,
+                list_assistants_handler, update_assistant_handler,
+            },
+            messages::{
+                add_message_handler, delete_message_handler, get_message_handler,
+                list_messages_handler, update_message_handler,
+            },
+            runs::{
+                create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
+                submit_tool_outputs_handler, update_run_handler, ApiSubmittedToolCall,
+                SubmitToolOutputsRequest,
+            },
+            threads::{
+                create_thread_handler, delete_thread_handler, get_thread_handler,
+                list_threads_handler, update_thread_handler,
+            },
         },
     };
     use async_openai::types::{
@@ -93,6 +96,7 @@ mod tests {
     };
     use dotenv::dotenv;
     use hal_9100_core::{executor::try_run_executor, file_storage::FileStorage};
+    use hal_9100_extra::llm::HalLLMClient;
     use hyper::{Method, StatusCode};
     use serde_json::json;
     use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -109,7 +113,8 @@ mod tests {
     async fn setup() -> AppState {
         dotenv().ok();
 
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .idle_timeout(Duration::from_secs(3))
@@ -124,9 +129,9 @@ mod tests {
             Err(_) => (),
         };
         AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
-            // Add other AppState fields here
         }
     }
 
@@ -335,7 +340,12 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+        let llm_client = HalLLMClient::new(
+            assistant.model,
+            std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
+            std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
+        );
+        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
         assert!(result.is_ok(), "{:?}", result);
 
         // Check the run status
@@ -421,7 +431,8 @@ mod tests {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool_clone, &mut con).await;
+
+        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
 
         assert!(
             result.is_ok(),

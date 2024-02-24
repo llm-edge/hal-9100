@@ -49,7 +49,7 @@ spec:
             - ":9001"
 
         - name: rust-api
-          image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.10
+          image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.14
           imagePullPolicy: Always # for dev
           ports:
             - containerPort: 3000
@@ -122,9 +122,9 @@ spec:
 
 # kubectl create namespace hal-9100
 # kubectl delete secret model-url -n hal-9100
-# kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep MODEL_URL .env | head -n1 | cut -d '=' -f2 | tr -d '"') -n hal-9100
+# kubectl create secret generic model-url --from-literal=MODEL_URL=$(grep model_url hal-9100.toml | head -n1 | cut -d '=' -f2 | tr -d '"') -n hal-9100
 # kubectl delete secret model-api-key -n hal-9100
-# kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep MODEL_API_KEY .env | head -n1 | cut -d '=' -f2) -n hal-9100
+# kubectl create secret generic model-api-key --from-literal=MODEL_API_KEY=$(grep model_api_key hal-9100.toml | head -n1 | cut -d '=' -f2) -n hal-9100
 # kubectl create configmap migration-script --from-file=hal-9100-core/src/migrations.sql -n hal-9100
 # kubectl delete configmap migration-script -n hal-9100
 # kubectl apply -f ee/k8s/one-liner-everything.yaml -n hal-9100

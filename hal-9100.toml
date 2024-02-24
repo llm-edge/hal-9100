@@ -1,0 +1,20 @@
+# if you use anthropic llm
+anthropic_api_key = "..."
+
+# if you use openai - does not really make sense but possible!
+openai_api_key = "..."
+
+# if you use your own llm deployed, for example with anyscale:
+model_url = "https://api.endpoints.anyscale.com/v1/chat/completions"
+# or use your own llm
+# model_url = "http://localhost:8000/chat/completions"
+
+# if your own llm needs an api key (authorization bearer token), for example with anyscale:
+model_api_key = "get it here https://app.endpoints.anyscale.com/credentials"
+
+database_url = "postgres://postgres:secret@localhost:5432/mydatabase"
+redis_url = "redis://127.0.0.1/"
+s3_endpoint = "http://localhost:9000"
+s3_access_key = "minioadmin"
+s3_secret_key = "minioadmin"
+s3_bucket_name = "mybucket"

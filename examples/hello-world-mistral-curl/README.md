@@ -2,16 +2,10 @@
 
 At the moment, you need **Docker** installed to run the API.
 
-Additionally, `HAL-9100` currently supports Anthropic and Open Source LLMs, you need some env vars that you can put in a `.env` file in the root of the project:
+Additionally, `HAL-9100` you need to update the config `hal-9100.toml` file in the root of the project:
 
 ```bash
-DATABASE_URL=postgres://postgres:secret@localhost:5432/mydatabase
-REDIS_URL=redis://127.0.0.1/
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET_NAME=mybucket
-MODEL_URL="http://host.docker.internal:8000/v1/chat/completions"
+model_url="http://host.docker.internal:8000/v1/chat/completions"
 ```
 
 Please install `jq` if you haven't already. You can install it using `brew install jq` on MacOS or `sudo apt-get install` jq on Ubuntu.
@@ -49,7 +43,7 @@ curl http://localhost:8000/v1/chat/completions   -H "Content-Type: application/j
 1. **Start the server**
 
 ```bash
-docker compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up
 ```
 
 2. **Create an Assistant** 

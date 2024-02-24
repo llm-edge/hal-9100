@@ -4,6 +4,8 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
+
+use crate::llm::{HalLLMClient, HalLLMRequestArgs};
 impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -99,96 +101,41 @@ fn format_prompt(mut prompt: String) -> String {
     prompt
 }
 
-pub async fn call_anthropic_api_stream(
-    mut prompt: String,
-    max_tokens_to_sample: i32,
-    model: Option<String>,
-    temperature: Option<f32>,
-    stop_sequences: Option<Vec<String>>,
-    top_p: Option<f32>,
-    top_k: Option<i32>,
-    metadata: Option<HashMap<String, String>>,
-) -> Result<bytes::Bytes, ApiError> {
-    let url = "https://api.anthropic.com/v1/complete";
-    let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
-    prompt = format_prompt(prompt);
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
-
-    let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
-    body.insert(
-        "model",
-        serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())),
-    );
-    body.insert("prompt", serde_json::json!(prompt));
-    body.insert(
-        "max_tokens_to_sample",
-        serde_json::json!(max_tokens_to_sample),
-    );
-    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
-    body.insert("stream", serde_json::json!(true));
-    headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
-
-    if let Some(stop_sequences) = stop_sequences {
-        body.insert("stop_sequences", serde_json::json!(stop_sequences));
-    }
-    if let Some(top_p) = top_p {
-        body.insert("top_p", serde_json::json!(top_p));
-    }
-    if let Some(top_k) = top_k {
-        body.insert("top_k", serde_json::json!(top_k));
-    }
-    if let Some(metadata) = metadata {
-        body.insert("metadata", serde_json::json!(metadata));
-    }
-
-    let client = reqwest::Client::new();
-    let res = client.post(url).headers(headers).json(&body).send().await?;
-    Ok(res.bytes().await?)
-}
-
 pub async fn call_anthropic_api(
-    mut prompt: String,
-    max_tokens_to_sample: i32,
-    model: Option<String>,
-    temperature: Option<f32>,
-    stop_sequences: Option<Vec<String>>,
-    top_p: Option<f32>,
-    top_k: Option<i32>,
-    metadata: Option<HashMap<String, String>>,
+    client: &HalLLMClient,
+    request: HalLLMRequestArgs,
 ) -> Result<ResponseBody, ApiError> {
     let url = "https://api.anthropic.com/v1/complete";
-    let api_key = std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set");
-    prompt = format_prompt(prompt);
+    let json_messages = serde_json::to_string(&request.messages).unwrap();
+    let prompt = format_prompt(json_messages);
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    headers.insert("x-api-key", HeaderValue::from_str(&api_key)?);
+    headers.insert("x-api-key", HeaderValue::from_str(&client.api_key)?);
     // https://docs.anthropic.com/claude/reference/versioning
     headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
     let mut body: HashMap<&str, serde_json::Value> = HashMap::new();
-    body.insert(
-        "model",
-        serde_json::json!(model.unwrap_or_else(|| "claude-2.1".to_string())),
-    );
+    body.insert("model", serde_json::json!(client.model_name));
     body.insert("prompt", serde_json::json!(prompt));
     body.insert(
         "max_tokens_to_sample",
-        serde_json::json!(max_tokens_to_sample),
+        serde_json::json!(request.max_tokens_to_sample),
     );
-    body.insert("temperature", serde_json::json!(temperature.unwrap_or(1.0)));
+    body.insert(
+        "temperature",
+        serde_json::json!(request.temperature.unwrap_or(1.0)),
+    );
     body.insert("stream", serde_json::json!(false));
 
-    if let Some(stop_sequences) = stop_sequences {
+    if let Some(stop_sequences) = request.stop_sequences {
         body.insert("stop_sequences", serde_json::json!(stop_sequences));
     }
-    if let Some(top_p) = top_p {
+    if let Some(top_p) = request.top_p {
         body.insert("top_p", serde_json::json!(top_p));
     }
-    if let Some(top_k) = top_k {
+    if let Some(top_k) = request.top_k {
         body.insert("top_k", serde_json::json!(top_k));
     }
-    if let Some(metadata) = metadata {
+    if let Some(metadata) = request.metadata {
         body.insert("metadata", serde_json::json!(metadata));
     }
 
@@ -216,31 +163,30 @@ pub async fn call_anthropic_api(
 
 #[cfg(test)]
 mod tests {
+    use crate::openai::Message;
+
     use super::*;
     use dotenv;
     #[tokio::test]
     async fn test_call_anthropic_api() {
         dotenv::dotenv().ok();
-        let prompt = "Say '0'".to_string();
-        let max_tokens_to_sample = 100;
-        let model = Some("claude-2.1".to_string());
-        let temperature = Some(1.0);
-        let stop_sequences = Some(vec!["Test".to_string()]);
-        let top_p = Some(1.0);
-        let top_k = Some(1);
-        let metadata = Some(HashMap::new());
+        let client = HalLLMClient::new(
+            "claude-2.1".to_string(),
+            std::env::var("MODEL_URL").unwrap_or_else(|_| "".to_string()),
+            std::env::var("ANTHROPIC_API_KEY").unwrap_or_else(|_| "".to_string()),
+        );
 
-        let result = call_anthropic_api(
-            prompt,
-            max_tokens_to_sample,
-            model,
-            temperature,
-            stop_sequences,
-            top_p,
-            top_k,
-            metadata,
-        )
-        .await;
+        let request = HalLLMRequestArgs::default()
+            .messages(vec![Message {
+                role: "user".to_string(),
+                content: "Say the number '0'".to_string(),
+            }])
+            .temperature(0.7)
+            .max_tokens_to_sample(50)
+            // Add other method calls to set fields as needed
+            .build()
+            .unwrap();
+        let result = call_anthropic_api(&client, request).await;
 
         match result {
             Ok(response) => {
@@ -250,36 +196,6 @@ mod tests {
                 assert_eq!(response.model, "claude-2.1");
             }
             Err(e) => panic!("API call failed: {}", e),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_call_anthropic_api_stream() {
-        dotenv::dotenv().ok();
-        let prompt = "Say '0'".to_string();
-        let max_tokens_to_sample = 100;
-        let model = Some("claude-2.1".to_string());
-        let temperature = Some(1.0);
-        let stop_sequences = Some(vec!["Test".to_string()]);
-        let top_p = Some(1.0);
-        let top_k = Some(1);
-        let metadata = Some(HashMap::new());
-
-        let bytes = call_anthropic_api_stream(
-            prompt,
-            max_tokens_to_sample,
-            model,
-            temperature,
-            stop_sequences,
-            top_p,
-            top_k,
-            metadata,
-        )
-        .await
-        .expect("API call failed");
-        for chunk in bytes.chunks(1024) {
-            // process in chunks of 1024 bytes
-            println!("Received data: {:?}", chunk);
         }
     }
 }

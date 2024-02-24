@@ -32,8 +32,7 @@ pub async fn submit_tool_outputs_handler(
     Json(request): Json<SubmitToolOutputsRequest>,
 ) -> Result<JsonResponse<RunObject>, (StatusCode, String)> {
     let user_id = Uuid::default().to_string();
-    let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
-    let client = redis::Client::open(redis_url).unwrap();
+    let client = redis::Client::open(app_state.hal_9100_config.redis_url.clone()).unwrap();
     let con = client.get_async_connection().await.unwrap();
     match submit_tool_outputs(
         &app_state.pool,
@@ -188,6 +187,8 @@ pub async fn list_runs_handler(
 
 #[cfg(test)]
 mod tests {
+    use hal_9100_extra::config::Hal9100Config;
+
     use super::*;
     use async_openai::types::CreateRunRequest;
     use axum::body::Body;
@@ -208,8 +209,8 @@ mod tests {
 
     async fn setup() -> AppState {
         dotenv().ok();
-
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .idle_timeout(Duration::from_secs(3))
@@ -217,9 +218,9 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
             pool: Arc::new(pool),
             file_storage: Arc::new(FileStorage::new().await),
-            // Add other AppState fields here
         }
     }
 
