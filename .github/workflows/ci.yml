@@ -20,6 +20,7 @@ permissions:
   packages: write
 
 env:
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}/hal-9100
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -101,6 +102,7 @@ jobs:
         with:
           name: rust-build-artifact
           path: ./target
+
   docker-build:
     needs: rust-build
     runs-on: ubuntu-latest
@@ -157,7 +159,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ steps.regex-match.outputs.group1 }}
+          tags: ${{ env.REGISTRY_IMAGE }}:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile
           platforms: ${{ matrix.docker_platform }}
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -169,6 +171,33 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  merge:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: regex-match
+        with:
+          text: ${{ github.event.head_commit.message }}
+          regex: "^Release ([^ ]+)"
+
+      - name: Create and push manifest list
+        run: |
+          docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:${{ steps.regex-match.outputs.group1 }} \
+            ${{ env.REGISTRY_IMAGE }}@sha256:${{ needs.docker-build.outputs.digest-linux-amd64 }} \
+            ${{ env.REGISTRY_IMAGE }}@sha256:${{ needs.docker-build.outputs.digest-linux-arm64 }} \
+            ${{ env.REGISTRY_IMAGE }}@sha256:${{ needs.docker-build.outputs.digest-linux-arm64-v8 }}
 
   docker-build-code-interpreter:
     needs: test
