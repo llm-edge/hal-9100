@@ -164,6 +164,7 @@ jobs:
           platforms: ${{ matrix.docker_platform }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
+          outputs: type=registry
           build-args: |
             BINARY_PATH=./target/${{ matrix.target }}/release/hal-9100
 
