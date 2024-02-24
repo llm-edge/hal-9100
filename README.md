@@ -129,7 +129,7 @@ Install OpenAI SDK: `npm i openai`
 Start the infra:
 
 ```bash
-docker compose --profile api -f docker/docker-compose.yml up -d
+docker compose --profile api -f docker/docker-compose.yml up
 ```
 
 Run the [quickstart](./examples/quickstart.js):
@@ -137,10 +137,6 @@ Run the [quickstart](./examples/quickstart.js):
 ```bash
 node examples/quickstart.js
 ```
-
-# 🚀 Deployment
-
-Please follow [this documentation](https://github.com/stellar-amenities/hal-9100/blob/main/ee/k8s/README.md).
 
 # 🤔 FAQ
 

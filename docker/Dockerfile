@@ -16,6 +16,7 @@ ARG BINARY_PATH=./target/release/hal-9100
 
 # Copy the pre-built binaries into the image
 COPY $BINARY_PATH /usr/local/bin/hal-9100
+RUN chmod +x /usr/local/bin/hal-9100
 
 # Copy the wait script to the image
 COPY ./ee/k8s/readiness-probe.sh /app/readiness-probe.sh
