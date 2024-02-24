@@ -157,7 +157,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}/hal-9100:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile
           platforms: ${{ matrix.docker_platform }}
           cache-from: type=local,src=/tmp/.buildx-cache
