@@ -12,13 +12,14 @@ ENV S3_BUCKET_NAME=mybucket
 WORKDIR /app
 
 # Copy the pre-built binaries into the image
-COPY ./docker/target/release/hal-9100-executor /usr/local/bin/hal-9100-executor
 COPY ./docker/target/release/hal-9100 /usr/local/bin/hal-9100
 
 # Copy the wait script to the image
 COPY ./ee/k8s/readiness-probe.sh /app/readiness-probe.sh
 RUN chmod +x /app/readiness-probe.sh
 
+# Copy the configuration file to the image
+COPY hal-9100.toml /app/hal-9100.toml
 
 # Copy the entrypoint script
 COPY ./docker/entrypoint.sh /app/entrypoint.sh

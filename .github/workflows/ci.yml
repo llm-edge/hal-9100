@@ -89,14 +89,11 @@ jobs:
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}
         run: |
-          cross build --target ${{ matrix.target }} --release --bin hal-9100-executor
           cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
-          cp ./target/${{ matrix.target }}/release/hal-9100-executor ./docker/target/release/
           cp ./target/${{ matrix.target }}/release/hal-9100 ./docker/target/release/
         env:
           SQLX_OFFLINE: true
-          PKG_CONFIG_PATH: /usr/lib/pkgconfig
   docker-build:
     needs: rust-build
     runs-on: ubuntu-latest
@@ -199,3 +196,4 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}, ${{ secrets.DOCKERHUB_USERNAME }}/hal-9100-code-interpreter:${{ steps.regex-match.outputs.group1 }}
           file: docker/Dockerfile.code-interpreter
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
+
