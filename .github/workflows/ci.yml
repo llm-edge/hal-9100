@@ -89,6 +89,7 @@ jobs:
       # Cross-compile Rust binaries for each platform
       - name: Build Rust binaries for ${{ matrix.target }}
         run: |
+          cargo clean # https://github.com/cross-rs/cross/issues/724
           cross build --target ${{ matrix.target }} --release --bin hal-9100
           mkdir -p ./docker/target/release
           cp ./target/${{ matrix.target }}/release/hal-9100 ./docker/target/release/
