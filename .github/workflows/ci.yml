@@ -69,6 +69,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # TODO: not sure two steps necessary this approach seems more used by rust project
+      - uses: Swatinem/rust-cache@v2
+
       # Cache Rust dependencies
       - name: Cache cargo registry
         uses: actions/cache@v2
@@ -244,11 +247,11 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+            $(printf ${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
   docker-build-code-interpreter:
     needs: test
