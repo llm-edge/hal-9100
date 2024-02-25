@@ -1,4 +1,4 @@
-FROM rust:bookworm
+FROM debian:latest
 
 # Dependencies 
 RUN apt-get update && apt-get install -y libssl-dev openssl curl libssl1.1 && rm -rf /var/lib/apt/lists/*
