@@ -1,5 +1,8 @@
 FROM rust:bookworm
 
+# Dependencies 
+RUN apt-get update && apt-get install -y libssl-dev openssl curl
+
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@postgres:5432/mydatabase
 ENV REDIS_URL=redis://redis/
