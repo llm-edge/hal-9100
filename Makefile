@@ -70,6 +70,10 @@ docker-push-code-interpreter-amd64: ## Push the Docker image for the code interp
 	docker tag code-interpreter-amd64:latest louis030195/hal-9100-code-interpreter:latest
 	docker push louis030195/hal-9100-code-interpreter:latest
 
+docker/api/build_and_run:
+	docker build -f docker/Dockerfile -t hal-9100:latest .
+	docker run --name hal-9100-instance -p 3000:3000 hal-9100:latest
+
 clean/rust: 
 	cargo clean
 

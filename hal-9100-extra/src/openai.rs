@@ -247,12 +247,17 @@ pub async fn call_openai_api_with_messages(
     temperature: Option<f32>,
     stop_sequences: Option<Vec<String>>,
     top_p: Option<f32>,
+    api_key: String,
 ) -> Result<ChatCompletion, OpenAIApiError> {
     let url = "https://api.openai.com/v1/chat/completions";
     let default_model = "gpt-3.5-turbo".to_string();
     let model = model.unwrap_or_else(|| default_model.clone());
 
-    let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
+    let api_key = if api_key.is_empty() {
+        std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set")
+    } else {
+        api_key
+    };
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
@@ -296,13 +301,18 @@ pub async fn call_open_source_openai_api_with_messages(
     temperature: Option<f32>,
     stop_sequences: Option<Vec<String>>,
     top_p: Option<f32>,
-    url: String, // url is required for open-source API
+    url: String,     // url is required for open-source API
+    api_key: String, // api_key is required for open-source API
 ) -> Result<ChatCompletion, OpenAIApiError> {
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
     // If the deployed LLM need API key, you can add it here.
-    let api_key = std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string());
+    let api_key = if api_key.is_empty() {
+        std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set")
+    } else {
+        api_key
+    };
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let auth_value = match HeaderValue::from_str(&format!("Bearer {}", api_key)) {
         Ok(v) => v,

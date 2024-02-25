@@ -221,6 +221,7 @@ impl HalLLMClient {
                 request.temperature,
                 request.stop_sequences,
                 request.top_p,
+                self.api_key.clone(),
             )
             .await
             .map(|res| res.choices[0].message.content.clone())
@@ -251,6 +252,7 @@ impl HalLLMClient {
                 request.stop_sequences,
                 request.top_p,
                 self.model_url.clone(),
+                self.api_key.clone(),
             )
             .await
             .map(|res| res.choices[0].message.content.clone())
