@@ -1,7 +1,7 @@
-FROM debian:latest
+FROM debian:bullseye-slim
 
 # Dependencies 
-RUN apt-get update && apt-get install -y libssl-dev openssl curl libssl1.1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libssl-dev openssl curl && rm -rf /var/lib/apt/lists/*
 
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@postgres:5432/mydatabase
