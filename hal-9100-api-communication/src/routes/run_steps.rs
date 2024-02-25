@@ -59,26 +59,24 @@ pub async fn list_steps_handler(
 mod tests {
     use super::*;
     use hal_9100_extra::config::Hal9100Config;
-    
-    use crate::{
-        routes::{
-            assistants::{
-                create_assistant_handler, delete_assistant_handler, get_assistant_handler,
-                list_assistants_handler, update_assistant_handler,
-            },
-            messages::{
-                add_message_handler, delete_message_handler, get_message_handler,
-                list_messages_handler, update_message_handler,
-            },
-            runs::{
-                create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
-                submit_tool_outputs_handler, update_run_handler, ApiSubmittedToolCall,
-                SubmitToolOutputsRequest,
-            },
-            threads::{
-                create_thread_handler, delete_thread_handler, get_thread_handler,
-                list_threads_handler, update_thread_handler,
-            },
+
+    use crate::routes::{
+        assistants::{
+            create_assistant_handler, delete_assistant_handler, get_assistant_handler,
+            list_assistants_handler, update_assistant_handler,
+        },
+        messages::{
+            add_message_handler, delete_message_handler, get_message_handler,
+            list_messages_handler, update_message_handler,
+        },
+        runs::{
+            create_run_handler, delete_run_handler, get_run_handler, list_runs_handler,
+            submit_tool_outputs_handler, update_run_handler, ApiSubmittedToolCall,
+            SubmitToolOutputsRequest,
+        },
+        threads::{
+            create_thread_handler, delete_thread_handler, get_thread_handler, list_threads_handler,
+            update_thread_handler,
         },
     };
     use async_openai::types::{
@@ -214,7 +212,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant with get_name and weather functions
         let assistant = CreateAssistantRequest {

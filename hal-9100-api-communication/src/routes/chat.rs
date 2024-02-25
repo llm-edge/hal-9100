@@ -335,7 +335,7 @@ mod tests {
     //     // Create a Router with the stream_chat_handler route
     //     // let app = Router::new().route("/chat/completions", post(chat_handler));
     //     let model_name = std::env::var("TEST_MODEL_NAME")
-    //         .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+    //         .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
     //     // Mock a request with a tool that requires a function call
     //     let chat_input = json!({
     //         "model": model_name,

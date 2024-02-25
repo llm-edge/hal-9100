@@ -343,7 +343,7 @@ The president of the Moon is TDB.
         let context = "dog food";
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );

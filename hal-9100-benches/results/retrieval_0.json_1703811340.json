@@ -1,5 +1,5 @@
 {
-  "mistralai/mixtral-8x7b-instruct": [
+  "mistralai/Mixtral-8x7B-Instruct-v0.1": [
     {
       "endpoint": "http://localhost:3000/assistants",
       "method": "POST",

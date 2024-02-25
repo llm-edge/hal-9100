@@ -24,7 +24,7 @@ async function uploadFile() {
 async function createAssistant(fileId) {
     const assistant = await openai.beta.assistants.create({
         instructions: "You are a VC copilot. Write and run code to answer questions about startups investment.",
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
         name: "VC Copilot",
         tools: [{
             "type": "function",

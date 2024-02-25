@@ -1295,7 +1295,7 @@ mod tests {
 
         // Upload the temporary file
         let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
         
         // 1. Create an Assistant
         let file_id_clone = file_id.clone();
@@ -1509,7 +1509,7 @@ mod tests {
     async fn test_decide_tool_with_llm_code_interpreter() {
         setup().await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let assistant = Assistant {
             inner: AssistantObject {
@@ -1570,7 +1570,7 @@ mod tests {
     async fn test_decide_tool_with_llm_open_source() {
         setup().await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let mut functions = FunctionObject {
             description: Some("A calculator function".to_string()),
@@ -1663,7 +1663,7 @@ mod tests {
 
         // 3. Upload the temporary file
         let file_id = file_storage.upload_file(&temp_file_path).await.unwrap();
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // 4. Create an Assistant with function calling tool
         let file_id_clone = file_id.clone();
@@ -2000,7 +2000,7 @@ mod tests {
 
         // 4. Create an Assistant with function calling tool
         let file_id_clone = file_id.clone();
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
         
         // 1. Create an Assistant
         let assistant = Assistant {
@@ -2114,7 +2114,7 @@ mod tests {
     async fn test_decide_tool_with_llm_no_function_after_tool_call() {
         let pool = setup().await;
         reset_db(&pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
         
         let assistant = Assistant {
             inner: AssistantObject {
@@ -2294,7 +2294,7 @@ mod tests {
         let pool = setup().await;
 
         // Get the model name from environment variable or use default
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant with "action" tool
         let assistant = Assistant {
@@ -2362,7 +2362,7 @@ mod tests {
         // Setup
         let pool = setup().await;
 
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant with "action" tool
         let assistant = Assistant {
@@ -2439,7 +2439,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -2486,7 +2486,7 @@ mod tests {
         let pool = setup().await;
         reset_db(&pool).await;
 
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2560,7 +2560,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -2650,7 +2650,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2742,7 +2742,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -2811,7 +2811,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant
         let assistant = create_assistant(&pool, &Assistant {
@@ -2903,7 +2903,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -2971,7 +2971,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -3014,7 +3014,7 @@ mod tests {
         // Setup
         let pool = setup().await;
         reset_db(&pool).await;
-        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+        let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create an assistant with two functions: 'get_weather' and 'celsius_to_kelvin'
         let assistant = create_assistant(&pool, &Assistant {
@@ -3115,7 +3115,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -3187,7 +3187,7 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
         let llm_client = HalLLMClient::new(
             std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );

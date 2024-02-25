@@ -1034,7 +1034,7 @@ mod tests {
         let body: Value = serde_json::from_slice(&body).unwrap();
         let file_id = body["id"].as_str().unwrap().to_string();
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // 2. Create an Assistant with the uploaded file
         let assistant = CreateAssistantRequest {
@@ -1686,7 +1686,7 @@ mod tests {
         let body: Value = serde_json::from_slice(&body).unwrap();
         let file_id = body["id"].as_str().unwrap().to_string();
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // 2. Create an Assistant with the uploaded file and function tool
         let assistant = json!({ // ! hack using json because serializsation of assistantools is fked
@@ -1940,7 +1940,7 @@ mod tests {
         let body: Value = serde_json::from_slice(&body).unwrap();
         let file_id = body["id"].as_str().unwrap().to_string();
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // 2. Create an Assistant with function, retrieval, and code interpreter tools
         let assistant = json!({
@@ -2161,7 +2161,7 @@ mod tests {
         let app = app(app_state.clone());
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create two Assistants with functions
         let assistant = CreateAssistantRequest {

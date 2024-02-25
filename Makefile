@@ -38,11 +38,11 @@ reboot: clean docker ## Clean and run docker compose up
 
 ## Run the executor
 executor: ## Run the executor
-	cargo run --bin hal-9100-executor executor
+	cargo run --bin hal-9100 executor
 
 ## Run the api
 api: ## Run the api
-	cargo run --bin hal-9100-executor api
+	cargo run --bin hal-9100 api
 
 ## Run executor & api
 all:

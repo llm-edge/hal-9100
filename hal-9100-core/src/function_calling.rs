@@ -468,7 +468,7 @@ mod tests {
         let pool = setup().await;
         let user_id = Uuid::default().to_string();
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let assistant = Assistant {
             inner: AssistantObject {
@@ -632,7 +632,7 @@ mod tests {
         }
         "#;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         // Create assistant
         let assistant = create_assistant(

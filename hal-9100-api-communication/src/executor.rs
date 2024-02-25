@@ -149,7 +149,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let assistant = json!({
             "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",
@@ -378,7 +378,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let assistant = json!({
             "instructions": "You are a personal assistant. Use the MediaWiki API to fetch random facts. You provide the exact API output to the user.",
@@ -668,7 +668,7 @@ mod tests {
 
         reset_db(&app_state.pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string());
+            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let supabase_api_key =
             std::env::var("SUPABASE_ANON_API_KEY").expect("SUPABASE_ANON_API_KEY must be set");

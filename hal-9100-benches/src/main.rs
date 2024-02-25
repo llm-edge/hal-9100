@@ -136,7 +136,7 @@ Rules:
                 println!("User prompt: {}", user_prompt);
                 let client = HalLLMClient::new(
                     std::env::var("TEST_MODEL_NAME")
-                        .unwrap_or_else(|_| "mistralai/mixtral-8x7b-instruct".to_string()),
+                        .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
                     std::env::var("MODEL_URL").unwrap_or_else(|_| "".to_string()),
                     std::env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string()),
                 );

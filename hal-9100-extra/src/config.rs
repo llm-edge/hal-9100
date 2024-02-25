@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::{env, path::PathBuf};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Hal9100Config {
@@ -31,5 +32,28 @@ impl Default for Hal9100Config {
             s3_secret_key: std::env::var("S3_SECRET_KEY").unwrap_or("minioadmin".to_string()),
             s3_bucket_name: std::env::var("S3_BUCKET_NAME").unwrap_or("mybucket".to_string()),
         }
+    }
+}
+impl Hal9100Config {
+    pub async fn load_and_override_with_env(config_path: PathBuf) -> Self {
+        // Load configuration from file
+        let config_file = std::fs::read_to_string(&config_path).unwrap();
+        let mut config: Hal9100Config = toml::from_str(&config_file).unwrap();
+
+        // Override with environment variables if they exist
+        config.anthropic_api_key = env::var("ANTHROPIC_API_KEY")
+            .ok()
+            .or(config.anthropic_api_key);
+        config.openai_api_key = env::var("OPENAI_API_KEY").ok().or(config.openai_api_key);
+        config.model_url = env::var("MODEL_URL").unwrap_or(config.model_url);
+        config.model_api_key = env::var("MODEL_API_KEY").ok().or(config.model_api_key);
+        config.database_url = env::var("DATABASE_URL").unwrap_or(config.database_url);
+        config.redis_url = env::var("REDIS_URL").unwrap_or(config.redis_url);
+        config.s3_endpoint = env::var("S3_ENDPOINT").unwrap_or(config.s3_endpoint);
+        config.s3_access_key = env::var("S3_ACCESS_KEY").unwrap_or(config.s3_access_key);
+        config.s3_secret_key = env::var("S3_SECRET_KEY").unwrap_or(config.s3_secret_key);
+        config.s3_bucket_name = env::var("S3_BUCKET_NAME").unwrap_or(config.s3_bucket_name);
+
+        config
     }
 }

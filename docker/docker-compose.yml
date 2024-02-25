@@ -41,7 +41,7 @@ services:
   
   hal-9100:
     container_name: hal-9100
-    image: ghcr.io/stellar-amenities/hal-9100/hal-9100:sha-dd5f64b
+    image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.18
     ports:
       - 3000:3000
     depends_on:
@@ -54,6 +54,7 @@ services:
       - DATABASE_URL=postgres://postgres:secret@postgres/mydatabase
       - S3_ENDPOINT=http://minio:9000
       - REDIS_URL=redis://redis
+    command: ["--config", "/app/hal-9100.toml", "--port", "3000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s

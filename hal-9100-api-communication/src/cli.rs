@@ -69,8 +69,8 @@ async fn main() {
     } else {
         PathBuf::from("./hal-9100.toml")
     };
-    let config_file = std::fs::read_to_string(&config_path).unwrap();
-    let config: Hal9100Config = toml::from_str(&config_file).unwrap();
+    // Load configuration and override with environment variables
+    let config = Hal9100Config::load_and_override_with_env(config_path).await;
 
     env_logger::builder()
         .filter_level(match opts.verbose - opts.quiet {
@@ -140,7 +140,7 @@ async fn main() {
 
             info!("Starting hal-9100-executor");
             let llm_client = HalLLMClient::new(
-                "mistralai/mixtral-8x7b-instruct".to_string(),
+                "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string(),
                 config.model_url,
                 config.model_api_key.unwrap_or_default(),
             );
