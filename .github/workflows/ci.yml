@@ -224,12 +224,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: regex-match
+        with:
+          text: ${{ github.event.head_commit.message }}
+          regex: "^Release ([^ ]+)"
+
       - name: Docker Metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
+            type=raw,value=${{ steps.regex-match.outputs.group1 }}
             type=schedule
             type=ref,event=branch
             type=ref,event=pr
@@ -237,12 +244,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
-
-      - uses: actions-ecosystem/action-regex-match@v2
-        id: regex-match
-        with:
-          text: ${{ github.event.head_commit.message }}
-          regex: "^Release ([^ ]+)"
 
       - name: Create Manifest and Push Image
         working-directory: /tmp/digests

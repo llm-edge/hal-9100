@@ -1,7 +1,7 @@
 FROM rust:bookworm
 
 # Dependencies 
-RUN apt-get update && apt-get install -y libssl-dev openssl curl
+RUN apt-get update && apt-get install -y libssl-dev openssl curl libssl1.1 && rm -rf /var/lib/apt/lists/*
 
 # Set the environment variables
 ENV DATABASE_URL postgres://postgres:secret@postgres:5432/mydatabase
