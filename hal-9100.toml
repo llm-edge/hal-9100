@@ -5,7 +5,10 @@ anthropic_api_key = "..."
 openai_api_key = "..."
 
 # if you use your own llm deployed, for example with anyscale:
-model_url = "https://api.endpoints.anyscale.com/v1/chat/completions"
+model_url = "http://ollama:11434/v1/chat/completions"
+# or use ollama, check docker compose too!
+# model_url = "http://ollama:11434/v1/chat/completions"
+# docker compose --profile api --profile ollama -f docker/docker-compose.yml up
 # or use your own llm
 # model_url = "http://localhost:8000/chat/completions"
 

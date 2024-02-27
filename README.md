@@ -122,7 +122,19 @@ cd hal-9100
 ```
 
 To get started quickly, let's use Anyscale API.
-Get an API key from Anyscale. You can get it [here](https://app.endpoints.anyscale.com/credentials). Replace in [hal-9100.toml](./hal-9100.toml) the `model_api_key` with your API key
+Get an API key from Anyscale. You can get it [here](https://app.endpoints.anyscale.com/credentials). Replace in [hal-9100.toml](./hal-9100.toml) the `model_api_key` with your API key.
+
+<details>
+<summary>Usage w/ ollama</summary>
+<p>
+
+1. use `model_url = "http://ollama:11434/v1/chat/completions"`
+2. set `gemma:2b` in [examples/quickstart.js](./examples/quickstart.js)
+3. and run `docker compose --profile api --profile ollama -f docker/docker-compose.yml up`
+
+</p>
+</details>
+
 
 Install OpenAI SDK: `npm i openai`
 
