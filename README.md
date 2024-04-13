@@ -186,8 +186,9 @@ Other models have not been extensively tested and may not work as expected, but 
 
 <details>
 <summary>What's the difference with LangChain?</summary>
-1. LangChain is spread across proprietary LLM and open source, among many thousands things they are spread on. HAL-9100 is focused on the Software 3.0 for the edge 
-  
+1. LangChain spans proprietary LLM and open source, among the thousands of things it spans. HAL-9100 laser focuses on Software 3.0 for the edge. 
+
+
 2. You can write AI products in 50 lines of code instead of 5000 and having to learn a whole new abstraction
 </details>
 
