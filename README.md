@@ -2,7 +2,7 @@
 <p align="center">
 <img width="600" alt="hal-9100" src="https://github.com/llm-edge/hal-9100/assets/25003283/2e23bcc3-fa1a-43dd-9e60-f938212ca0b1">
   <h1 align="center">🤖 HAL-9100</h1>
-  <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms. Using OpenAI SDK. For production.</h2>
+  <h2 align="center">Build AI Assistants running on the edge. Using OpenAI SDK. For production.</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants.</h4>
   <p align="center">
     <a href='https://codespaces.new/llm-edge/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
@@ -25,11 +25,7 @@
 
 -----
 
-Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
-
-<img width="600" alt="hal-9100" src="https://github.com/llm-edge/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
-
-
+<!--
 # ⭐️ Latest News
 
 - [2024/01/19] 🔥 Added usage w ollama. Keep reading 👇.
@@ -37,32 +33,40 @@ Since it's compatible with OpenAI Assistants API, this is how you would integrat
 - [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
 - [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
 - [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
-
+-->
 # ✨ Key Features
 - [x] **Code Interpreter**: Generate and runs Python code in a sandboxed environment autonomously. (beta)
 - [x] **Knowledge Retrieval**: Retrieves external knowledge or documents autonomously.
 - [x] **Function Calling**: Defines and executes custom functions autonomously.
 - [x] **Actions**: Execute requests to external APIs autonomously.
 - [x] **Files**: Supports a range of file formats.
+- [x] **OpenAI compatible**: Works with OpenAI (Assistants) SDK
+<!--
 - [x] **Enterprise production-ready**: 
   - [x] observability (metrics, errors, traces, logs, etc.)
   - [x] scalability (serverless, caching, autoscaling, etc.)
   - [x] security (encryption, authentication, authorization, etc.)
-
+-->
 # 😃 Who is it for?
 
-- You operate on a large scale and want to reduce your costs
-- You want to increase your speed
+<img width="800" alt="hal-9100-2" src="https://github.com/llm-edge/hal-9100/assets/25003283/5a393d61-7a1d-4e06-8932-f822b18015ba">
+
 - You want to increase customization (e.g. use your own models, extend the API, etc.)
 - You work in a data-sensitive environment (healthcare, IoT, military, law, etc.)
-- Your product does have poor internet access (military, IoT, extreme environment, etc.)
+- Your product does have poor or no internet access (military, IoT, edge, extreme environment, etc.)
+- (not our main focus) You operate on a large scale and want to reduce your costs
+- (not our main focus) You operate on a large scale and want to increase your speed
+
+# 🤖 Our definition of Software 3.0
+
+First, our definition of **Software 3.0**, as it is a loaded term:
+Software 3.0 is the bridge connecting the cognitive capabilities of Large Language Models with the practical needs of human digital activity. It is a comprehensive approach that allows LLMs to:
+1. perform the same activity (or better) on the digital world than humans
+2. generally, allow the user to [perform more operations without conscious effort](https://third.software/)
 
 # 📏 Principles
 
-<img align="center" width="600" alt="hal-9100" src="https://github.com/llm-edge/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
-  
-
-HAL-9100 is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
+HAL-9100 is in continuous development, with the aim of always offering better infrastructure for **Edge Software 3.0**. To achieve this, it is based on several principles that define its functionality and scope.
 
 <details>
 <summary><strong>Less prompt is more</strong></summary>
