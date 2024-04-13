@@ -1,11 +1,11 @@
 
 <p align="center">
-<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/2e23bcc3-fa1a-43dd-9e60-f938212ca0b1">
+<img width="600" alt="hal-9100" src="https://github.com/llm-edge/hal-9100/assets/25003283/2e23bcc3-fa1a-43dd-9e60-f938212ca0b1">
   <h1 align="center">🤖 HAL-9100</h1>
   <h2 align="center">Build Powerful AI Assistants In-House, On Your Terms. Using OpenAI SDK. For production.</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants.</h4>
   <p align="center">
-    <a href='https://codespaces.new/stellar-amenities/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
+    <a href='https://codespaces.new/llm-edge/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
     <br />
     <a href="https://discord.gg/pj5VRqqs84"><img alt="Join Discord" src="https://img.shields.io/discord/1066022656845025310?color=blue&style=for-the-badge"></a>
   </p>
@@ -18,8 +18,8 @@
 
 <p align="center">
     <a href="https://link.excalidraw.com/readonly/YSE7DNzB2LmEPfVdCqq3">🖼️ Infra</a>
-    <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
-    <a href="https://github.com/stellar-amenities/hal-9100/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
+    <a href="https://github.com/llm-edge/hal-9100/issues/new?assignees=&labels=enhancement">✨ Feature?</a>
+    <a href="https://github.com/llm-edge/hal-9100/issues/new?assignees=&labels=bug">❤️‍🩹 Bug?</a>
     <a href="https://cal.com/louis030195/applied-ai">📞 Help?</a>
 </p>
 
@@ -27,13 +27,13 @@
 
 Since it's compatible with OpenAI Assistants API, this is how you would integrate the client side: 
 
-<img width="600" alt="hal-9100" src="https://github.com/stellar-amenities/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
+<img width="600" alt="hal-9100" src="https://github.com/llm-edge/assistants/assets/25003283/77d78c9a-cc44-492a-b085-8f22e9d5e4ef">
 
 
 # ⭐️ Latest News
 
 - [2024/01/19] 🔥 Added usage w ollama. Keep reading 👇.
-- [2024/01/19] 🔥 Action tool. [Let your Assistant make requests to APIs](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mlc-llm-mistral-nodejs-action).
+- [2024/01/19] 🔥 Action tool. [Let your Assistant make requests to APIs](https://github.com/llm-edge/hal-9100/tree/main/examples/hello-world-mlc-llm-mistral-nodejs-action).
 - [2023/12/19] 🔥 New example: Open source LLM with code interpreter. [Learn more](./examples/hello-world-code-interpreter-mixtral-nodejs/README.md).
 - [2023/12/08] 🔥 New example: Open source LLM with function calling. [Learn more](./examples/hello-world-intel-neural-chat-nodejs-function-calling/README.md).
 - [2023/11/29] 🔥 New example: Using mistral-7b, an open source LLM. [Check it out](./examples/hello-world-mistral-curl/README.md).
@@ -59,7 +59,7 @@ Since it's compatible with OpenAI Assistants API, this is how you would integrat
 
 # 📏 Principles
 
-<img align="center" width="600" alt="hal-9100" src="https://github.com/stellar-amenities/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
+<img align="center" width="600" alt="hal-9100" src="https://github.com/llm-edge/hal-9100/assets/25003283/225dce60-2bc5-4489-a030-c9d865527a57">
   
 
 HAL-9100 is in continuous development, with the aim of always offering better infrastructure for Edge LLMs. To achieve this, it is based on several principles that define its functionality and scope.
@@ -113,12 +113,12 @@ A minimal number of hard-coded prompts and behaviors, a wide range of models, in
 
 Get started in less than a minute through GitHub Codespaces:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/stellar-amenities/hal-9100?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/llm-edge/hal-9100?quickstart=1)
 
 Or:
 
 ```bash
-git clone https://github.com/stellar-amenities/hal-9100
+git clone https://github.com/llm-edge/hal-9100
 cd hal-9100
 ```
 
@@ -166,9 +166,9 @@ No. HAL-9100 is not a hosted service. It's a software that you can deploy on you
 Examples of LLM APIs that does support OpenAI API-like, that you can use:
 - ollama
 - [MLC-LLM](https://github.com/mlc-ai/mlc-llm)
-- [FastChat (good if you have a mac)](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-mistral-curl)
+- [FastChat (good if you have a mac)](https://github.com/llm-edge/hal-9100/tree/main/examples/hello-world-mistral-curl)
 - [vLLM (good if you have a modern gpu)](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server)
-- [Perplexity API](https://github.com/stellar-amenities/hal-9100/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
+- [Perplexity API](https://github.com/llm-edge/hal-9100/tree/main/examples/hello-world-code-interpreter-mixtral-nodejs)
 - Mistral API
 - anyscale
 - together ai

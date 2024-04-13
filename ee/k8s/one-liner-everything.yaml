@@ -49,7 +49,7 @@ spec:
             - ":9001"
 
         - name: rust-api
-          image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.20
+          image: ghcr.io/llm-edge/hal-9100/hal-9100:0.0.20
           imagePullPolicy: Always # for dev
           ports:
             - containerPort: 3000
@@ -130,7 +130,7 @@ spec:
 # kubectl apply -f ee/k8s/one-liner-everything.yaml -n hal-9100
 # kubectl replace -f ee/k8s/one-liner-everything.yaml -n hal-9100 --force
 # kubectl delete -f ee/k8s/one-liner-everything.yaml -n hal-9100
-# kubectl set image deployment/hal-9100 rust-api=ghcr.io/stellar-amenities/hal-9100/hal-9100:0.10.0 -n hal-9100
+# kubectl set image deployment/hal-9100 rust-api=ghcr.io/llm-edge/hal-9100/hal-9100:0.10.0 -n hal-9100
 
 # kubectl get pods -n hal-9100 -l app=hal-9100
 # kubectl get ingress -n hal-9100

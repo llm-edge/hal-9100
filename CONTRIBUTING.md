@@ -22,7 +22,7 @@ It is more of a public utility that we hope will be useful to many people and co
 ### Infra
 
 * Postgres for all the cold data (retrieval, functions, assistants, etc.)
-* Redis for all the hot data (atm only queuing runs, next could be used for [caching](https://github.com/stellar-amenities/hal-9100/issues/51))
+* Redis for all the hot data (atm only queuing runs, next could be used for [caching](https://github.com/llm-edge/hal-9100/issues/51))
 * Minio for all the files
 * Docker
 
@@ -33,7 +33,7 @@ It is more of a public utility that we hope will be useful to many people and co
 ### Taking on Tasks
 
 We have a growing task list of
-[issues](https://github.com/stellar-amenities/hal-9100/issues). Find an issue that
+[issues](https://github.com/llm-edge/hal-9100/issues). Find an issue that
 appeals to you and make a comment that you'd like to work on it. Include in your
 comment a brief description of how you'll solve the problem and if there are any
 open questions you want to discuss.
@@ -95,21 +95,21 @@ Just commit with Release and version number in the commit message. For example:
 
 `git commit -m "Release 1.0.0"`
 
-[Once the image is built](https://github.com/stellar-amenities/hal-9100/pkgs/container/hal-9100%2Fhal-9100), preferrably update [the Docker compose file](docker/docker-compose.yml) to use the new version.
+[Once the image is built](https://github.com/llm-edge/hal-9100/pkgs/container/hal-9100%2Fhal-9100), preferrably update [the Docker compose file](docker/docker-compose.yml) to use the new version.
 
 #### Tips
 
 - At any point you can compare your feature branch to the upstream/main of
-  `stellar-amenities/hal-9100` by using a URL like this:
-  https://github.com/stellar-amenities/hal-9100/compare/main...bobm4894:hal-9100:my-example-feature-branch.
+  `llm-edge/hal-9100` by using a URL like this:
+  https://github.com/llm-edge/hal-9100/compare/main...bobm4894:hal-9100:my-example-feature-branch.
   Obviously just replace `bobm4894` with your own GitHub user name and
   `my-example-feature-branch` with whatever you called the feature branch you
   are working on, so something like
-  `https://github.com/stellar-amenities/hal-9100/compare/main...<your_github_username>:hal-9100:<your_branch_name>`.
+  `https://github.com/llm-edge/hal-9100/compare/main...<your_github_username>:hal-9100:<your_branch_name>`.
   This will show the changes that would appear in a PR, so you can check this to
   make sure only the files you have changed or added will be part of the PR.
 - Try not to work on the `main` branch in your fork - ideally you can keep this
-  as just an updated copy of `main` from `stellar-amenities/hal-9100`.
+  as just an updated copy of `main` from `llm-edge/hal-9100`.
 - If your feature branch gets messed up, just update the `main` branch in your
   fork and create a fresh new clean "feature branch" where you can add your
   changes one by one in separate commits or all as a single commit.

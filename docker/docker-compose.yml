@@ -41,7 +41,7 @@ services:
   
   hal-9100:
     container_name: hal-9100
-    image: ghcr.io/stellar-amenities/hal-9100/hal-9100:0.0.20
+    image: ghcr.io/llm-edge/hal-9100/hal-9100:0.0.20
     ports:
       - 3000:3000
     depends_on:

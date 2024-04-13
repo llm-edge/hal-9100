@@ -7,7 +7,7 @@ Function calling is a more precise and automatic way to provide context to an LL
 ## Setup
 
 ```bash
-git clone https://github.com/stellar-amenities/hal-9100
+git clone https://github.com/llm-edge/hal-9100
 cd hal-9100
 ```
 
