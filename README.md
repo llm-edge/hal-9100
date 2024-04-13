@@ -186,7 +186,8 @@ Other models have not been extensively tested and may not work as expected, but 
 
 <details>
 <summary>What's the difference with LangChain?</summary>
-You can write AI products in 50 lines of code instead of 5000, and avoid being dependent on a feature-creep project.
+  1. LangChain is spread across proprietary LLM and open source, among many thousands things they are spread on 
+  2. You can write AI products in 50 lines of code instead of 5000 and having to learn a whole new abstraction
 </details>
 
 <details>
