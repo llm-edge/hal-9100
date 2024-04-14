@@ -1009,7 +1009,7 @@ mod tests {
         let app_state = setup().await;
         let pool_clone = app_state.pool.clone();
         reset_db(&app_state.pool).await;
-        let app = app(app_state);
+        let app = app(app_state.clone());
 
         // 1. Upload a file
         let boundary = "------------------------14737809831466499882746641449";
@@ -1658,7 +1658,7 @@ mod tests {
         let app_state = setup().await;
         reset_db(&app_state.pool).await;
         let pool_clone = app_state.pool.clone();
-        let app = app(app_state);
+        let app = app(app_state.clone());
 
         // 1. Upload a file
         let boundary = "------------------------14737809831466499882746641449";

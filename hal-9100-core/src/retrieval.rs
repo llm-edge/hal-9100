@@ -251,22 +251,43 @@ pub async fn retrieve_file_contents(
 
 #[cfg(test)]
 mod tests {
+    use crate::file_storage;
+
     use super::*;
     use dotenv::dotenv;
+    use hal_9100_extra::config::Hal9100Config;
     use sqlx::postgres::PgPoolOptions;
+    use sqlx::{Pool, Postgres};
     use std::env;
     use std::io::Write;
     use tokio::io::AsyncWriteExt;
 
-    async fn setup() -> PgPool {
+    async fn setup() -> (
+        Pool<Postgres>,
+        hal_9100_extra::config::Hal9100Config,
+        file_storage::FileStorage,
+    ) {
         dotenv().ok();
-
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        PgPoolOptions::new()
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
+        let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&database_url)
             .await
-            .unwrap()
+            .expect("Failed to create pool.");
+        // Initialize the logger with an info level filter
+        match env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .try_init()
+        {
+            Ok(_) => (),
+            Err(_) => (),
+        };
+        return (
+            pool,
+            hal_9100_config.clone(),
+            FileStorage::new(hal_9100_config).await,
+        );
     }
     async fn reset_db(pool: &PgPool) {
         sqlx::query!(
@@ -303,7 +324,7 @@ The president of the Moon is TDB.
     #[tokio::test]
     async fn test_insert_chunks_into_db() {
         dotenv().ok();
-        let pool = setup().await;
+        let (pool, _, __) = setup().await;
         reset_db(&pool).await;
         // Test data
         let text =
@@ -327,7 +348,7 @@ The president of the Moon is TDB.
     #[tokio::test]
     async fn test_generate_queries_and_fetch_chunks() {
         dotenv().ok();
-        let pool = setup().await;
+        let (pool, _, __) = setup().await;
         reset_db(&pool).await;
 
         // Insert chunks into the database
@@ -366,7 +387,8 @@ The president of the Moon is TDB.
 
     #[tokio::test]
     async fn test_retrieve_file_contents() {
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
 
         // Create a temporary file.
@@ -377,7 +399,7 @@ The president of the Moon is TDB.
         let temp_file_path = temp_file.path();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
+        let fs = FileStorage::new(hal_9100_config).await;
 
         // Upload the file.
         let file_id = fs.upload_file(&temp_file_path).await.unwrap();
@@ -395,9 +417,7 @@ The president of the Moon is TDB.
 
     #[tokio::test]
     async fn test_retrieve_file_contents_pdf() {
-        setup().await;
-        // Setup
-        let file_storage = FileStorage::new().await;
+        let (pool, _, file_storage) = setup().await;
 
         let url = "https://arxiv.org/pdf/2311.10122.pdf";
         let client = reqwest::Client::builder()

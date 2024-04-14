@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 RUSTC := $(shell command -v rustc 2> /dev/null)
+DATABASE_URL := postgres://postgres:secret@localhost:5432/mydatabase
 
 ifndef RUSTC
   $(warning "Rust is not available on your system, please install it using: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")

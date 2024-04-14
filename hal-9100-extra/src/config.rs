@@ -15,12 +15,15 @@ pub struct Hal9100Config {
 
 impl Default for Hal9100Config {
     fn default() -> Self {
+        let db_url = std::env::var("DATABASE_URL")
+            .unwrap_or("postgres://postgres:secret@localhost:5432/mydatabase".to_string());
+        // set DATABASE_URL for sqlx tests...
+        std::env::set_var("DATABASE_URL", &db_url);
         Hal9100Config {
             model_url: std::env::var("MODEL_URL")
                 .unwrap_or("https://api.endpoints.anyscale.com/v1/chat/completions".to_string()),
             model_api_key: std::env::var("MODEL_API_KEY").ok(),
-            database_url: std::env::var("DATABASE_URL")
-                .unwrap_or("postgres://postgres:secret@localhost:5432/mydatabase".to_string()),
+            database_url: db_url,
             redis_url: std::env::var("REDIS_URL").unwrap_or("redis://127.0.0.1/".to_string()),
             s3_endpoint: std::env::var("S3_ENDPOINT")
                 .unwrap_or("http://localhost:9000".to_string()),

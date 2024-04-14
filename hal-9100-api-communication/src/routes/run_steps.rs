@@ -127,9 +127,9 @@ mod tests {
             Err(_) => (),
         };
         AppState {
-            hal_9100_config: Arc::new(hal_9100_config),
+            hal_9100_config: Arc::new(hal_9100_config.clone()),
             pool: Arc::new(pool),
-            file_storage: Arc::new(FileStorage::new().await),
+            file_storage: Arc::new(FileStorage::new(hal_9100_config).await),
         }
     }
 

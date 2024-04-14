@@ -340,7 +340,7 @@ mod tests {
             .connect(&database_url)
             .await
             .expect("Failed to create pool.");
-        let file_storage = FileStorage::new(hal_9100_config).await;
+        let file_storage = FileStorage::new(hal_9100_config.clone()).await;
 
         AppState {
             hal_9100_config: Arc::new(hal_9100_config),

@@ -698,6 +698,7 @@ pub async fn list_runs(
 mod tests {
     use crate::assistants::create_assistant;
     use crate::executor::try_run_executor;
+    use crate::file_storage::{self, FileStorage};
     use crate::models::Assistant;
     use crate::threads::create_thread;
 
@@ -707,16 +708,23 @@ mod tests {
     };
     use dotenv::dotenv;
     use hal_9100_core::models::Thread;
+    use hal_9100_extra::config::Hal9100Config;
     use hal_9100_extra::llm::HalLLMClient;
     use sqlx::postgres::PgPoolOptions;
+    use sqlx::{Pool, Postgres};
     use std::env;
     use std::io::Write;
     use tokio::fs::File;
     use tokio::io::AsyncWriteExt;
 
-    async fn setup() -> PgPool {
+    async fn setup() -> (
+        Pool<Postgres>,
+        hal_9100_extra::config::Hal9100Config,
+        file_storage::FileStorage,
+    ) {
         dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&database_url)
@@ -730,7 +738,11 @@ mod tests {
             Ok(_) => (),
             Err(_) => (),
         };
-        pool
+        return (
+            pool,
+            hal_9100_config.clone(),
+            FileStorage::new(hal_9100_config).await,
+        );
     }
 
     async fn reset_db(pool: &PgPool) {
@@ -745,7 +757,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_run_and_produce_to_executor_queue() {
-        let pool = setup().await;
+        let (pool, _, __) = setup().await;
         reset_db(&pool).await;
         let assistant = Assistant {
             inner: AssistantObject {
@@ -799,12 +811,7 @@ mod tests {
     #[tokio::test]
     async fn test_tool_calls_insertion() {
         dotenv().ok();
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&database_url)
-            .await
-            .expect("Failed to create pool.");
+        let (pool, hal_9100_config, file_storage) = setup().await;
 
         // Create a required action with tool calls
         let required_action = Some(RequiredAction {
@@ -898,7 +905,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_tool_outputs() {
-        let pool = setup().await;
+        let (pool, _, __) = setup().await;
         reset_db(&pool).await;
 
         // create run and thread and assistant
@@ -978,7 +985,8 @@ mod tests {
     #[tokio::test]
     #[ignore] // TODO: finish this test
     async fn test_create_run_failure() {
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
         // Create assistant
         let model_name = std::env::var("TEST_MODEL_NAME")
@@ -1043,7 +1051,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &app_state.file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
         assert!(result.is_ok());
 
         println!("result: {:?}", result);
