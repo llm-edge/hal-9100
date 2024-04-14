@@ -1,8 +1,4 @@
 
-Before starting, make sure you have a modern laptop or desktop with at least 16GB of RAM and a modern CPU. You will also need to have Node.js installed.
-
-This LLM runs at 60+ tokens per second on my MacBook Pro M2.
-
 At the moment, you need **Docker** installed to run the API.
 
 We will use [OpenAI's JS SDK](https://github.com/openai/openai-node), but feel free to use the [python one](https://github.com/openai/openai-python), you can copy paste this doc in chatgpt to translate to python!
