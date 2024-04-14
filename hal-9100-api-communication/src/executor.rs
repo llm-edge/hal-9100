@@ -126,8 +126,8 @@ mod tests {
         };
         let app_state = AppState {
             pool: Arc::new(pool),
-            file_storage: Arc::new(FileStorage::new().await),
-            hal_9100_config: Arc::new(hal_9100_config),
+            hal_9100_config: Arc::new(hal_9100_config.clone()),
+            file_storage: Arc::new(FileStorage::new(hal_9100_config).await),
         };
         app_state
     }
@@ -256,7 +256,8 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app
@@ -485,7 +486,8 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
         assert!(!result.is_ok(), "{:?}", result);
 
         let run_err = result.unwrap_err();
@@ -604,7 +606,8 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app
@@ -788,7 +791,8 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app

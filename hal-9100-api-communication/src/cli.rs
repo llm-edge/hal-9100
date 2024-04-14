@@ -114,12 +114,13 @@ async fn main() {
     ";
 
     info!("{}", ascii_art);
+    let file_storage = FileStorage::new(config.clone()).await;
     match opts.command {
         Commands::Api => {
             let app_state = AppState {
                 hal_9100_config: Arc::new(config),
                 pool: Arc::new(pool),
-                file_storage: Arc::new(FileStorage::new().await),
+                file_storage: Arc::new(file_storage),
             };
 
             let app = app(app_state);
@@ -144,7 +145,7 @@ async fn main() {
                 config.model_url,
                 config.model_api_key.unwrap_or_default(),
             );
-            loop_through_runs(&pool, &mut con, llm_client).await;
+            loop_through_runs(&pool, &mut con, llm_client, &file_storage).await;
         }
     }
 }

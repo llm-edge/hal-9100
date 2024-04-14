@@ -36,6 +36,8 @@ use tokio::sync::broadcast::Receiver;
 use tokio_stream::wrappers::BroadcastStream;
 use url::Url;
 
+use crate::models::AppState;
+
 fn extract_base_url(model_url: &str) -> Result<String, url::ParseError> {
     let url = Url::parse(model_url)?;
     let base_url = url.join("/")?;
@@ -59,28 +61,23 @@ impl IntoResponse for ChatHandlerResponse {
         }
     }
 }
-pub async fn chat_handler(Json(request): Json<CreateChatCompletionRequest>) -> ChatHandlerResponse {
-    let model_name = request.model.clone();
-
-    let model_url = std::env::var("MODEL_URL")
-        .unwrap_or_else(|_| String::from("http://localhost:8000/v1/chat/completions"));
-    let (api_key, model_url) = if model_name.contains("/") {
-        // Open Source model
-        (
-            std::env::var("MODEL_API_KEY").unwrap_or_default(),
-            model_url.clone(),
-        )
-    } else {
-        // OpenAI model
-        (
-            std::env::var("OPENAI_API_KEY").unwrap_or_default(),
-            String::from("https://api.openai.com"),
-        )
-    };
+pub async fn chat_handler(
+    State(app_state): State<AppState>,
+    Json(request): Json<CreateChatCompletionRequest>,
+) -> ChatHandlerResponse {
     // let client = Client::new();
-    let client = HalLLMClient::new(model_name, model_url, api_key);
+    let client = HalLLMClient::new(
+        request.model.clone(),
+        app_state.hal_9100_config.model_url.clone(),
+        app_state
+            .hal_9100_config
+            .model_api_key
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone(),
+    );
 
-    let tools = request.tools.as_ref().unwrap_or(&Vec::new()).clone();
+    let tools = request.tools.as_ref().unwrap_or(&vec![]).clone();
     let mapped_messages: Vec<ChatCompletionRequestMessage> = request
         .messages
         .iter()
@@ -316,10 +313,15 @@ mod tests {
     use axum::routing::post;
     use axum::Router;
     use dotenv::dotenv;
+    use hal_9100_core::file_storage::FileStorage;
+    use hal_9100_extra::config::Hal9100Config;
     use reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
     use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
     use std::convert::Infallible;
     use std::net::SocketAddr;
+    use std::sync::Arc;
+    use std::time::Duration;
     use tokio::net::TcpListener;
     use tower::{Service, ServiceExt};
     use tower_http::trace::TraceLayer;
@@ -328,10 +330,29 @@ mod tests {
     use hal_9100_core::models::{Function, FunctionCallInput};
     use std::env;
     use tokio::runtime::Runtime;
-    fn app() -> Router {
+    async fn setup() -> AppState {
+        dotenv().ok();
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .idle_timeout(Duration::from_secs(3))
+            .connect(&database_url)
+            .await
+            .expect("Failed to create pool.");
+        let file_storage = FileStorage::new(hal_9100_config).await;
+
+        AppState {
+            hal_9100_config: Arc::new(hal_9100_config),
+            pool: Arc::new(pool),
+            file_storage: Arc::new(file_storage),
+        }
+    }
+    fn app(app_state: AppState) -> Router {
         Router::new()
             .route("/chat/completions", post(chat_handler))
             .layer(TraceLayer::new_for_http())
+            .with_state(app_state)
     }
 
     #[tokio::test]
@@ -368,6 +389,7 @@ mod tests {
     #[tokio::test]
     async fn test_function_calling() {
         dotenv().ok();
+        let app_state = setup().await;
         // Create a Router with the stream_chat_handler route
         let model_name = std::env::var("TEST_MODEL_NAME")
             .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
@@ -414,7 +436,7 @@ mod tests {
             .unwrap();
 
         // Call the handler with the request
-        let response = app().oneshot(request).await.unwrap();
+        let response = app(app_state).oneshot(request).await.unwrap();
 
         // Check the status code of the response
         assert_eq!(
@@ -455,15 +477,16 @@ mod tests {
     #[tokio::test]
     async fn test_function_calling_with_streaming() {
         dotenv().ok();
-        async fn spawn_app() -> Result<String, Box<dyn std::error::Error>> {
+        let app_state = setup().await;
+        let spawn_app = || async {
             let addr = SocketAddr::from(([127, 0, 0, 1], 0));
-            let server = axum::Server::bind(&addr).serve(app().into_make_service());
+            let server = axum::Server::bind(&addr).serve(app(app_state).into_make_service());
             // get port allocated by OS
             let local_addr = server.local_addr();
-            tokio::spawn(server);
-            Ok(local_addr.to_string())
-        }
-        let listening_url = spawn_app().await.unwrap();
+            tokio::spawn(server).await.expect("Server failed to start");
+            Ok::<_, std::io::Error>(local_addr.to_string())
+        };
+        let listening_url = spawn_app().await.expect("Failed to get listening URL");
 
         let model_name = std::env::var("TEST_MODEL_NAME")
             .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
@@ -516,14 +539,21 @@ mod tests {
                             break;
                         }
 
-                        let json_value: serde_json::Value = serde_json::from_str(&message.data).unwrap();
+                        let json_value: serde_json::Value =
+                            serde_json::from_str(&message.data).unwrap();
                         // Boston in the argument
                         // {event:"message", data:"{"content":null,"tool_calls":[{"id":"ca9ada53-d6ae-4ef4-82f2-ebee809c3064","type":"function","function":{"name":"get_current_weather","arguments":"{\"location\":\"Boston\"}"}}],"role":"assistant","function_call":null}", ...}
                         let t_c = json_value.get("tool_calls").unwrap();
                         assert_eq!(t_c.as_array().unwrap().len(), 1);
                         let tool_call = t_c.as_array().unwrap().get(0).unwrap();
-                        assert_eq!(tool_call.get("function").unwrap().get("name").unwrap(), "get_current_weather");
-                        assert_eq!(tool_call.get("function").unwrap().get("arguments").unwrap(), "{\"location\":\"Boston\"}");
+                        assert_eq!(
+                            tool_call.get("function").unwrap().get("name").unwrap(),
+                            "get_current_weather"
+                        );
+                        assert_eq!(
+                            tool_call.get("function").unwrap().get("arguments").unwrap(),
+                            "{\"location\":\"Boston\"}"
+                        );
                         break;
                     }
                     Event::Open => continue,

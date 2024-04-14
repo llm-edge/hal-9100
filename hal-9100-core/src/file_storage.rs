@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use hal_9100_extra::config::Hal9100Config;
 use log::{info, warn};
 use reqwest;
 use rusty_s3::actions::{
@@ -77,16 +78,18 @@ where
 }
 
 // TODO: all stuff bit inefficient but for now its k
-impl FileStorage { // TODO use config.rs
-    pub async fn new() -> Self {
-        let endpoint =
-            Url::parse(&env::var("S3_ENDPOINT").expect("S3_ENDPOINT must be set")).unwrap();
-        let access_key = env::var("S3_ACCESS_KEY").expect("S3_ACCESS_KEY must be set");
-        let secret_key = env::var("S3_SECRET_KEY").expect("S3_SECRET_KEY must be set");
-        let bucket_name = env::var("S3_BUCKET_NAME").expect("S3_BUCKET_NAME must be set");
-
-        let bucket = Bucket::new(endpoint, UrlStyle::Path, bucket_name, "us-east-1").unwrap();
-        let credentials = Credentials::new(access_key, secret_key);
+impl FileStorage {
+    // TODO use config.rs
+    pub async fn new(hal_9100_config: Hal9100Config) -> Self {
+        let bucket = Bucket::new(
+            Url::parse(hal_9100_config.s3_endpoint.as_str()).unwrap(),
+            UrlStyle::Path,
+            hal_9100_config.s3_bucket_name,
+            "us-east-1",
+        )
+        .unwrap();
+        let credentials =
+            Credentials::new(hal_9100_config.s3_access_key, hal_9100_config.s3_secret_key);
         let client = reqwest::Client::new();
 
         let action = CreateBucket::new(&bucket, &credentials);
@@ -240,21 +243,11 @@ mod tests {
     use std::path::PathBuf;
     use tempfile::tempdir;
     use tokio::io::AsyncWriteExt;
-    fn setup_env() {
-        std::env::set_var("S3_ENDPOINT", "http://localhost:9000");
-        std::env::set_var("S3_ACCESS_KEY", "minioadmin");
-        std::env::set_var("S3_SECRET_KEY", "minioadmin");
-        std::env::set_var("S3_BUCKET_NAME", "mybucket");
-        std::env::set_var("REDIS_URL", "redis://localhost:6379");
-        std::env::set_var(
-            "DATABASE_URL",
-            "postgres://postgres:secret@localhost:5432/mydatabase",
-        );
-    }
 
     #[tokio::test]
     async fn test_upload_file() {
-        setup_env();
+        let hal_9100_config = Hal9100Config::default();
+
         // Create a temporary directory.
         let dir = tempdir().unwrap();
 
@@ -266,7 +259,7 @@ mod tests {
         writeln!(file, "Hello, world!").unwrap();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
+        let fs = FileStorage::new(hal_9100_config).await;
 
         // Upload the file.
         let result = fs.upload_file(&file_path).await;
@@ -288,7 +281,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_retrieve_file() {
-        setup_env();
+        let hal_9100_config = Hal9100Config::default();
+
         // Create a temporary directory.
         let dir = tempdir().unwrap();
 
@@ -300,7 +294,7 @@ mod tests {
         writeln!(file, "Hello, world!").unwrap();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
+        let fs = FileStorage::new(hal_9100_config).await;
 
         // Upload the file.
         let new_file = fs.upload_file(&file_path).await.unwrap();
@@ -317,7 +311,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_file() {
-        setup_env();
+        let hal_9100_config = Hal9100Config::default();
         // Create a temporary directory.
         let dir = tempdir().unwrap();
 
@@ -329,7 +323,7 @@ mod tests {
         writeln!(file, "Hello, world!").unwrap();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
+        let fs = FileStorage::new(hal_9100_config).await;
 
         // Upload the file.
         let file = fs.upload_file(&file_path).await.unwrap();
@@ -382,9 +376,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_files() {
-        setup_env();
+        let hal_9100_config = Hal9100Config::default();
         // Create a new FileStorage instance.
-        let fs = FileStorage::new().await;
+        let fs = FileStorage::new(hal_9100_config).await;
 
         // Create a temporary directory.
         let dir = tempdir().unwrap();

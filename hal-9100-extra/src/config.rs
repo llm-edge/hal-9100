@@ -3,8 +3,6 @@ use std::{env, path::PathBuf};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Hal9100Config {
-    pub anthropic_api_key: Option<String>,
-    pub openai_api_key: Option<String>,
     pub model_url: String,
     pub model_api_key: Option<String>,
     pub database_url: String,
@@ -18,8 +16,6 @@ pub struct Hal9100Config {
 impl Default for Hal9100Config {
     fn default() -> Self {
         Hal9100Config {
-            anthropic_api_key: std::env::var("ANTHROPIC_API_KEY").ok(),
-            openai_api_key: std::env::var("OPENAI_API_KEY").ok(),
             model_url: std::env::var("MODEL_URL")
                 .unwrap_or("https://api.endpoints.anyscale.com/v1/chat/completions".to_string()),
             model_api_key: std::env::var("MODEL_API_KEY").ok(),
@@ -41,10 +37,6 @@ impl Hal9100Config {
         let mut config: Hal9100Config = toml::from_str(&config_file).unwrap();
 
         // Override with environment variables if they exist
-        config.anthropic_api_key = env::var("ANTHROPIC_API_KEY")
-            .ok()
-            .or(config.anthropic_api_key);
-        config.openai_api_key = env::var("OPENAI_API_KEY").ok().or(config.openai_api_key);
         config.model_url = env::var("MODEL_URL").unwrap_or(config.model_url);
         config.model_api_key = env::var("MODEL_API_KEY").ok().or(config.model_api_key);
         config.database_url = env::var("DATABASE_URL").unwrap_or(config.database_url);

@@ -98,3 +98,4 @@ services:
       - ollama
   
 # docker compose --profile api --profile ollama -f docker/docker-compose.yml up
+# docker compose --profile ollama -f docker/docker-compose.yml up

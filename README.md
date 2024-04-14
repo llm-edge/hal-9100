@@ -133,9 +133,9 @@ Get an API key from Anyscale. You can get it [here](https://app.endpoints.anysca
 <summary>Usage w/ ollama</summary>
 <p>
 
-1. use `model_url = "http://ollama:11434/v1/chat/completions"`
+1. use `model_url = "http://localhost:11434/v1/chat/completions"`
 2. set `gemma:2b` in [examples/quickstart.js](./examples/quickstart.js)
-3. and run `docker compose --profile api --profile ollama -f docker/docker-compose.yml up`
+3. and run `ollama run gemma:2b & && docker compose --profile api -f docker/docker-compose.yml up`
 
 </p>
 </details>

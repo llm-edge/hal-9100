@@ -33,6 +33,7 @@ use hal_9100_core::retrieval::retrieve_file_contents;
 use hal_9100_core::models::Chunk;
 use hal_9100_core::retrieval::generate_queries_and_fetch_chunks;
 
+use crate::file_storage;
 use crate::function_calling::execute_request;
 use crate::models::{RunStep};
 use crate::openapi::ActionRequest;
@@ -338,9 +339,10 @@ pub async fn loop_through_runs(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     client: HalLLMClient, // Not using a reference here because we want to be able to tweak the client at runtime
+    file_storage: &FileStorage,
 ) {
     loop {
-        match try_run_executor(&pool, con, client.clone()).await {
+        match try_run_executor(&pool, con, client.clone(), file_storage).await {
             Ok(_) => continue,
             Err(e) => error!("Error: {}", e),
         }
@@ -351,8 +353,9 @@ pub async fn try_run_executor(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     client: HalLLMClient,
+    file_storage: &FileStorage,
 ) -> Result<Run, RunError> {
-    match run_executor(&pool, con, client).await {
+    match run_executor(&pool, con, client, file_storage).await {
         Ok(run) => { 
             info!("Execution done: {:?}", run);
             set_all_steps_status(&pool, &run.inner.id, &run.user_id, RunStatus::Completed).await.map_err(|e| RunError {
@@ -398,6 +401,7 @@ pub async fn run_executor(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     mut client: HalLLMClient,
+    file_storage: &FileStorage,
 ) -> Result<Run, RunError> {
     info!("Consuming queue");
     let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
@@ -453,8 +457,6 @@ pub async fn run_executor(
         user_id: user_id.to_string(),
     })?;
 
-    // Initialize FileStorage
-    let file_storage = FileStorage::new().await;
 
     // Retrieve the thread associated with the run
     info!("Retrieving thread {}", run.inner.thread_id);
@@ -1226,8 +1228,10 @@ mod tests {
         AssistantToolsRetrieval, ChatCompletionFunctions, MessageObject, MessageRole, RunObject, FunctionObject, AssistantToolsExtra, RunStepObject, ThreadObject,
     };
     use hal_9100_core::models::{Assistant, Message, Run, Thread};
+    use hal_9100_extra::config::Hal9100Config;
     use serde_json::json;
     use sqlx::types::Uuid;
+    use sqlx::{Pool, Postgres};
 
     use crate::assistants::create_assistant;
     use crate::models::SubmittedToolCall;
@@ -1241,9 +1245,11 @@ mod tests {
     use sqlx::postgres::PgPoolOptions;
     use std::io::Write;
 
-    async fn setup() -> PgPool {
+
+    async fn setup() -> (Pool<Postgres>, hal_9100_extra::config::Hal9100Config, file_storage::FileStorage) {
         dotenv().ok();
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let hal_9100_config = Hal9100Config::default();
+        let database_url = hal_9100_config.database_url.clone();
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&database_url)
@@ -1255,9 +1261,13 @@ mod tests {
             .try_init()
         {
             Ok(_) => (),
-            Err(e) => (),
+            Err(_) => (),
         };
-        pool
+        return (
+            pool,
+            hal_9100_config.clone(),
+            FileStorage::new(hal_9100_config).await,
+        );
     }
     async fn reset_redis() -> redis::RedisResult<()> {
         let redis_url = std::env::var("REDIS_URL").expect("REDIS_URL must be set");
@@ -1282,9 +1292,8 @@ mod tests {
     #[tokio::test]
     async fn test_end_to_end_knowledge_retrieval() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
         reset_db(&pool).await;
-        let file_storage = FileStorage::new().await;
 
         // Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
@@ -1375,7 +1384,7 @@ mod tests {
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1650,9 +1659,9 @@ mod tests {
     #[tokio::test]
     async fn test_end_to_end_function_calling_plus_retrieval() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
-        let file_storage = FileStorage::new().await;
 
         // 1. Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
@@ -1759,7 +1768,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client.clone()).await;
+        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &file_storage).await;
 
         // 10. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1804,7 +1813,7 @@ mod tests {
         // 13. Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         // 14. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1850,7 +1859,8 @@ mod tests {
     #[ignore]
     async fn test_end_to_end_code_interpreter() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
     
         // 1. Create an Assistant
@@ -1927,7 +1937,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
     
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1973,10 +1983,9 @@ mod tests {
     #[ignore]
     async fn test_end_to_end_code_interpreter_with_file() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
         reset_db(&pool).await;
 
-        let file_storage = FileStorage::new().await;
 
         // 1. Create a temporary file.
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
@@ -2078,7 +2087,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2112,8 +2121,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_decide_tool_with_llm_no_function_after_tool_call() {
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
+
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
         
         let assistant = Assistant {
@@ -2234,7 +2245,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client.clone()).await;
+        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &file_storage).await;
 
         // Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2291,7 +2302,7 @@ mod tests {
     #[tokio::test]
     async fn test_decide_tool_with_llm_action() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
 
         // Get the model name from environment variable or use default
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
@@ -2360,7 +2371,7 @@ mod tests {
     #[ignore] // TODO
     async fn test_end_to_end_action_tool() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
 
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
@@ -2443,7 +2454,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2483,7 +2494,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_step_after_assistant_message() {
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
+
         reset_db(&pool).await;
 
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
@@ -2564,7 +2576,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2648,7 +2660,7 @@ mod tests {
     #[tokio::test]
     async fn test_extract_step_id_and_function_output_integration() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
         reset_db(&pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
@@ -2746,7 +2758,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2809,7 +2821,7 @@ mod tests {
     #[tokio::test]
     async fn test_step_update_with_function_output() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
         reset_db(&pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
@@ -2907,7 +2919,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2975,7 +2987,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3012,7 +3024,7 @@ mod tests {
     #[tokio::test]
     async fn test_step_update_with_multiple_function_output() {
         // Setup
-        let pool = setup().await;
+        let (pool, hal_9100_config, file_storage) = setup().await;
         reset_db(&pool).await;
         let model_name = std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
@@ -3119,7 +3131,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3191,7 +3203,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 

@@ -1043,7 +1043,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &app_state.file_storage).await;
         assert!(result.is_ok());
 
         println!("result: {:?}", result);

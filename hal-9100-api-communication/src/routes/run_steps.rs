@@ -343,7 +343,13 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
+        let result = try_run_executor(
+            &pool_clone,
+            &mut con,
+            llm_client.clone(),
+            &app_state.file_storage,
+        )
+        .await;
         assert!(result.is_ok(), "{:?}", result);
 
         // Check the run status
@@ -430,7 +436,7 @@ mod tests {
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result = try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
 
         assert!(
             result.is_ok(),

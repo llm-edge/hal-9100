@@ -31,6 +31,8 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 
+use super::chat::chat_handler;
+
 /// Having a function that produces our app makes it easy to call it from tests
 /// without having to create an HTTP server.
 #[allow(dead_code)]
@@ -107,7 +109,7 @@ pub fn app(app_state: AppState) -> Router {
         .route("/files", post(upload_file_handler))
         // list
         .route("/files", get(list_files_handler))
-        // .route("/chat/completions", post(chat_handler))
+        .route("/chat/completions", post(chat_handler))
         .route("/health", get(health_handler)) // new health check route
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(250 * 1024 * 1024)) // 250mb
@@ -169,9 +171,9 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         let app_state = AppState {
-            hal_9100_config: Arc::new(hal_9100_config),
+            hal_9100_config: Arc::new(hal_9100_config.clone()),
             pool: Arc::new(pool),
-            file_storage: Arc::new(FileStorage::new().await),
+            file_storage: Arc::new(FileStorage::new(hal_9100_config).await),
         };
         match env_logger::builder()
             .filter_level(log::LevelFilter::Info)
@@ -1146,7 +1148,8 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
 
         // 7. Check the result
         assert!(
@@ -1803,7 +1806,13 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
+        let result = try_run_executor(
+            &pool_clone,
+            &mut con,
+            llm_client.clone(),
+            &app_state.file_storage,
+        )
+        .await;
 
         assert!(
             result.is_ok(),
@@ -1860,7 +1869,8 @@ mod tests {
 
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
         assert!(result.is_ok(), "{:?}", result);
 
         let response = app
@@ -2064,7 +2074,13 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool_clone, &mut con, llm_client.clone()).await;
+        let result = try_run_executor(
+            &pool_clone,
+            &mut con,
+            llm_client.clone(),
+            &app_state.file_storage,
+        )
+        .await;
 
         let run = result.unwrap();
 
@@ -2112,7 +2128,8 @@ mod tests {
         let client = redis::Client::open(redis_url).unwrap();
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool_clone, &mut con, llm_client).await;
+        let result =
+            try_run_executor(&pool_clone, &mut con, llm_client, &app_state.file_storage).await;
 
         assert!(
             result.is_ok(),
@@ -2309,7 +2326,13 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&app_state.pool, &mut con, llm_client).await;
+        let result = try_run_executor(
+            &app_state.pool,
+            &mut con,
+            llm_client,
+            &app_state.file_storage,
+        )
+        .await;
 
         assert!(
             result.is_ok(),
