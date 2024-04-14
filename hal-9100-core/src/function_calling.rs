@@ -429,7 +429,10 @@ mod tests {
     use crate::{assistants::create_assistant, models::Assistant};
 
     use super::*;
-    use async_openai::types::{AssistantObject, AssistantTools, AssistantToolsFunction};
+    use async_openai::types::{
+        AssistantObject, AssistantTools, AssistantToolsFunction, ChatCompletionRequestMessage,
+        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, Role,
+    };
     use dotenv::dotenv;
     use hal_9100_extra::openai::Message;
     use serde_json::json;
@@ -517,10 +520,13 @@ mod tests {
             env::var("MODEL_API_KEY").unwrap_or_else(|_| "".to_string()),
         );
         let request = HalLLMRequestArgs::default()
-            .messages(vec![Message {
-                role: "user".to_string(),
-                content: user_context,
-            }])
+            .messages(vec![ChatCompletionRequestMessage::User(
+                ChatCompletionRequestUserMessage {
+                    role: Role::User,
+                    content: ChatCompletionRequestUserMessageContent::Text(user_context),
+                    name: None,
+                },
+            )])
             .max_tokens_to_sample(100)
             .temperature(0.0)
             .top_p(1.0);

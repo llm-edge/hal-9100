@@ -317,6 +317,10 @@ It's bad because \"mean\" function is not defined. You could have used: \"mean =
 #[cfg(test)]
 mod tests {
     use super::*;
+    use async_openai::types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, Role,
+    };
     use dotenv::dotenv;
     use hal_9100_extra::openai::Message;
 
@@ -367,10 +371,14 @@ mod tests {
             std::env::var("ANTHROPIC_API_KEY").unwrap_or_else(|_| "".to_string()),
         );
         for (input, expected_output) in inputs {
-            let request = HalLLMRequestArgs::default().messages(vec![Message {
-                role: "user".to_string(),
-                content: input.to_string(),
-            }]);
+            let request =
+                HalLLMRequestArgs::default().messages(vec![ChatCompletionRequestMessage::User(
+                    ChatCompletionRequestUserMessage {
+                        role: Role::User,
+                        content: ChatCompletionRequestUserMessageContent::Text(input.to_string()),
+                        name: None,
+                    },
+                )]);
             let result = safe_interpreter(input.to_string(), 0, 3, client.clone(), request).await;
             assert!(
                 result.is_ok(),
@@ -395,18 +403,21 @@ Rules:
 ";
             // New: Check with Claude LLM
             let request = HalLLMRequestArgs::default()
+
                 .messages(vec![
-                    Message {
-                        role: "system".to_string(),
+                    ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                        role: Role::System,
                         content: p.to_string(),
-                    },
-                    Message {
-                        role: "user".to_string(),
-                        content: format!(
-                        "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
-                        input, code_output, expected_output
-                    ),
-                    },
+                        name: None,
+                    }),
+                    ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                        role: Role::User,
+                        content: ChatCompletionRequestUserMessageContent::Text(format!(
+                            "User input: {}\nResult: {}. Official solution: {}. Is my result correct?",
+                            input, code_output, expected_output
+                        )),
+                        name: None,
+                    }),
                 ])
                 .temperature(0.0)
                 .max_tokens_to_sample(100);

@@ -166,6 +166,10 @@ mod tests {
     use crate::openai::Message;
 
     use super::*;
+    use async_openai::types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+        ChatCompletionRequestUserMessageContent, Role,
+    };
     use dotenv;
     #[tokio::test]
     async fn test_call_anthropic_api() {
@@ -177,10 +181,15 @@ mod tests {
         );
 
         let request = HalLLMRequestArgs::default()
-            .messages(vec![Message {
-                role: "user".to_string(),
-                content: "Say the number '0'".to_string(),
-            }])
+            .messages(vec![ChatCompletionRequestMessage::User(
+                ChatCompletionRequestUserMessage {
+                    role: Role::User,
+                    content: ChatCompletionRequestUserMessageContent::Text(
+                        "Say the number '0'".to_string(),
+                    ),
+                    name: None,
+                },
+            )])
             .temperature(0.7)
             .max_tokens_to_sample(50)
             // Add other method calls to set fields as needed

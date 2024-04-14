@@ -40,6 +40,7 @@ tempfile = "3.2.0"
 axum = { version= "0.6.20", features = ["headers", "multipart", "macros", "tracing"] }
 tower-http = { version = "0.4.0", features = ["fs", "limit", "trace", "cors"] }
 tower = "0.4.12"
+reqwest-eventsource = "0.4.0"
 
 # logging
 
