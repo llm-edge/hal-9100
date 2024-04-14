@@ -5,12 +5,6 @@ This LLM runs at 60+ tokens per second on my MacBook Pro M2.
 
 At the moment, you need **Docker** installed to run the API.
 
-You need to update the config `hal-9100.toml` file in the root of the project:
-
-```bash
-model_url="http://host.docker.internal:8000/v1/chat/completions"
-```
-
 We will use [OpenAI's JS SDK](https://github.com/openai/openai-node), but feel free to use the [python one](https://github.com/openai/openai-python), you can copy paste this doc in chatgpt to translate to python!
 
 # Action tool
