@@ -2,7 +2,7 @@
 <p align="center">
 <img width="600" alt="hal-9100" src="https://github.com/llm-edge/hal-9100/assets/25003283/2e23bcc3-fa1a-43dd-9e60-f938212ca0b1">
   <h1 align="center">🤖 HAL-9100</h1>
-  <h2 align="center">Build AI Assistants running on the edge. Using OpenAI SDK. For production.</h2>
+  <h2 align="center">Build AI Assistants that don't need internet. Using OpenAI SDK. For production.</h2>
   <h4 align="center">100% Private, 75% Cheaper & 23x Faster Assistants.</h4>
   <p align="center">
     <a href='https://codespaces.new/llm-edge/hal-9100?quickstart=1'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
