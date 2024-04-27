@@ -38,11 +38,7 @@ use url::Url;
 
 use crate::models::AppState;
 
-fn extract_base_url(model_url: &str) -> Result<String, url::ParseError> {
-    let url = Url::parse(model_url)?;
-    let base_url = url.join("/")?;
-    Ok(base_url.as_str().to_string())
-}
+
 // copied from https://github.com/tokio-rs/axum/discussions/1670
 
 pub enum ChatHandlerResponse {

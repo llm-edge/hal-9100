@@ -14,7 +14,7 @@ futures = "0.3"
 bytes = "1.0"
 log = "0.4"
 # async-openai = "0.17.1"
-async-openai = { git = "https://github.com/louis030195/async-openai.git", rev = "a6d62d3" }
+async-openai = { git = "https://github.com/louis030195/async-openai.git", rev = "9c51528" }
 
 tiktoken-rs = "0.5.7"
 reqwest-eventsource = "0.4.0"
