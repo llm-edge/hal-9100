@@ -11,7 +11,7 @@ import {
 import { openai } from '@ai-sdk/openai'
 import { createMistral } from 'lib/chat/mistral-provider'
 const mistralProvider = createMistral({
-  baseURL: 'http://localhost:8000/v1',
+  baseURL: 'http://localhost:3005',
   apiKey: 'your-api'
 })
 import {
