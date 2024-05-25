@@ -3,9 +3,11 @@ anthropic_api_key = "..."
 
 # if you use openai - does not really make sense but possible!
 openai_api_key = "..."
+# MODEL_URL="http://localhost:8000/v1"    
+# TEST_MODEL_NAME="HF://mlc-ai/Llama-3-8B-Instruct-q4f16_1-MLC"
 
 # if you use your own llm deployed, for example with anyscale:
-model_url = "http://127.0.0.1:11434/v1/chat/completions"
+model_url = "http://localhost:8000/v1"
 # or use ollama, check docker compose too!
 # model_url = "http://ollama:11434/v1/chat/completions"
 # docker compose --profile api --profile ollama -f docker/docker-compose.yml up
@@ -21,3 +23,4 @@ s3_endpoint = "http://localhost:9000"
 s3_access_key = "minioadmin"
 s3_secret_key = "minioadmin"
 s3_bucket_name = "mybucket"
+port = 3001
