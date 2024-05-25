@@ -1,5 +1,5 @@
 [workspace]
-members = ["hal-9100-core", "hal-9100-extra"]
+members = []
 exclude = []
 resolver = "2"
 
