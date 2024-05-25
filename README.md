@@ -1,4 +1,4 @@
-⚠️ README outdated (WIP soon update) ⚠️
+⚠️ README outdated ([undergoing large refactor](https://github.com/llm-edge/hal-9100/tree/0.1)) ⚠️
 
 
 <p align="center">
