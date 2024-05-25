@@ -37,6 +37,7 @@ uuid = { version = "1.6.1", features = ["serde", "v4"] }
 # async-openai = "0.17.1"
 async-openai = { git = "https://github.com/louis030195/async-openai.git", rev = "9c51528" }
 
+async-trait = "0.1"
 
 # code interpreter
 bollard = "0.10.1"

@@ -172,6 +172,7 @@ mod tests {
     };
     use dotenv;
     #[tokio::test]
+    #[ignore]
     async fn test_call_anthropic_api() {
         dotenv::dotenv().ok();
         let client = HalLLMClient::new(

@@ -13,7 +13,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tvm-rt = { path = "../3rdparty/tvm/rust/tvm-rt", version = "0.1.0-alpha", features = [
+tvm-rt = { path = "../../mlc-llm/3rdparty/tvm/rust/tvm-rt", version = "0.1.0-alpha", features = [
     "dynamic-linking",
 ] }
 tracing = "0.1.32"

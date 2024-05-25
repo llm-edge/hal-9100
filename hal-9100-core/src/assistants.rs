@@ -1,4 +1,3 @@
-use async_openai::types::AssistantToolsFunction;
 use async_openai::types::{AssistantObject, AssistantTools};
 use futures::Future;
 use log::{error, info, warn};
@@ -53,10 +52,7 @@ impl Tools {
 
                             Ok(AssistantTools::Extra(action_tool))
                         }
-                        _ => Err(Box::new(SerdeError::custom(format!(
-                            "Unknown tool type: {:?}",
-                            tool
-                        )))),
+                        _ => Err(Box::new(SerdeError::custom(format!("Unknown tool type: {:?}", tool)))),
                     }
                 })
                 .collect::<Result<Vec<_>, _>>(),
@@ -65,11 +61,7 @@ impl Tools {
     }
 }
 
-pub async fn get_assistant(
-    pool: &PgPool,
-    assistant_id: &str,
-    user_id: &str,
-) -> Result<Assistant, sqlx::Error> {
+pub async fn get_assistant(pool: &PgPool, assistant_id: &str, user_id: &str) -> Result<Assistant, sqlx::Error> {
     let row = sqlx::query!(
         r#"
         SELECT * FROM assistants WHERE id::text = $1 AND user_id::text = $2
@@ -131,10 +123,7 @@ impl std::fmt::Debug for AssistantError {
         }
     }
 }
-pub async fn create_assistant(
-    pool: &PgPool,
-    assistant: &Assistant,
-) -> Result<Assistant, AssistantError> {
+pub async fn create_assistant(pool: &PgPool, assistant: &Assistant) -> Result<Assistant, AssistantError> {
     info!("Creating assistant: {:?}", assistant);
 
     let file_ids = &assistant.inner.file_ids;
@@ -180,8 +169,7 @@ pub async fn create_assistant(
     .fetch_one(pool)
     .await?;
 
-    let mut futures: Vec<Pin<Box<dyn Future<Output = Result<(), FunctionCallError>> + Send>>> =
-        Vec::new();
+    let mut futures: Vec<Pin<Box<dyn Future<Output = Result<(), FunctionCallError>> + Send>>> = Vec::new();
     assistant.inner.tools.iter().for_each(|tool| {
         println!("tool: {:?}", tool);
         // tool_json: Object {"type": String("function")}
@@ -269,9 +257,7 @@ pub async fn create_assistant(
 }
 
 pub async fn update_assistant(
-    pool: &PgPool,
-    assistant_id: &str,
-    assistant: &Assistant,
+    pool: &PgPool, assistant_id: &str, assistant: &Assistant,
 ) -> Result<Assistant, sqlx::Error> {
     let tools_json: Vec<Value> = assistant
         .inner
@@ -344,11 +330,7 @@ pub async fn update_assistant(
     })
 }
 
-pub async fn delete_assistant(
-    pool: &PgPool,
-    assistant_id: &str,
-    user_id: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn delete_assistant(pool: &PgPool, assistant_id: &str, user_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         DELETE FROM assistants WHERE id::text = $1 AND user_id::text = $2
@@ -403,9 +385,8 @@ mod tests {
 
     use super::*;
     use async_openai::types::{
-        AssistantObject, AssistantToolsCode, AssistantToolsFunction, AssistantToolsRetrieval,
-        ChatCompletionFunctions, FunctionCall, FunctionObject, RunToolCallObject,
-        SubmitToolOutputs,
+        AssistantObject, AssistantToolsCode, AssistantToolsFunction, AssistantToolsRetrieval, ChatCompletionFunctions,
+        FunctionCall, FunctionObject, RunToolCallObject, SubmitToolOutputs,
     };
     use dotenv::dotenv;
     use serde_json::json;
@@ -424,10 +405,7 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         // Initialize the logger with an info level filter
-        match env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .try_init()
-        {
+        match env_logger::builder().filter_level(log::LevelFilter::Info).try_init() {
             Ok(_) => (),
             Err(_) => (),
         };
@@ -436,12 +414,10 @@ mod tests {
 
     async fn reset_db(pool: &PgPool) {
         // TODO should also purge minio
-        sqlx::query!(
-            "TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY"
-        )
-        .execute(pool)
-        .await
-        .unwrap();
+        sqlx::query!("TRUNCATE assistants, threads, messages, runs, functions, tool_calls, run_steps RESTART IDENTITY")
+            .execute(pool)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -452,8 +428,7 @@ mod tests {
             inner: AssistantObject {
                 id: "".to_string(),
                 instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
+                    "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
                 ),
                 name: Some("Math Tutor".to_string()),
                 tools: vec![AssistantTools::Code(AssistantToolsCode {

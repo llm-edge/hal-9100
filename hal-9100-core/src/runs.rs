@@ -17,10 +17,7 @@ use sqlx::types::Uuid;
 use std::collections::HashMap;
 use std::error::Error;
 
-pub async fn get_tool_calls(
-    pool: &PgPool,
-    tool_call_ids: Vec<&str>,
-) -> Result<Vec<SubmittedToolCall>, sqlx::Error> {
+pub async fn get_tool_calls(pool: &PgPool, tool_call_ids: Vec<&str>) -> Result<Vec<SubmittedToolCall>, sqlx::Error> {
     info!(
         "Fetching tool calls from database for tool_call_ids: {:?}",
         tool_call_ids
@@ -53,11 +50,7 @@ pub async fn get_tool_calls(
 }
 
 pub async fn submit_tool_outputs(
-    pool: &PgPool,
-    thread_id: &str,
-    run_id: &str,
-    user_id: &str,
-    tool_outputs: Vec<SubmittedToolCall>,
+    pool: &PgPool, thread_id: &str, run_id: &str, user_id: &str, tool_outputs: Vec<SubmittedToolCall>,
     mut con: redis::aio::Connection,
 ) -> Result<Run, sqlx::Error> {
     info!("Submitting tool outputs for run_id: {}", run_id);
@@ -72,15 +65,7 @@ pub async fn submit_tool_outputs(
         return Err(sqlx::Error::Configuration(err_msg.into()));
     }
     // should throw if tool outputs length is not matching all the tool calls asked for
-    if run
-        .inner
-        .required_action
-        .unwrap()
-        .submit_tool_outputs
-        .tool_calls
-        .len()
-        != tool_outputs.len()
-    {
+    if run.inner.required_action.unwrap().submit_tool_outputs.tool_calls.len() != tool_outputs.len() {
         let err_msg = "You must submit all tool outputs";
         error!("{}", err_msg);
         return Err(sqlx::Error::Configuration(err_msg.into()));
@@ -120,32 +105,16 @@ pub async fn submit_tool_outputs(
         .await
         .map_err(|e| sqlx::Error::Configuration(e.into()))?;
 
-    let updated_run = update_run_status(
-        pool,
-        thread_id,
-        run_id,
-        RunStatus::Queued,
-        user_id,
-        None,
-        None,
-    )
-    .await?;
+    let updated_run = update_run_status(pool, thread_id, run_id, RunStatus::Queued, user_id, None, None).await?;
 
     Ok(updated_run)
 }
 
 pub async fn create_run_and_produce_to_executor_queue(
-    pool: &PgPool,
-    thread_id: &str,
-    assistant_id: &str,
-    instructions: &str,
-    user_id: &str,
+    pool: &PgPool, thread_id: &str, assistant_id: &str, instructions: &str, user_id: &str,
     mut con: redis::aio::Connection,
 ) -> Result<Run, sqlx::Error> {
-    info!(
-        "Running assistant_id: {} for thread_id: {}",
-        assistant_id, thread_id
-    );
+    info!("Running assistant_id: {} for thread_id: {}", assistant_id, thread_id);
     // Create Run in database
     let run = match create_run(pool, thread_id, assistant_id, instructions, user_id).await {
         Ok(run) => run,
@@ -186,11 +155,7 @@ pub async fn create_run_and_produce_to_executor_queue(
 }
 
 pub async fn create_run(
-    pool: &PgPool,
-    thread_id: &str,
-    assistant_id: &str,
-    instructions: &str,
-    user_id: &str,
+    pool: &PgPool, thread_id: &str, assistant_id: &str, instructions: &str, user_id: &str,
 ) -> Result<Run, sqlx::Error> {
     info!("Creating run for assistant_id: {}", assistant_id);
     let row = sqlx::query!(
@@ -224,10 +189,8 @@ pub async fn create_run(
                 "cancelled" => RunStatus::Cancelled,
                 _ => RunStatus::Queued,
             },
-            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                .unwrap_or_default(),
-            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                .unwrap_or_default(),
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default()).unwrap_or_default(),
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
             expires_at: row.expires_at,
             started_at: row.started_at,
             cancelled_at: row.cancelled_at,
@@ -253,22 +216,15 @@ pub async fn create_run(
                 .map(|file_id| file_id.to_string())
                 .collect(),
             metadata: Some(
-                serde_json::from_value::<HashMap<String, serde_json::Value>>(
-                    row.metadata.unwrap_or_default(),
-                )
-                .unwrap_or_default(),
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(row.metadata.unwrap_or_default())
+                    .unwrap_or_default(),
             ),
         },
         user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
-pub async fn get_run(
-    pool: &PgPool,
-    thread_id: &str,
-    run_id: &str,
-    user_id: &str,
-) -> Result<Run, sqlx::Error> {
+pub async fn get_run(pool: &PgPool, thread_id: &str, run_id: &str, user_id: &str) -> Result<Run, sqlx::Error> {
     info!(
         "Getting run from database for thread_id: {} and run_id: {}",
         thread_id, run_id
@@ -313,10 +269,8 @@ pub async fn get_run(
                 "cancelling" => RunStatus::Cancelling,
                 _ => RunStatus::Queued,
             },
-            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                .unwrap_or_default(),
-            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                .unwrap_or_default(),
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default()).unwrap_or_default(),
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
             expires_at: row.expires_at,
             started_at: row.started_at,
             cancelled_at: row.cancelled_at,
@@ -342,10 +296,8 @@ pub async fn get_run(
                 .map(|file_id| file_id.to_string())
                 .collect(),
             metadata: Some(
-                serde_json::from_value::<HashMap<String, serde_json::Value>>(
-                    row.metadata.unwrap_or_default(),
-                )
-                .unwrap_or_default(),
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(row.metadata.unwrap_or_default())
+                    .unwrap_or_default(),
             ),
         },
         user_id: row.user_id.unwrap_or_default().to_string(),
@@ -353,11 +305,7 @@ pub async fn get_run(
 }
 
 pub async fn update_run(
-    pool: &PgPool,
-    thread_id: &str,
-    run_id: &str,
-    metadata: std::collections::HashMap<String, String>,
-    user_id: &str,
+    pool: &PgPool, thread_id: &str, run_id: &str, metadata: std::collections::HashMap<String, String>, user_id: &str,
 ) -> Result<Run, sqlx::Error> {
     info!("Updating run for run_id: {}", run_id);
     let row = sqlx::query!(
@@ -402,10 +350,8 @@ pub async fn update_run(
                 "cancelled" => RunStatus::Cancelled,
                 _ => RunStatus::Queued,
             },
-            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                .unwrap_or_default(),
-            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                .unwrap_or_default(),
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default()).unwrap_or_default(),
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
             expires_at: row.expires_at,
             started_at: row.started_at,
             cancelled_at: row.cancelled_at,
@@ -431,10 +377,8 @@ pub async fn update_run(
                 .map(|file_id| file_id.to_string())
                 .collect(),
             metadata: Some(
-                serde_json::from_value::<HashMap<String, serde_json::Value>>(
-                    row.metadata.unwrap_or_default(),
-                )
-                .unwrap_or_default(),
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(row.metadata.unwrap_or_default())
+                    .unwrap_or_default(),
             ),
         },
         user_id: row.user_id.unwrap_or_default().to_string(),
@@ -442,13 +386,8 @@ pub async fn update_run(
 }
 
 pub async fn update_run_status(
-    pool: &PgPool,
-    thread_id: &str,
-    run_id: &str,
-    status: RunStatus,
-    user_id: &str,
-    required_action: Option<RequiredAction>,
-    last_error: Option<HashMap<String, String>>,
+    pool: &PgPool, thread_id: &str, run_id: &str, status: RunStatus, user_id: &str,
+    required_action: Option<RequiredAction>, last_error: Option<HashMap<String, String>>,
 ) -> Result<Run, sqlx::Error> {
     info!("Updating run for run_id: {}", run_id);
     let row = sqlx::query!(
@@ -528,10 +467,8 @@ pub async fn update_run_status(
                 "cancelled" => RunStatus::Cancelled,
                 _ => RunStatus::Queued,
             },
-            required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                .unwrap_or_default(),
-            last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                .unwrap_or_default(),
+            required_action: serde_json::from_value(row.required_action.unwrap_or_default()).unwrap_or_default(),
+            last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
             expires_at: row.expires_at,
             started_at: row.started_at,
             cancelled_at: row.cancelled_at,
@@ -557,22 +494,15 @@ pub async fn update_run_status(
                 .map(|file_id| file_id.to_string())
                 .collect(),
             metadata: Some(
-                serde_json::from_value::<HashMap<String, serde_json::Value>>(
-                    row.metadata.unwrap_or_default(),
-                )
-                .unwrap_or_default(),
+                serde_json::from_value::<HashMap<String, serde_json::Value>>(row.metadata.unwrap_or_default())
+                    .unwrap_or_default(),
             ),
         },
         user_id: row.user_id.unwrap_or_default().to_string(),
     })
 }
 
-pub async fn delete_run(
-    pool: &PgPool,
-    thread_id: &str,
-    run_id: &str,
-    user_id: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn delete_run(pool: &PgPool, thread_id: &str, run_id: &str, user_id: &str) -> Result<(), sqlx::Error> {
     info!("Deleting run for run_id: {}", run_id);
     sqlx::query!(
         r#"
@@ -601,11 +531,7 @@ pub async fn delete_run(
     Ok(())
 }
 
-pub async fn list_runs(
-    pool: &PgPool,
-    thread_id: &str,
-    user_id: &str,
-) -> Result<Vec<Run>, sqlx::Error> {
+pub async fn list_runs(pool: &PgPool, thread_id: &str, user_id: &str) -> Result<Vec<Run>, sqlx::Error> {
     info!("Listing runs for thread_id: {}", thread_id);
     let rows = sqlx::query!(
         r#"
@@ -650,10 +576,8 @@ pub async fn list_runs(
                     "cancelling" => RunStatus::Cancelling,
                     _ => RunStatus::Queued,
                 },
-                required_action: serde_json::from_value(row.required_action.unwrap_or_default())
-                    .unwrap_or_default(),
-                last_error: serde_json::from_value(row.last_error.unwrap_or_default())
-                    .unwrap_or_default(),
+                required_action: serde_json::from_value(row.required_action.unwrap_or_default()).unwrap_or_default(),
+                last_error: serde_json::from_value(row.last_error.unwrap_or_default()).unwrap_or_default(),
                 expires_at: row.expires_at,
                 started_at: row.started_at,
                 cancelled_at: row.cancelled_at,
@@ -665,13 +589,11 @@ pub async fn list_runs(
                     .unwrap_or_default()
                     .iter()
                     .map(|tools| {
-                        serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(
-                            |_| {
-                                AssistantTools::Retrieval(AssistantToolsRetrieval {
-                                    r#type: "retrieval".to_string(),
-                                })
-                            },
-                        )
+                        serde_json::from_value::<AssistantTools>(tools.clone()).unwrap_or_else(|_| {
+                            AssistantTools::Retrieval(AssistantToolsRetrieval {
+                                r#type: "retrieval".to_string(),
+                            })
+                        })
                     })
                     .collect(),
                 file_ids: row
@@ -681,10 +603,8 @@ pub async fn list_runs(
                     .map(|file_id| file_id.to_string())
                     .collect(),
                 metadata: Some(
-                    serde_json::from_value::<HashMap<String, serde_json::Value>>(
-                        row.metadata.unwrap_or_default(),
-                    )
-                    .unwrap_or_default(),
+                    serde_json::from_value::<HashMap<String, serde_json::Value>>(row.metadata.unwrap_or_default())
+                        .unwrap_or_default(),
                 ),
             },
             user_id: row.user_id.unwrap_or_default().to_string(),
@@ -698,14 +618,13 @@ pub async fn list_runs(
 mod tests {
     use crate::assistants::create_assistant;
     use crate::executor::try_run_executor;
-    use crate::file_storage::{self, FileStorage};
+    use crate::file_storage::file_storage::FileStorage;
+    use crate::file_storage::minio_storage::MinioStorage;
     use crate::models::Assistant;
     use crate::threads::create_thread;
 
     use super::*;
-    use async_openai::types::{
-        AssistantObject, FunctionCall, RunToolCallObject, SubmitToolOutputs, ThreadObject,
-    };
+    use async_openai::types::{AssistantObject, FunctionCall, RunToolCallObject, SubmitToolOutputs, ThreadObject};
     use dotenv::dotenv;
     use hal_9100_core::models::Thread;
     use hal_9100_extra::config::Hal9100Config;
@@ -717,11 +636,7 @@ mod tests {
     use tokio::fs::File;
     use tokio::io::AsyncWriteExt;
 
-    async fn setup() -> (
-        Pool<Postgres>,
-        hal_9100_extra::config::Hal9100Config,
-        file_storage::FileStorage,
-    ) {
+    async fn setup() -> (Pool<Postgres>, Hal9100Config, Box<dyn FileStorage>) {
         dotenv().ok();
         let hal_9100_config = Hal9100Config::default();
         let database_url = hal_9100_config.database_url.clone();
@@ -731,17 +646,14 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         // Initialize the logger with an info level filter
-        match env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .try_init()
-        {
+        match env_logger::builder().filter_level(log::LevelFilter::Info).try_init() {
             Ok(_) => (),
             Err(_) => (),
         };
         return (
             pool,
             hal_9100_config.clone(),
-            FileStorage::new(hal_9100_config).await,
+            Box::new(MinioStorage::new(hal_9100_config).await),
         );
     }
 
@@ -768,8 +680,7 @@ mod tests {
                 description: None,
                 model: "claude-2.1".to_string(),
                 instructions: Some(
-                    "You are a personal math tutor. Write and run code to answer math questions."
-                        .to_string(),
+                    "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
                 ),
                 tools: vec![],
                 file_ids: vec![],
@@ -845,15 +756,14 @@ mod tests {
                     description: None,
                     model: "claude-2.1".to_string(),
                     instructions: Some(
-                        "You are a personal math tutor. Write and run code to answer math questions."
-                            .to_string(),
+                        "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
                     ),
                     tools: vec![],
                     file_ids: vec![],
                     metadata: None,
                 },
-                user_id: Uuid::default().to_string()
-            }
+                user_id: Uuid::default().to_string(),
+            },
         )
         .await
         .unwrap();
@@ -930,15 +840,14 @@ mod tests {
                     description: None,
                     model: "claude-2.1".to_string(),
                     instructions: Some(
-                        "You are a personal math tutor. Write and run code to answer math questions."
-                            .to_string(),
+                        "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
                     ),
                     tools: vec![],
                     file_ids: vec![],
                     metadata: None,
                 },
-                user_id: Uuid::default().to_string()
-            }
+                user_id: Uuid::default().to_string(),
+            },
         )
         .await
         .unwrap();
@@ -969,15 +878,7 @@ mod tests {
         let con = client.get_async_connection().await.unwrap();
 
         // Submit the tool output
-        let result = submit_tool_outputs(
-            &pool,
-            &thread.inner.id,
-            &id,
-            &user_id,
-            vec![tool_output],
-            con,
-        )
-        .await;
+        let result = submit_tool_outputs(&pool, &thread.inner.id, &id, &user_id, vec![tool_output], con).await;
         // shuould be Err(Configuration("Run is not in status requires_action"))
         assert!(!result.is_ok(), "should be Err");
     }
@@ -989,8 +890,8 @@ mod tests {
 
         reset_db(&pool).await;
         // Create assistant
-        let model_name = std::env::var("TEST_MODEL_NAME")
-            .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
+        let model_name =
+            std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string());
 
         let assistant = create_assistant(
             &pool,
@@ -1003,15 +904,14 @@ mod tests {
                     description: None,
                     model: model_name,
                     instructions: Some(
-                        "You are a personal math tutor. Write and run code to answer math questions."
-                            .to_string(),
+                        "You are a personal math tutor. Write and run code to answer math questions.".to_string(),
                     ),
                     tools: vec![],
                     file_ids: vec![],
                     metadata: None,
                 },
                 user_id: Uuid::default().to_string(),
-            }
+            },
         )
         .await
         .unwrap();
@@ -1046,12 +946,11 @@ mod tests {
         let mut con = client.get_async_connection().await.unwrap();
 
         let llm_client = HalLLMClient::new(
-            std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
+            std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
         assert!(result.is_ok());
 
         println!("result: {:?}", result);

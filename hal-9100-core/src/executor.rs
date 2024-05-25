@@ -10,7 +10,7 @@ use serde_json::{self, json};
 use sqlx::PgPool;
 
 use hal_9100_core::assistants::{get_assistant};
-use hal_9100_core::file_storage::FileStorage;
+use hal_9100_core::file_storage::minio_storage::MinioStorage;
 use hal_9100_core::messages::{add_message_to_thread, list_messages};
 use hal_9100_core::models::{Assistant, Message, Run};
 use hal_9100_core::threads::{get_thread};
@@ -33,7 +33,7 @@ use hal_9100_core::retrieval::retrieve_file_contents;
 use hal_9100_core::models::Chunk;
 use hal_9100_core::retrieval::generate_queries_and_fetch_chunks;
 
-use crate::file_storage;
+use crate::file_storage::file_storage::FileStorage;
 use crate::function_calling::execute_request;
 use crate::models::{RunStep};
 use crate::openapi::ActionRequest;
@@ -339,7 +339,7 @@ pub async fn loop_through_runs(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     client: HalLLMClient, // Not using a reference here because we want to be able to tweak the client at runtime
-    file_storage: &FileStorage,
+    file_storage: &dyn FileStorage,
 ) {
     loop {
         match try_run_executor(&pool, con, client.clone(), file_storage).await {
@@ -353,7 +353,7 @@ pub async fn try_run_executor(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     client: HalLLMClient,
-    file_storage: &FileStorage,
+    file_storage: &dyn FileStorage,
 ) -> Result<Run, RunError> {
     match run_executor(&pool, con, client, file_storage).await {
         Ok(run) => { 
@@ -401,7 +401,7 @@ pub async fn run_executor(
     pool: &PgPool,
     con: &mut redis::aio::Connection,
     mut client: HalLLMClient,
-    file_storage: &FileStorage,
+    file_storage: &dyn FileStorage,
 ) -> Result<Run, RunError> {
     info!("Consuming queue");
     let (_, ids_string): (String, String) = con.brpop("run_queue", 0).await.map_err(|e| {
@@ -776,7 +776,7 @@ pub async fn run_executor(
                 }
                 info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
                 // Retrieve the contents of each file.
-                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                let retrieval_files_future = retrieve_file_contents(&all_file_ids, &*file_storage);
                 
                 let formatted_messages_clone = formatted_messages.clone();
                 let retrieval_chunks_future = generate_queries_and_fetch_chunks(
@@ -919,7 +919,7 @@ pub async fn run_executor(
                 if !all_file_ids.is_empty() {
                     info!("Retrieving file contents for file_ids: {:?}", all_file_ids);
                     // Retrieve the contents of each file.
-                    let retrieval_files_future = retrieve_file_contents(&all_file_ids, &file_storage);
+                    let retrieval_files_future = retrieve_file_contents(&all_file_ids, &*file_storage);
                     
                     let formatted_messages_clone = formatted_messages.clone();
                     let retrieval_chunks_future = generate_queries_and_fetch_chunks(
@@ -1246,7 +1246,7 @@ mod tests {
     use std::io::Write;
 
 
-    async fn setup() -> (Pool<Postgres>, hal_9100_extra::config::Hal9100Config, file_storage::FileStorage) {
+    async fn setup() -> (Pool<Postgres>, hal_9100_extra::config::Hal9100Config, Box<dyn FileStorage>) {
         dotenv().ok();
         let hal_9100_config = Hal9100Config::default();
         let database_url = hal_9100_config.database_url.clone();
@@ -1266,7 +1266,7 @@ mod tests {
         return (
             pool,
             hal_9100_config.clone(),
-            FileStorage::new(hal_9100_config).await,
+            Box::new(MinioStorage::new(hal_9100_config).await),
         );
     }
     async fn reset_redis() -> redis::RedisResult<()> {
@@ -1286,7 +1286,6 @@ mod tests {
         .unwrap();
         reset_redis().await.unwrap();
     }
-
 
     
     #[tokio::test]
@@ -1384,7 +1383,7 @@ mod tests {
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
         let mut con = client.get_async_connection().await.unwrap();
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1432,6 +1431,7 @@ mod tests {
 
 
     #[tokio::test]
+    #[ignore]
     async fn test_decide_tool_with_llm_anthropic() {
         setup().await;
         let mut functions = FunctionObject {
@@ -1768,7 +1768,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &*file_storage).await;
 
         // 10. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1813,7 +1813,7 @@ mod tests {
         // 13. Run the queue consumer again
         let mut con = client.get_async_connection().await.unwrap();
 
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         // 14. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -1937,7 +1937,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
     
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2087,7 +2087,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         // 7. Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2245,7 +2245,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client.clone(), &*file_storage).await;
 
         // Check the result
         assert!(result.is_ok(), "{:?}", result);
@@ -2454,7 +2454,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2576,7 +2576,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2758,7 +2758,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2919,7 +2919,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -2987,7 +2987,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3131,7 +3131,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 
@@ -3203,7 +3203,7 @@ mod tests {
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
-        let result = try_run_executor(&pool, &mut con, llm_client, &file_storage).await;
+        let result = try_run_executor(&pool, &mut con, llm_client, &*file_storage).await;
 
         assert!(result.is_ok(), "{:?}", result);
 

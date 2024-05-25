@@ -1,5 +1,27 @@
 
 
+### vision 
+
+Full-stack LLM platform for developing, collaborating, testing, deploying LLM applications
+designed to run without internet access.
+
+### status
+
+not usable unless you invest 1h+ to understand
+
+### in progress 
+
+- **runs everywhere**: make it possible to use 100% local storage instead of Redis, Postgres, Minio
+
+### todos
+
+- machine learning compilation: mlc-llm
+- wasm compilation + TS example / abstraction
+- etc.
+
+
+### dev principles (wip)
+
 fuck internet (100% disconnected, edge focused)
 
 fuck retrieval
@@ -21,5 +43,10 @@ yes any data store
 yes dashboard
 
 yes Rust + TS + anything
+
+### dev anti principles (wip)
+
+- langchain is good example of anti pattern (feature creepiness, localhost focused, integrated with tons of internet-only startups). also their new product is proprietary (langsmith)
+
 
 

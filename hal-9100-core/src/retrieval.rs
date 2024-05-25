@@ -10,10 +10,12 @@ use std::collections::HashMap;
 use std::error::Error;
 use tiktoken_rs::cl100k_base;
 
-use hal_9100_core::file_storage::FileStorage;
+use hal_9100_core::file_storage::minio_storage::MinioStorage;
 use hal_9100_core::pdf_utils::pdf_mem_to_text;
 
 use hal_9100_core::models::PartialChunk;
+
+use crate::file_storage::file_storage::FileStorage;
 
 // logic
 
@@ -43,11 +45,7 @@ pub fn split_into_chunks(text: &str, chunk_size: usize) -> Vec<PartialChunk> {
 // TODO: embeddings using either Huggingface Candle or an API
 // Function to insert chunks into the database
 pub async fn split_and_insert(
-    pool: &PgPool,
-    text: &str,
-    chunk_size: usize,
-    file_id: &str,
-    metadata: Option<HashMap<String, Value>>,
+    pool: &PgPool, text: &str, chunk_size: usize, file_id: &str, metadata: Option<HashMap<String, Value>>,
 ) -> Result<Vec<Chunk>, sqlx::Error> {
     let chunks = split_into_chunks(text, chunk_size);
     let chunks_data: Vec<(i32, String, String, i32, i32, Value)> = chunks
@@ -112,9 +110,7 @@ pub async fn split_and_insert(
 }
 
 pub async fn generate_queries_and_fetch_chunks(
-    pool: &PgPool,
-    client: HalLLMClient,
-    mut request: HalLLMRequestArgs,
+    pool: &PgPool, client: HalLLMClient, mut request: HalLLMRequestArgs,
 ) -> Result<Vec<Chunk>, Box<dyn Error>> {
     // Generate full-text search queries using the llm() function
     let p = "You are a helpful assistant that generate full-text search queries for the user.
@@ -194,9 +190,7 @@ Query:";
             start_index: row.start_index,
             end_index: row.end_index,
             metadata: match row.metadata {
-                Some(JsonValue::Object(map)) => {
-                    Some(map.into_iter().collect::<HashMap<String, JsonValue>>())
-                }
+                Some(JsonValue::Object(map)) => Some(map.into_iter().collect::<HashMap<String, JsonValue>>()),
                 _ => None,
             },
             created_at: row.created_at,
@@ -208,10 +202,7 @@ Query:";
 
 // TODO: kinda dirty function could be better
 // This function retrieves file contents given a list of file_ids
-pub async fn retrieve_file_contents(
-    file_ids: &Vec<String>,
-    file_storage: &FileStorage,
-) -> Vec<String> {
+pub async fn retrieve_file_contents(file_ids: &Vec<String>, file_storage: &dyn FileStorage) -> Vec<String> {
     info!("Retrieving file contents for file_ids: {:?}", file_ids);
     let mut file_contents = Vec::new();
     for file_id in file_ids {
@@ -252,6 +243,7 @@ pub async fn retrieve_file_contents(
 #[cfg(test)]
 mod tests {
     use crate::file_storage;
+    use crate::file_storage::file_storage::FileStorage;
 
     use super::*;
     use dotenv::dotenv;
@@ -265,7 +257,7 @@ mod tests {
     async fn setup() -> (
         Pool<Postgres>,
         hal_9100_extra::config::Hal9100Config,
-        file_storage::FileStorage,
+        Box<dyn FileStorage>,
     ) {
         dotenv().ok();
         let hal_9100_config = Hal9100Config::default();
@@ -276,17 +268,14 @@ mod tests {
             .await
             .expect("Failed to create pool.");
         // Initialize the logger with an info level filter
-        match env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .try_init()
-        {
+        match env_logger::builder().filter_level(log::LevelFilter::Info).try_init() {
             Ok(_) => (),
             Err(_) => (),
         };
         return (
             pool,
             hal_9100_config.clone(),
-            FileStorage::new(hal_9100_config).await,
+            Box::new(MinioStorage::new(hal_9100_config).await),
         );
     }
     async fn reset_db(pool: &PgPool) {
@@ -314,10 +303,7 @@ The president of the Moon is TDB.
         assert_eq!(chunks.len(), 9, "Incorrect number of chunks");
 
         for (i, chunk) in chunks.iter().enumerate() {
-            assert_eq!(
-                chunk.sequence, i as i32,
-                "Incorrect sequence number for chunk"
-            );
+            assert_eq!(chunk.sequence, i as i32, "Incorrect sequence number for chunk");
         }
     }
 
@@ -327,8 +313,7 @@ The president of the Moon is TDB.
         let (pool, _, __) = setup().await;
         reset_db(&pool).await;
         // Test data
-        let text =
-            "This is a test string that will be split into chunks and inserted into the database.";
+        let text = "This is a test string that will be split into chunks and inserted into the database.";
         let chunk_size = 5;
         let file_name = "test_file";
         let metadata = Some(HashMap::new());
@@ -363,8 +348,7 @@ The president of the Moon is TDB.
         // Call the function
         let context = "dog food";
         let llm_client = HalLLMClient::new(
-            std::env::var("TEST_MODEL_NAME")
-                .unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
+            std::env::var("TEST_MODEL_NAME").unwrap_or_else(|_| "mistralai/Mixtral-8x7B-Instruct-v0.1".to_string()),
             std::env::var("MODEL_URL").expect("MODEL_URL must be set"),
             std::env::var("MODEL_API_KEY").expect("MODEL_API_KEY must be set"),
         );
@@ -399,7 +383,7 @@ The president of the Moon is TDB.
         let temp_file_path = temp_file.path();
 
         // Create a new FileStorage instance.
-        let fs = FileStorage::new(hal_9100_config).await;
+        let fs = MinioStorage::new(hal_9100_config).await;
 
         // Upload the file.
         let file_id = fs.upload_file(&temp_file_path).await.unwrap();
@@ -437,8 +421,7 @@ The president of the Moon is TDB.
             .unwrap();
 
         // Retrieve the file contents
-        let file_contents =
-            retrieve_file_contents(&vec![String::from(file_path.id)], &file_storage).await;
+        let file_contents = retrieve_file_contents(&vec![String::from(file_path.id)], &*file_storage).await;
 
         // Check the file contents
         assert!(

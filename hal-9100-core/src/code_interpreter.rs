@@ -325,6 +325,7 @@ mod tests {
     use hal_9100_extra::openai::Message;
 
     #[tokio::test]
+    #[ignore]
     async fn test_interpreter() {
         dotenv().ok();
 
