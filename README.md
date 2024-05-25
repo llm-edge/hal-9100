@@ -2,8 +2,7 @@
 
 ### vision 
 
-Full-stack LLM platform for developing, collaborating, testing, deploying LLM applications
-designed to run without internet access.
+Full-stack LLM platform for developing, collaborating, testing, deploying LLM applications in environment without internet access with 1-4 AI accelerators (CPU, GPU, TPU, VPU) on any device.
 
 ### status
 
